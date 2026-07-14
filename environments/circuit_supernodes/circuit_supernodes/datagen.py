@@ -1,44 +1,18 @@
-"""Synthetic circuit-eliciting prompt generator.
-
-Samples prompts from the families studied in Anthropic's attribution-graphs
-papers (methods.html / biology.html), each paired with the target completion
-and the *expected conceptual circuit*: an ordered list of concept groups we
-expect to appear as supernodes in the pruned attribution graph, plus the
-expected edges between them. These act as weak ground truth for scoring
-supernode/circuit identification.
-
-Families implemented:
-  - two_hop:      "Fact: the capital of the state containing Dallas is" -> Austin
-  - addition:     "calc: 36+59=" -> 95
-  - antonym:      'The opposite of "hot" is "' -> cold   (en/fr/es multilingual)
-  - analogy:      "Mexico:peso :: Europe:" -> euro
-  - acronym:      "The National Digital Analytics Group (N" -> DAG
-  - sequence:     "7 14 21 28 35" -> 42
-  - factual:      "Fact: Michael Jordan plays the sport of" -> basketball
-  - incontext:    "grass: green sky: blue ... strawberry:" -> red
-"""
-
 import random
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass
 class CircuitSample:
     family: str
     prompt: str
-    target: str  # expected next-token continuation (string prefix match)
-    # Expected conceptual supernodes, input-side to output-side. Each entry is
-    # (concept_name, [keywords that should describe member features/tokens]).
+    target: str
     expected_supernodes: list[tuple[str, list[str]]] = field(default_factory=list)
-    # Expected edges between expected supernodes, by concept_name.
     expected_edges: list[tuple[str, str]] = field(default_factory=list)
-    params: dict = field(default_factory=dict)
 
     def to_row(self) -> dict:
         return asdict(self)
 
-
-# Task Faimily Data
 
 TWO_HOP = [
     # (city, region, capital, region_kind)
@@ -119,14 +93,16 @@ INCONTEXT_ATTRS = [
 ]
 
 
-# --- samplers ---------------------------------------------------------------
-
-
 def _two_hop(rng: random.Random) -> CircuitSample:
     city, region, capital, kind = rng.choice(TWO_HOP)
+    # one-shot exemplar: Qwen3-4B answers " which" to the bare zero-shot prompt
+    ec, _, ecap, ekind = rng.choice([t for t in TWO_HOP if t[0] != city])
     return CircuitSample(
         family="two_hop",
-        prompt=f"Fact: the capital of the {kind} containing {city} is",
+        prompt=(
+            f"Fact: the capital of the {ekind} containing {ec} is {ecap}.\n"
+            f"Fact: the capital of the {kind} containing {city} is"
+        ),
         target=f" {capital}",
         expected_supernodes=[
             ("city", [city]),
@@ -139,7 +115,6 @@ def _two_hop(rng: random.Random) -> CircuitSample:
             ("region", f"say-{capital}"),
             ("capital-relation", f"say-{capital}"),
         ],
-        params={"city": city, "region": region, "capital": capital, "kind": kind},
     )
 
 
@@ -170,7 +145,6 @@ def _addition(rng: random.Random) -> CircuitSample:
             ("ones-digit", f"say-{s}"),
             ("magnitude", f"say-{s}"),
         ],
-        params={"a": a, "b": b, "sum": s},
     )
 
 
@@ -192,7 +166,6 @@ def _antonym(rng: random.Random) -> CircuitSample:
             ("operand-word", f"say-{ant}"),
             ("antonym-relation", f"say-{ant}"),
         ],
-        params={"lang": lang, "word": w, "antonym": ant},
     )
 
 
@@ -217,7 +190,6 @@ def _analogy(rng: random.Random) -> CircuitSample:
             ("relation", f"say-{d}"),
             ("query", f"say-{d}"),
         ],
-        params={"a": a, "b": b, "c": c, "d": d, "relation": rel},
     )
 
 
@@ -240,19 +212,20 @@ def _acronym(rng: random.Random) -> CircuitSample:
             ("word-initials", f"say-{acronym[1:]}"),
             ("acronym-mode", f"say-{acronym[1:]}"),
         ],
-        params={"words": [w1, w2, w3, suf], "acronym": acronym},
     )
 
 
 def _sequence(rng: random.Random) -> CircuitSample:
     step = rng.choice([3, 4, 6, 7, 9, 11])
-    start = step
+    start = step * rng.randint(1, 4)
     terms = [start + i * step for i in range(5)]
     nxt = terms[-1] + step
     return CircuitSample(
         family="sequence",
-        prompt=" ".join(str(t) for t in terms),
-        target=f" {nxt}",
+        # trailing space: Qwen tokenizes " 42" as [" ", "4", "2"], so without it
+        # the top predicted token is always the bare space and faithfulness fails
+        prompt=" ".join(str(t) for t in terms) + " ",
+        target=str(nxt),
         expected_supernodes=[
             ("sequence-terms", [str(t) for t in terms]),
             ("step-pattern", [f"+{step}", "multiples", str(step)]),
@@ -262,7 +235,6 @@ def _sequence(rng: random.Random) -> CircuitSample:
             ("sequence-terms", "step-pattern"),
             ("step-pattern", f"say-{nxt}"),
         ],
-        params={"step": step, "terms": terms, "next": nxt},
     )
 
 
@@ -278,7 +250,6 @@ def _factual(rng: random.Random) -> CircuitSample:
             (f"say-{sport}", [sport, "say"]),
         ],
         expected_edges=[("entity", f"say-{sport}"), ("sport-relation", f"say-{sport}")],
-        params={"person": person, "sport": sport},
     )
 
 
@@ -296,7 +267,6 @@ def _incontext(rng: random.Random) -> CircuitSample:
             (f"say-{qv}", [qv, "say"]),
         ],
         expected_edges=[("pattern", f"say-{qv}"), ("query-item", f"say-{qv}")],
-        params={"context": ctx, "query": qk, "answer": qv},
     )
 
 
@@ -315,17 +285,29 @@ FAMILIES = {
 def generate(
     n: int, seed: int = 0, families: list[str] | None = None
 ) -> list[CircuitSample]:
-    """Sample n prompts round-robin across families (uniform coverage, then random)."""
+    if n < 1:
+        raise ValueError("n must be >= 1")
+    fams = list(FAMILIES) if families is None else list(families)
+    if not fams:
+        raise ValueError("families must not be empty")
+    if unknown := set(fams) - FAMILIES.keys():
+        raise ValueError(f"unknown families: {sorted(unknown)}")
     rng = random.Random(seed)
-    fams = families or list(FAMILIES)
-    samples, seen = [], set()
-    i = 0
-    while len(samples) < n and i < n * 20:
-        fam = fams[i % len(fams)] if i < n else rng.choice(fams)
-        s = FAMILIES[fam](rng)
-        i += 1
-        if s.prompt in seen:
-            continue
-        seen.add(s.prompt)
-        samples.append(s)
+    base, extra = divmod(n, len(fams))
+    samples: list[CircuitSample] = []
+    seen: set[str] = set()
+    for i, fam in enumerate(fams):
+        quota = base + (i < extra)
+        misses = 0
+        while quota:
+            s = FAMILIES[fam](rng)
+            if s.prompt in seen:
+                misses += 1
+                if misses > 50 * (quota + 1):
+                    raise ValueError(f"family {fam!r} ran out of unique prompts")
+                continue
+            seen.add(s.prompt)
+            samples.append(s)
+            quota -= 1
+    rng.shuffle(samples)
     return samples

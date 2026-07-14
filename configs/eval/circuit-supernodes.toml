@@ -1,0 +1,16 @@
+# uv run eval @ ../../configs/eval/circuit-supernodes.toml
+# Override --model to evaluate another policy model with the same task settings.
+model = "Qwen/Qwen3.5-4B"
+num_tasks = 16
+num_rollouts = 1
+max_turns = 4
+
+[sampling]
+max_tokens = 16384
+
+[taskset]
+id = "circuit-supernodes"
+dataset_file = "heldout.jsonl"
+
+[harness]
+id = "null"

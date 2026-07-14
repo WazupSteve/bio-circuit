@@ -1,79 +1,105 @@
-"""Generate the synthetic dataset: sample prompts, compute attribution graphs on Modal,
-    filter faithful outputs, and write circuit_supernodes/data/dataset.jsonl.
-
-Usage:
-    uv run python scripts/build_dataset.py --n 16 --seed 0
-"""
-
 import argparse
 import json
-import subprocess
-import sys
 from pathlib import Path
+from urllib.request import Request, urlopen
 
-ENV_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(ENV_ROOT))
+import modal
+from circuit_supernodes.datagen import generate
+from circuit_supernodes.graphs import load_graph_json, slim_graph
+from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS
 
-from circuit_supernodes.datagen import generate  # noqa: E402
-from circuit_supernodes.graphs import load_graph_json  # noqa: E402
+DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
+NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
 
 
 def is_faithful(graph_json: dict, target: str) -> tuple[bool, str]:
-    """Does the subject model's top predicted token match the intended target?
-    Qwen tokenizes digits individually, so the top token is just the first piece of the target
-    (example :'9' for target '95')
-    """
     g = load_graph_json(graph_json)
     if not g.top_outputs:
         return False, ""
     top_tok = g.top_outputs[0][0]
     t, tt = target.strip(), top_tok.strip()
-    return bool(tt) and (t.startswith(tt) or tt.startswith(t)), top_tok
+    return bool(tt) and t.startswith(tt), top_tok
+
+
+def add_neuronpedia_labels(graph_json: dict, max_features: int = 60) -> int:
+    nodes = slim_graph(load_graph_json(graph_json), max_features).feature_nodes
+    features = {tuple(map(int, node.id.split("_")[:2])) for node in nodes}
+    if not features:
+        return 0
+    payload = [
+        {
+            "modelId": "qwen3-4b",
+            "layer": f"{layer}-transcoder-hp",
+            "index": feature,
+            "maxActsToReturn": 1,
+        }
+        for layer, feature in sorted(features)
+    ]
+    request = Request(
+        NEURONPEDIA_FEATURES_URL,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(request, timeout=30) as response:
+        records = json.load(response)
+    if not isinstance(records, list):
+        raise ValueError("unexpected Neuronpedia response")
+
+    labels = {}
+    for record in records:
+        descriptions = record.get("explanations") or []
+        label = next(
+            (
+                str(item.get("description", "")).strip()
+                for item in descriptions
+                if str(item.get("description", "")).strip()
+            ),
+            "",
+        )
+        if label:
+            layer = str(record["layer"]).split("-", 1)[0]
+            labels[f"{layer}_{record['index']}"] = label
+
+    count = 0
+    for node in graph_json.get("nodes", []):
+        node_id = str(node.get("node_id", node.get("id", "")))
+        if label := labels.get("_".join(node_id.split("_")[:2])):
+            node["label"] = label
+            count += 1
+    return count
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--families", nargs="*", help="restrict to these prompt families")
+    ap.add_argument("--out", default=str(DATA_DIR / "dataset.jsonl"))
     ap.add_argument(
-        "--out", default=str(ENV_ROOT / "circuit_supernodes" / "data" / "dataset.jsonl")
+        "--neuronpedia-labels",
+        action="store_true",
+        help="label the 60 displayed features using one Neuronpedia batch request",
     )
     args = ap.parse_args()
 
-    samples = generate(args.n, seed=args.seed)
-    prompts = [s.prompt for s in samples]
+    samples = generate(args.n, seed=args.seed, families=args.families)
     print(
         f"Sampled {len(samples)} prompts across families:",
         sorted({s.family for s in samples}),
     )
 
-    payload = json.dumps(prompts)
-    req = ENV_ROOT / "modal_app" / "_prompts.json"
-    req.write_text(payload)
-    # Run attribution remotely; modal_app/attribution.py reads _prompts.json and writes _graphs.json next to it.
-    subprocess.run(
-        [
-            "uv",
-            "run",
-            "modal",
-            "run",
-            str(ENV_ROOT / "modal_app" / "attribution.py"),
-            "--prompts-file",
-            str(req),
-        ],
-        check=True,
-        cwd=str(ENV_ROOT.parent.parent),
-    )
-    graphs = json.loads((ENV_ROOT / "modal_app" / "_graphs.json").read_text())
-    assert len(graphs) == len(samples), (
-        f"{len(graphs)} graphs != {len(samples)} samples"
+    attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
+    graphs = list(
+        attributor.attribute_prompt.map([s.prompt for s in samples], order_outputs=True)
     )
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(out.suffix + ".tmp")
     kept, stats = 0, {}
-    with out.open("w") as f:
-        for s, graph in zip(samples, graphs):
+    with tmp.open("w") as f:
+        for s, graph in zip(samples, graphs, strict=True):
             if graph is None:
                 print(f"  ! attribution failed for {s.prompt!r}, skipping")
                 continue
@@ -85,6 +111,12 @@ def main() -> None:
                     f"model says {top_tok!r}, wanted {s.target!r} — skipping"
                 )
                 continue
+            if args.neuronpedia_labels:
+                try:
+                    labeled = add_neuronpedia_labels(graph)
+                    print(f"  + added {labeled} Neuronpedia feature labels")
+                except (OSError, ValueError) as exc:
+                    print(f"  ! Neuronpedia labels unavailable: {exc}")
             row = s.to_row()
             row["graph"] = graph
             f.write(json.dumps(row) + "\n")
@@ -93,6 +125,10 @@ def main() -> None:
         "faithfulness by family:",
         {k: f"{sum(v)}/{len(v)}" for k, v in sorted(stats.items())},
     )
+    if not kept:
+        tmp.unlink()
+        raise SystemExit("no faithful graphs generated; existing dataset preserved")
+    tmp.replace(out)
     print(f"Wrote {kept} rows -> {out}")
 
 

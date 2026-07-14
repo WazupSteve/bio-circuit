@@ -10,10 +10,8 @@
 /.factory/skills/
 /.opencode/skills/
 /.pi/skills/
-/outputs/
 /prime-rl/
 /environments/AGENTS.md
-/environments/*/outputs/
 /environments/*/dist/
 /environments/*/*.egg-info/
 /environments/*/__pycache__/
@@ -22,3 +20,5 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 uv.lock
+explainations.md
+CODEBASE_OVERVIEW.md

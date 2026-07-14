@@ -1,12 +1,18 @@
 [project]
 name = "circuit-supernodes"
-description = "Identify supernodes and circuits in Qwen3-4B attribution graphs built from cross-layer transcoders"
-tags = ["single-turn", "interpretability", "train", "eval"]
+description = "Identify supernodes and circuits in Qwen3-4B attribution graphs built from per-layer transcoders"
+tags = ["multi-turn", "interpretability", "train", "eval"]
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.14"
 dependencies = [
-    "verifiers>=0.1.14",
+    "verifiers==0.2.0",
     "modal>=1.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.15",
 ]
 
 [build-system]
@@ -15,7 +21,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 include = ["circuit_supernodes/**", "pyproject.toml"]
-
-[tool.verifiers.eval]
-num_examples = 16
-rollouts_per_example = 1

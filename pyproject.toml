@@ -1,12 +1,22 @@
 [project]
 name = "biocircuit"
 version = "0.1.0"
-description = "Add your description here"
+description = "Prime RL environment for circuit-level interpretability of Qwen3-4B attribution graphs"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
-    "datasets>=4.6.1",
     "modal>=1.5.1",
-    "ruff>=0.15.20",
-    "verifiers>=0.1.14",
+    "verifiers==0.2.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.15",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

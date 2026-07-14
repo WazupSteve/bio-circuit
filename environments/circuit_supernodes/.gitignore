@@ -1,3 +1,2 @@
-# generated attribution artifacts (too large for git; rebuild with scripts/build_dataset.py)
-modal_app/_*.json
+# generated attribution dataset (too large for git; rebuild with scripts/build_dataset.py)
 circuit_supernodes/data/

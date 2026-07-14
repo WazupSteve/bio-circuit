@@ -1,108 +1,125 @@
-"""Taskset loader for supernode circuit identification."""
-
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
-import verifiers as vf
+import verifiers.v1 as vf
+from pydantic import Field
 
+from .experiments import MAX_EXPERIMENTS, AblationTools, CircuitState
 from .graphs import graph_to_json, load_graph_json, render_graph, slim_graph
-from .rubric import InterventionScoring
+from .rubric import InterventionScoring, parse_proposal
 
 DATA_DIR = Path(__file__).parent / "data"
+TASKSET_ID = "circuit-supernodes"
 
 SYSTEM_PROMPT = """\
-You are an interpretability researcher analyzing attribution graphs of a
-language model (Qwen3-4B) computed with cross-layer transcoders, following
-Anthropic's "Circuit Tracing" methodology.
+You are analyzing an attribution graph of Qwen3-4B built with per-layer
+transcoders. Group FEATURE nodes by concept and causal role, then connect the
+groups into a directed circuit.
 
-You are given the prompt tokens, the model's top output tokens, the graph's
-nodes (transcoder features, embeddings, error and logit nodes) and the
-strongest edges (direct linear attributions).
+You may call circuit_run_ablation before answering. It clamps selected FEATURE
+nodes to zero and reports changes in output probability and requested probe-group
+activations. Use it to test uncertain causal links.
 
-Group the FEATURE nodes into supernodes — clusters of features that represent
-the same concept and play the same causal role — and describe the circuit as
-directed edges between supernodes.
+Your final proposal is scored by independent ablations for causal separation,
+feature coverage, and completeness. Use 2-8 disjoint supernodes, FEATURE IDs
+only. Every supernode needs an outgoing edge. "output" is the reserved terminal.
+Edges mean reachability: A -> B -> output predicts that ablating A reduces B and
+the output.
 
-Your proposal is verified CAUSALLY: each supernode you propose will be ablated
-in the actual model (features clamped to 0), and the measured effects must
-propagate exactly along your edges — ablating a supernode should strongly
-reduce the supernodes and output it can reach through your edges, and leave
-unreachable supernodes untouched. You are rewarded for the separation between
-the two, so both missing edges and superfluous edges cost you.
-
-Rules:
-- Supernode members must be FEATURE node ids only — never embedding, error,
-  or logit node ids.
-- Each feature node belongs to at most one supernode; use 2-8 supernodes.
-- "output" is a reserved terminal node: draw an edge ["<supernode>", "output"]
-  from any supernode that directly drives the predicted token.
-- Name supernodes by their concept (e.g. "Texas", "say a capital", "ones
-  digit is 5").
-- Prefer high-influence feature nodes; ignore near-zero-influence ones.
-
-Respond with a short analysis, then a single JSON code block:
+Finish with a short analysis and exactly one JSON code block:
 ```json
 {
   "supernodes": [{"name": "<concept>", "nodes": ["<node_id>", ...]}, ...],
-  "edges": [["<source supernode>", "<target supernode or output>"], ...],
-  "narrative": "<one-paragraph mechanistic story from input tokens to output>"
+  "edges": [["<source>", "<target or output>"], ...]
 }
 ```"""
 
 
-class CircuitTasksetConfig(vf.TasksetConfig):
-    dataset_file: str = "dataset.jsonl"
-    max_features: int = 60
+class CircuitTaskData(vf.TaskData):
+    family: str
+    subject_prompt: str
+    graph: dict
 
 
-class CircuitEnvConfig(vf.EnvConfig):
-    taskset: CircuitTasksetConfig | None = None
+_SCORER = InterventionScoring()
 
 
-def load_taskset(config: CircuitTasksetConfig | None = None) -> vf.Taskset:
-    config = CircuitTasksetConfig.from_config(config)
-    dataset_path = DATA_DIR / config.dataset_file
+class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
+    tools = (AblationTools,)
 
-    def rows():
-        if not dataset_path.exists():
-            raise FileNotFoundError(
-                f"{dataset_path} missing — generate it with "
-                "`uv run python scripts/build_dataset.py` (runs attribution on Modal)."
+    @vf.metric
+    def experiments_used(self, trace: vf.Trace) -> float:
+        return float(trace.state.experiments_used)
+
+    @vf.reward
+    async def circuit_faithfulness(self, trace: vf.Trace) -> float:
+        proposal = parse_proposal(trace.last_reply)
+        if proposal is None:
+            trace.info["scoring_error"] = "missing final proposal JSON"
+            return 0.0
+        try:
+            result = await _SCORER.score(
+                self.data.subject_prompt,
+                load_graph_json(self.data.graph),
+                proposal,
             )
-        with dataset_path.open() as f:
-            for line in f:
+        except Exception as exc:
+            trace.info["intervention_error"] = f"{type(exc).__name__}: {exc}"
+            return 0.0
+        trace.info["reward_components"] = result
+        return result["reward"]
+
+
+class CircuitTasksetConfig(vf.TasksetConfig):
+    id: str = TASKSET_ID
+    dataset_file: str = "dataset.jsonl"
+    max_features: int = Field(60, ge=2, le=4096)
+
+
+class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
+    def load(self) -> list[CircuitTask]:
+        path = DATA_DIR / self.config.dataset_file
+        if not path.exists():
+            raise FileNotFoundError(
+                f"{path} missing; run `uv run python scripts/build_dataset.py`."
+            )
+
+        tasks = []
+        with path.open() as rows:
+            for idx, line in enumerate(rows):
                 if not line.strip():
                     continue
-                rec = json.loads(line)
-                g = slim_graph(
-                    load_graph_json(rec["graph"]), max_features=config.max_features
+                row = json.loads(line)
+                graph = slim_graph(
+                    load_graph_json(row["graph"]), self.config.max_features
                 )
-                question = (
-                    f"Subject prompt: {rec['prompt']!r}\n"
-                    f"Expected continuation: {rec['target']!r}\n\n"
-                    f"{render_graph(g)}\n\n"
-                    "Identify the supernodes and the circuit."
+                prompt = (
+                    f"Subject prompt: {row['prompt']!r}\n"
+                    f"Expected continuation: {row['target']!r}\n\n"
+                    f"{render_graph(graph)}\n\n"
+                    f"Experiment budget: {MAX_EXPERIMENTS}. "
+                    "Submit the final circuit when ready."
                 )
-                yield {
-                    "prompt": [{"role": "user", "content": question}],
-                    "info": {
-                        "family": rec["family"],
-                        "subject_prompt": rec["prompt"],
-                        "expected_supernodes": rec["expected_supernodes"],
-                        "expected_edges": rec["expected_edges"],
-                        "graph": graph_to_json(g),
-                    },
-                    "max_turns": 1,
-                }
-
-    return vf.Taskset(
-        source=rows,
-        system_prompt=SYSTEM_PROMPT,
-        rewards=InterventionScoring().signals(),
-        config=config,
-    )
+                data = CircuitTaskData(
+                    idx=idx,
+                    name=f"{row['family']}-{idx}",
+                    prompt=prompt,
+                    system_prompt=SYSTEM_PROMPT,
+                    family=row["family"],
+                    subject_prompt=row["prompt"],
+                    graph=graph_to_json(graph),
+                )
+                tasks.append(CircuitTask(data, self.config.task))
+        return tasks
 
 
-def load_environment(config: CircuitEnvConfig | None = None) -> vf.Env:
-    config = config or CircuitEnvConfig()
-    return vf.Env(taskset=load_taskset(config=config.taskset))
+def load_environment(config: vf.EnvConfig | Mapping | None = None) -> vf.Environment:
+    if isinstance(config, vf.EnvConfig):
+        raw = config.model_dump()
+    else:
+        raw = dict(config or {})
+    raw["taskset"] = {"id": TASKSET_ID, **dict(raw.get("taskset") or {})}
+    raw["harness"] = {"id": "null", **dict(raw.get("harness") or {})}
+    raw.setdefault("max_turns", 4)
+    return vf.Environment(vf.EnvConfig.model_validate(raw))
