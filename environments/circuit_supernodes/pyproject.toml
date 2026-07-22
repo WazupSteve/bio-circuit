@@ -5,8 +5,9 @@ tags = ["multi-turn", "interpretability", "train", "eval"]
 version = "0.1.0"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "verifiers==0.2.0",
+    "verifiers==0.2.1",
     "modal>=1.5",
+    "pydantic>=2.12.3",
 ]
 
 [dependency-groups]

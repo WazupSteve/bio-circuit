@@ -1,6 +1,6 @@
 # prime rl run -c configs/rl/circuit-supernodes.toml
 # Train on 6 prompt families, eval on 2 held-out ones (two_hop, addition).
-# Each rollout may use three two-pass experiments before final scoring, which
+# Each rollout may use seven two-pass experiments before final scoring, which
 # costs ~k+2 more GPU passes. Keep batches modest.
 model = "Qwen/Qwen3.5-4B"
 
@@ -13,7 +13,7 @@ max_tokens = 16384
 enable_thinking = false
 
 [[env]]
-max_turns = 4
+max_turns = 8
 
 [env.taskset]
 id = "circuit-supernodes"
@@ -29,7 +29,7 @@ rollouts_per_example = 1
 eval_base_model = true
 
 [[eval.env]]
-max_turns = 4
+max_turns = 8
 
 [eval.env.taskset]
 id = "circuit-supernodes"

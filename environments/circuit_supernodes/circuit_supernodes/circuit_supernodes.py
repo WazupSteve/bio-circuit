@@ -1,5 +1,5 @@
 import json
-from collections.abc import Mapping
+from collections.abc import Iterator
 from pathlib import Path
 
 import verifiers.v1 as vf
@@ -10,7 +10,6 @@ from .graphs import graph_to_json, load_graph_json, render_graph, slim_graph
 from .rubric import InterventionScoring, parse_proposal
 
 DATA_DIR = Path(__file__).parent / "data"
-TASKSET_ID = "circuit-supernodes"
 
 SYSTEM_PROMPT = """\
 You are analyzing an attribution graph of Qwen3-4B built with per-layer
@@ -49,7 +48,7 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
     tools = (AblationTools,)
 
     @vf.metric
-    def experiments_used(self, trace: vf.Trace) -> float:
+    async def experiments_used(self, trace: vf.Trace) -> float:
         return float(trace.state.experiments_used)
 
     @vf.reward
@@ -72,20 +71,18 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
 
 
 class CircuitTasksetConfig(vf.TasksetConfig):
-    id: str = TASKSET_ID
     dataset_file: str = "dataset.jsonl"
     max_features: int = Field(60, ge=2, le=4096)
 
 
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
-    def load(self) -> list[CircuitTask]:
+    def load(self) -> Iterator[CircuitTask]:
         path = DATA_DIR / self.config.dataset_file
         if not path.exists():
             raise FileNotFoundError(
                 f"{path} missing; run `uv run python scripts/build_dataset.py`."
             )
 
-        tasks = []
         with path.open() as rows:
             for idx, line in enumerate(rows):
                 if not line.strip():
@@ -110,16 +107,4 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                     subject_prompt=row["prompt"],
                     graph=graph_to_json(graph),
                 )
-                tasks.append(CircuitTask(data, self.config.task))
-        return tasks
-
-
-def load_environment(config: vf.EnvConfig | Mapping | None = None) -> vf.Environment:
-    if isinstance(config, vf.EnvConfig):
-        raw = config.model_dump()
-    else:
-        raw = dict(config or {})
-    raw["taskset"] = {"id": TASKSET_ID, **dict(raw.get("taskset") or {})}
-    raw["harness"] = {"id": "null", **dict(raw.get("harness") or {})}
-    raw.setdefault("max_turns", 4)
-    return vf.Environment(vf.EnvConfig.model_validate(raw))
+                yield CircuitTask(data, self.config.task)

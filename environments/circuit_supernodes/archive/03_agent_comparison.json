@@ -1,0 +1,175 @@
+{
+  "task": "two_hop-0: Savannah -> Georgia -> Atlanta",
+  "models": [
+    {
+      "model": "Claude Fable 5",
+      "reward": 0.7919970389853698,
+      "experiments": 7.0,
+      "turns": 6,
+      "supernodes": [
+        {
+          "name": "Savannah/Georgia city identification (pos 21)",
+          "node_count": 9
+        },
+        {
+          "name": "Capital-of relation (capital/of tokens)",
+          "node_count": 5
+        },
+        {
+          "name": "Fact-template / first-example structure",
+          "node_count": 9
+        },
+        {
+          "name": "Early answer aggregation at ' is' (L24-27)",
+          "node_count": 7
+        },
+        {
+          "name": "Mid answer propagation (L28-30)",
+          "node_count": 10
+        },
+        {
+          "name": "Late Atlanta promotion (L31-35)",
+          "node_count": 20
+        }
+      ],
+      "edges": [
+        [
+          "Savannah/Georgia city identification (pos 21)",
+          "Early answer aggregation at ' is' (L24-27)"
+        ],
+        [
+          "Savannah/Georgia city identification (pos 21)",
+          "output"
+        ],
+        [
+          "Capital-of relation (capital/of tokens)",
+          "Early answer aggregation at ' is' (L24-27)"
+        ],
+        [
+          "Fact-template / first-example structure",
+          "output"
+        ],
+        [
+          "Early answer aggregation at ' is' (L24-27)",
+          "Mid answer propagation (L28-30)"
+        ],
+        [
+          "Early answer aggregation at ' is' (L24-27)",
+          "Late Atlanta promotion (L31-35)"
+        ],
+        [
+          "Mid answer propagation (L28-30)",
+          "output"
+        ],
+        [
+          "Late Atlanta promotion (L31-35)",
+          "output"
+        ]
+      ]
+    },
+    {
+      "model": "GPT-5.6 Sol",
+      "reward": 0.5771494668882323,
+      "experiments": 7.0,
+      "turns": 2,
+      "supernodes": [
+        {
+          "name": "capital-relation task schema",
+          "node_count": 11
+        },
+        {
+          "name": "Savannah entity encoding",
+          "node_count": 5
+        },
+        {
+          "name": "Savannah state-capital retrieval",
+          "node_count": 5
+        },
+        {
+          "name": "Atlanta answer-state relay",
+          "node_count": 5
+        },
+        {
+          "name": "Atlanta decoding and readout",
+          "node_count": 10
+        }
+      ],
+      "edges": [
+        [
+          "capital-relation task schema",
+          "Atlanta answer-state relay"
+        ],
+        [
+          "Savannah entity encoding",
+          "Savannah state-capital retrieval"
+        ],
+        [
+          "Savannah state-capital retrieval",
+          "Atlanta answer-state relay"
+        ],
+        [
+          "Atlanta answer-state relay",
+          "Atlanta decoding and readout"
+        ],
+        [
+          "Atlanta answer-state relay",
+          "output"
+        ],
+        [
+          "Atlanta decoding and readout",
+          "output"
+        ]
+      ]
+    },
+    {
+      "model": "Claude Opus 4.8",
+      "reward": 0.32669316326180414,
+      "experiments": 6.0,
+      "turns": 4,
+      "supernodes": [
+        {
+          "name": "Savannah early features",
+          "node_count": 4
+        },
+        {
+          "name": "Savannah entity resolution",
+          "node_count": 4
+        },
+        {
+          "name": "Is-position early aggregation",
+          "node_count": 7
+        },
+        {
+          "name": "Is-position late output computation",
+          "node_count": 12
+        }
+      ],
+      "edges": [
+        [
+          "Savannah early features",
+          "Savannah entity resolution"
+        ],
+        [
+          "Savannah early features",
+          "Is-position late output computation"
+        ],
+        [
+          "Savannah entity resolution",
+          "Is-position early aggregation"
+        ],
+        [
+          "Savannah entity resolution",
+          "Is-position late output computation"
+        ],
+        [
+          "Is-position early aggregation",
+          "Is-position late output computation"
+        ],
+        [
+          "Is-position late output computation",
+          "output"
+        ]
+      ]
+    }
+  ]
+}

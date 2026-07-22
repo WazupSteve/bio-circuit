@@ -3,7 +3,7 @@ import verifiers.v1 as vf
 from .graphs import Graph, feature_coords, load_graph_json
 from .rubric import MODAL_APP, MODAL_CLS, relative_drop
 
-MAX_EXPERIMENTS = 3
+MAX_EXPERIMENTS = 7
 MAX_ABLATED_FEATURES = 12
 MAX_PROBE_GROUPS = 8
 MAX_PROBE_FEATURES = 60
@@ -13,14 +13,10 @@ class CircuitState(vf.State):
     experiments_used: int = 0
 
 
-class AblationConfig(vf.ToolsetConfig):
-    pass
-
-
-class AblationTools(vf.Toolset[AblationConfig, CircuitState]):
+class AblationTools(vf.Toolset[vf.ToolsetConfig, CircuitState]):
     TOOL_PREFIX = "circuit"
 
-    def __init__(self, config: AblationConfig) -> None:
+    def __init__(self, config: vf.ToolsetConfig) -> None:
         super().__init__(config)
         self._attributor = None
         self._graph: Graph | None = None
@@ -129,3 +125,7 @@ class AblationTools(vf.Toolset[AblationConfig, CircuitState]):
             "probe_groups": probe_results,
             "experiments_remaining": self.remaining,
         }
+
+
+if __name__ == "__main__":
+    AblationTools.run()

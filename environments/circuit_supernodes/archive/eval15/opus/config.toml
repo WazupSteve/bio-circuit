@@ -1,0 +1,55 @@
+max_turns = 8
+multiplex = 32
+model = "anthropic/claude-opus-4.8"
+num_tasks = 15
+num_rollouts = 1
+shuffle = false
+max_concurrent = 1
+verbose = false
+dry_run = false
+rich = true
+server = false
+push = false
+output_dir = "slide_artifacts/eval15/opus"
+
+[taskset]
+id = "circuit-supernodes"
+dataset_file = "heldout.jsonl"
+max_features = 60
+
+[taskset.task]
+judges = []
+
+[harness]
+id = "null"
+forward_env = []
+
+[harness.runtime]
+type = "subprocess"
+
+[harness.env]
+
+[timeout]
+
+[retries.rollout]
+max_retries = 0
+include = []
+exclude = []
+
+[args]
+
+[extra_env_kwargs]
+
+[pool]
+type = "elastic"
+multiplex = 128
+
+[client]
+base_url = "https://api.pinference.ai/api/v1"
+api_key_var = "PRIME_API_KEY"
+type = "eval"
+
+[client.headers]
+
+[sampling]
+max_tokens = 16384

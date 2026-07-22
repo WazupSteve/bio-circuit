@@ -27,7 +27,16 @@ def relative_drop(base: float, changed: float) -> float | None:
 
 
 def completion_text(state) -> str:
+    # Historical traces stored an OpenAI-style ``completion`` list. Verifiers
+    # v1 traces store messages in graph ``nodes`` and identify model
+    # responses with ``sampled=true``. Accept both representations.
     messages = state.get("completion") or []
+    if not messages:
+        messages = [
+            node.get("message", {})
+            for node in state.get("nodes", [])
+            if isinstance(node, dict) and node.get("sampled")
+        ]
     for m in reversed(messages):
         role = m.get("role") if isinstance(m, dict) else getattr(m, "role", "")
         if role == "assistant":

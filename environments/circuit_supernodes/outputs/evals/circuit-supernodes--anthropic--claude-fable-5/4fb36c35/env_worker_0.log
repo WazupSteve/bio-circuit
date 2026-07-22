@@ -1,8 +1,0 @@
-2026-07-14 00:03:03 - verifiers.utils.env_utils - INFO - Loading environment: circuit-supernodes
-2026-07-14 00:03:03 - verifiers.utils.env_utils - INFO - Using provided args: config={'taskset': {'dataset_file': 'heldout.jsonl'}}
-2026-07-14 00:03:03 - verifiers.utils.env_utils - INFO - Successfully loaded environment 'circuit-supernodes'
-2026-07-14 00:03:03 - verifiers.utils.thread_utils - INFO - Scaled default executor and 0 registered executor(s) ()
-2026-07-14 00:03:03 - verifiers.serve.server.env_worker.EnvWorker - INFO - Initialized worker circuit-supernodes-0 on ipc:///tmp/vf-782cca2d1c11-circuit-supernodes-0
-2026-07-14 00:03:03 - verifiers.serve.server.env_worker.EnvWorker - INFO - Starting worker circuit-supernodes-0
-2026-07-14 00:07:46 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
-2026-07-14 00:07:46 - verifiers.serve.server.env_worker.EnvWorker - INFO - Shut down worker circuit-supernodes-0

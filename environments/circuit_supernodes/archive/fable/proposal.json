@@ -1,0 +1,128 @@
+{
+  "supernodes": [
+    {
+      "name": "Savannah/Georgia city identification (pos 21)",
+      "nodes": [
+        "0_116505_21",
+        "4_132249_21",
+        "5_15349_21",
+        "6_78565_21",
+        "8_2427_21",
+        "11_157428_21",
+        "20_115226_21",
+        "21_5301_21",
+        "22_18939_21"
+      ]
+    },
+    {
+      "name": "Capital-of relation (capital/of tokens)",
+      "nodes": [
+        "0_2939_4",
+        "0_62829_4",
+        "0_136407_5",
+        "0_62829_16",
+        "5_152748_16"
+      ]
+    },
+    {
+      "name": "Fact-template / first-example structure",
+      "nodes": [
+        "0_116505_2",
+        "0_61774_3",
+        "0_61774_6",
+        "0_33262_7",
+        "0_143254_8",
+        "1_82100_8",
+        "0_64328_13",
+        "4_150988_13",
+        "4_65176_11"
+      ]
+    },
+    {
+      "name": "Early answer aggregation at ' is' (L24-27)",
+      "nodes": [
+        "24_138401_22",
+        "25_14136_22",
+        "25_24563_22",
+        "26_67569_22",
+        "27_14570_22",
+        "27_120572_22",
+        "27_42494_22"
+      ]
+    },
+    {
+      "name": "Mid answer propagation (L28-30)",
+      "nodes": [
+        "28_99792_22",
+        "28_79811_22",
+        "28_90809_22",
+        "28_21493_22",
+        "29_876_22",
+        "29_62359_22",
+        "29_63394_22",
+        "30_14090_22",
+        "30_123596_22",
+        "30_39354_22"
+      ]
+    },
+    {
+      "name": "Late Atlanta promotion (L31-35)",
+      "nodes": [
+        "31_719_22",
+        "31_114171_22",
+        "31_134661_22",
+        "31_134721_22",
+        "31_115741_22",
+        "31_60683_22",
+        "32_155081_22",
+        "32_9263_22",
+        "32_104728_22",
+        "32_113357_22",
+        "33_52951_22",
+        "33_149069_22",
+        "33_32808_22",
+        "34_60866_22",
+        "34_80525_22",
+        "35_23151_22",
+        "35_119651_22",
+        "35_123612_22",
+        "35_9377_22",
+        "35_42381_22"
+      ]
+    }
+  ],
+  "edges": [
+    [
+      "Savannah/Georgia city identification (pos 21)",
+      "Early answer aggregation at ' is' (L24-27)"
+    ],
+    [
+      "Savannah/Georgia city identification (pos 21)",
+      "output"
+    ],
+    [
+      "Capital-of relation (capital/of tokens)",
+      "Early answer aggregation at ' is' (L24-27)"
+    ],
+    [
+      "Fact-template / first-example structure",
+      "output"
+    ],
+    [
+      "Early answer aggregation at ' is' (L24-27)",
+      "Mid answer propagation (L28-30)"
+    ],
+    [
+      "Early answer aggregation at ' is' (L24-27)",
+      "Late Atlanta promotion (L31-35)"
+    ],
+    [
+      "Mid answer propagation (L28-30)",
+      "output"
+    ],
+    [
+      "Late Atlanta promotion (L31-35)",
+      "output"
+    ]
+  ]
+}

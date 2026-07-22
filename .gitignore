@@ -20,5 +20,3 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 uv.lock
-explainations.md
-CODEBASE_OVERVIEW.md
