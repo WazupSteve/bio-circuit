@@ -1,0 +1,1154 @@
+[
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Oakland is Sacramento.\nFact: the capital of the state containing Savannah is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.6609026914362964,
+    "separation": 0.5014518071749551,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.21264367816091953,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.8400410524654829,
+    "separation": 0.7478838997740644,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2028985507246377,
+    "experiment_cost": 5
+   },
+   "v1/random-multistart": {
+    "reward": 0.8302309040479262,
+    "separation": 0.7333841034507503,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.191455747257912,
+    "separation": 0.5004012713251204,
+    "coverage": 0.5309806896372015,
+    "completeness": 0.003866411722120739,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.14919354838709678,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.4270240954995831,
+    "separation": 0.34078139076036645,
+    "coverage": 0.926616069536567,
+    "completeness": 0.3871992137978859,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.203125,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.3811418740859546,
+    "separation": 0.2003600394227101,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3045977011494253,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.6230319784598576,
+    "separation": 0.4544825683639139,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2028985507246377,
+    "experiment_cost": 5
+   },
+   "v2/random-multistart": {
+    "reward": 0.7318911723053821,
+    "separation": 0.5943982401423489,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.25252525252525254,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.12715961483284877,
+    "separation": 0.2529995396366859,
+    "coverage": 0.5309806896372015,
+    "completeness": 0.003866411722120739,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.16363636363636364,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.4374448147150076,
+    "separation": 0.35475404557909695,
+    "coverage": 0.926616069536567,
+    "completeness": 0.3871992137978859,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.203125,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the country containing Osaka is Tokyo.\nFact: the capital of the country containing Munich is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.7561238471311171,
+    "separation": 0.6275594767694214,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2488479262672811,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.5907690273273767,
+    "separation": 0.415938891705555,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.11046511627906977,
+    "experiment_cost": null
+   },
+   "v1/random-multistart": {
+    "reward": 0.7424367027348574,
+    "separation": 0.6087407693604693,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3355263157894737,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.11989649726590004,
+    "separation": 0.45837321843186846,
+    "coverage": 0.5923796489700817,
+    "completeness": 0.00043428481330808066,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07407407407407407,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.5233599706730953,
+    "separation": 0.33988670005261373,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2289156626506024,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.6274866110072477,
+    "separation": 0.45991132703013543,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.32941176470588235,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.6023683002545855,
+    "separation": 0.4296388198170363,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4329608938547486,
+    "experiment_cost": null
+   },
+   "v2/random-multistart": {
+    "reward": 0.7281895259875647,
+    "separation": 0.5893962656074698,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2541436464088398,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.09167753173395049,
+    "separation": 0.29427726614652294,
+    "coverage": 0.5923796489700817,
+    "completeness": 0.0004289871587393611,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07407407407407407,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.5408000176385559,
+    "separation": 0.35897248529518533,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2289156626506024,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "addition",
+  "prompt": "calc: 36+50=86\ncalc: 66+76=",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.31292855897535615,
+    "separation": 0.144236552578516,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.12,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.40251880015356095,
+    "separation": 0.2194372148315788,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.6954854514180929,
+    "experiment_cost": null
+   },
+   "v1/random-multistart": {
+    "reward": 0.5397535103514447,
+    "separation": 0.3578154804313683,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.061587856073970965,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.4043896517117265,
+    "separation": 0.37901285645579486,
+    "coverage": 0.4954772252601065,
+    "completeness": 0.4008802357255627,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0896551724137931,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.2240389777538782,
+    "separation": 0.10987158459746435,
+    "coverage": 0.9558437028773006,
+    "completeness": 0.44522020412796665,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.035897435897435895,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.0,
+    "separation": 0.0,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2849162011173184,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.39557694976275304,
+    "separation": 0.21316617656962833,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.6954854514180929,
+    "experiment_cost": null
+   },
+   "v2/random-multistart": {
+    "reward": 0.46574606308547223,
+    "separation": 0.2798435624986117,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.061587856073970965,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.1451263090542794,
+    "separation": 0.06869062526261467,
+    "coverage": 0.4954772252601065,
+    "completeness": 0.4008802357255627,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.05091254221642525,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.24334683149522215,
+    "separation": 0.09485119929296155,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07723577235772358,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the country containing Shanghai is Beijing.\nFact: the capital of the country containing Munich is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.6003646395350655,
+    "separation": 0.4272596120864322,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.35784313725490197,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9997260387254193,
+    "experiment_cost": null
+   },
+   "v1/random-multistart": {
+    "reward": 0.7986092307173845,
+    "separation": 0.687422710861737,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.358974358974359,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.05876266091175894,
+    "separation": 0.33290695130321374,
+    "coverage": 0.587633403925927,
+    "completeness": 3.2317086540158756e-05,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.18170968837435356,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.3032296868094186,
+    "separation": 0.16423540777569845,
+    "coverage": 0.9631962356422404,
+    "completeness": 0.6008186855617933,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.11363636363636363,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.383921062772831,
+    "separation": 0.20280090960647398,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07564872286006298,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9997155948402089,
+    "experiment_cost": null
+   },
+   "v2/random-multistart": {
+    "reward": 0.7303104459213594,
+    "separation": 0.5922601618245287,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2441860465116279,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.04982567997750329,
+    "separation": 0.25287690356251014,
+    "coverage": 0.587633403925927,
+    "completeness": 3.2317086540158756e-05,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.25961538461538464,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.24888196729620155,
+    "separation": 0.11816884278086555,
+    "coverage": 0.9631962356422404,
+    "completeness": 0.6008186855617933,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07954545454545454,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Oakland is Sacramento.\nFact: the capital of the state containing Miami is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.946291839224146,
+    "separation": 0.9120986745590881,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3447368421052632,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.9324150816929615,
+    "separation": 0.8899155918551559,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4261744966442953,
+    "experiment_cost": 5
+   },
+   "v1/random-multistart": {
+    "reward": 0.9397184105864659,
+    "separation": 0.9015633025493207,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.9999909258619238,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.10643818109751411,
+    "separation": 0.5564177785514387,
+    "coverage": 0.5014739114413592,
+    "completeness": 0.0001581378694657871,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.272215864608675,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.6493469586460562,
+    "separation": 0.4869241908879017,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.21575342465753425,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.8409187497312577,
+    "separation": 0.7491867016609683,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3447368421052632,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.6945090658016311,
+    "separation": 0.5446654976092711,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0989010989010989,
+    "experiment_cost": 5
+   },
+   "v2/random-multistart": {
+    "reward": 0.9605503002651913,
+    "separation": 0.9351189403522095,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.9999909258619238,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.09145294581668033,
+    "separation": 0.4320839051896475,
+    "coverage": 0.5014739114413592,
+    "completeness": 0.0001581378694657871,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.44011976047904194,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.6432206960468176,
+    "separation": 0.47929181901362783,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4772727272727273,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "addition",
+  "prompt": "calc: 49+14=63\ncalc: 40+70=",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.306392145469147,
+    "separation": 0.13925027009159222,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.20987654320987653,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.5626041223240992,
+    "separation": 0.38341713410882244,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0945945945945946,
+    "experiment_cost": 5
+   },
+   "v1/random-multistart": {
+    "reward": 0.389857135266827,
+    "separation": 0.2080538764699422,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1141552511415525,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.33471481859194774,
+    "separation": 0.3278338299812831,
+    "coverage": 0.5006302501904748,
+    "completeness": 0.2381750744321017,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.044444444444444446,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.3296009812586763,
+    "separation": 0.15727058175754222,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0759493670886076,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.31458536676116655,
+    "separation": 0.14551157066636458,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.20987654320987653,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.5393652678517292,
+    "separation": 0.35738662459491033,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0945945945945946,
+    "experiment_cost": 5
+   },
+   "v2/random-multistart": {
+    "reward": 0.4034300694877735,
+    "separation": 0.22026581906543377,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0979020979020979,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.1213897247669323,
+    "separation": 0.06046426045618409,
+    "coverage": 0.5006302501904748,
+    "completeness": 0.2381750744321017,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.05357142857142857,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.28888306953902443,
+    "separation": 0.1262418887151104,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.06692913385826772,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the country containing Munich is Berlin.\nFact: the capital of the country containing Shanghai is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.777039494747792,
+    "separation": 0.6567576732215976,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.23563218390804597,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.7906478861443085,
+    "separation": 0.6760391653975331,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.9966403724884574,
+    "experiment_cost": null
+   },
+   "v1/random-multistart": {
+    "reward": 0.8458090580876145,
+    "separation": 0.7564621796551619,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3861111111111111,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.16945370389810857,
+    "separation": 0.4284540824075279,
+    "coverage": 0.5990957550123616,
+    "completeness": 0.0029651470224996675,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1588785046728972,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.6241344349800674,
+    "separation": 0.455823705375717,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2947019867549669,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.4652788985324453,
+    "separation": 0.2793758924959657,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.572463768115942,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.5466413227200345,
+    "separation": 0.36545796449014883,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.9966403724884574,
+    "experiment_cost": null
+   },
+   "v2/random-multistart": {
+    "reward": 0.7055708124545287,
+    "separation": 0.5592006636994111,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.35542168674698793,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.14606952728993786,
+    "separation": 0.33451727335243,
+    "coverage": 0.5990957550123616,
+    "completeness": 0.0029651470224996675,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1588785046728972,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.5785467116970595,
+    "separation": 0.40169588473655593,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Dallas is Austin.\nFact: the capital of the province containing Vancouver is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.6870533874164599,
+    "separation": 0.5349552762382052,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2647058823529412,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.9328871385880868,
+    "separation": 0.8906666194626843,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.24,
+    "experiment_cost": 5
+   },
+   "v1/random-multistart": {
+    "reward": 0.6563324738872429,
+    "separation": 0.4956858115304202,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2885375494071146,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.09340081165893444,
+    "separation": 0.40280331362280536,
+    "coverage": 0.5356301789309629,
+    "completeness": 0.00020305285925368226,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.044,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.6383899849339774,
+    "separation": 0.558232003132089,
+    "coverage": 0.932713166242454,
+    "completeness": 0.65348861594591,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.14705882352941177,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.4716460055441072,
+    "separation": 0.28577677734012885,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2647058823529412,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.6656485875872282,
+    "separation": 0.5074676452659375,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.24,
+    "experiment_cost": 5
+   },
+   "v2/random-multistart": {
+    "reward": 0.5003831611016605,
+    "separation": 0.31538265917513464,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2827586206896552,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.07164662581890519,
+    "separation": 0.258921543791077,
+    "coverage": 0.5356301789309629,
+    "completeness": 0.00020305285925368226,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1935483870967742,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.5843795598067307,
+    "separation": 0.40846830347989815,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.22857142857142856,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "addition",
+  "prompt": "calc: 16+73=89\ncalc: 62+87=",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.40301410838984947,
+    "separation": 0.21988743659822307,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0970464135021097,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9181988120748109,
+    "experiment_cost": null
+   },
+   "v1/random-multistart": {
+    "reward": 0.5117128269167754,
+    "separation": 0.3273737393178383,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.10232558139534884,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.3629510718138601,
+    "separation": 0.29177638689429014,
+    "coverage": 0.48321365567048113,
+    "completeness": 0.5247479987908936,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.037037037037037035,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.44154620761216795,
+    "separation": 0.25603161658264434,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.19172932330827067,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.1733137751093659,
+    "separation": 0.05387514725729609,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.03482587064676617,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9181988120748109,
+    "experiment_cost": null
+   },
+   "v2/random-multistart": {
+    "reward": 0.5121129412971065,
+    "separation": 0.32780047957484687,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.10232558139534884,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.19822995832235418,
+    "separation": 0.10647610424583727,
+    "coverage": 0.48321365567048113,
+    "completeness": 0.5247479987908936,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4534412955465587,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.4398168712758878,
+    "separation": 0.2543625330983347,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.19172932330827067,
+    "experiment_cost": 5
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Oakland is Sacramento.\nFact: the capital of the state containing Cleveland is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.5164823468066766,
+    "separation": 0.33247510877859776,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.18857142857142858,
+    "experiment_cost": 5
+   },
+   "v1/community": {
+    "reward": 0.7485005362812724,
+    "separation": 0.6170497675796274,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.13478260869565217,
+    "experiment_cost": 5
+   },
+   "v1/random-multistart": {
+    "reward": 0.6704996269727659,
+    "separation": 0.5136463830516408,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.044444444444444446,
+    "experiment_cost": 5
+   },
+   "v1/smallest-legal": {
+    "reward": 0.27255057262988824,
+    "separation": 0.43797610078389626,
+    "coverage": 0.5284548550980107,
+    "completeness": 0.03387477063778653,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0752212389380531,
+    "experiment_cost": null
+   },
+   "v1/coherence-matched": {
+    "reward": 0.5921116551010849,
+    "separation": 0.4175155768831711,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.14644351464435146,
+    "experiment_cost": 5
+   },
+   "v2/blind-balanced": {
+    "reward": 0.0,
+    "separation": 0.0,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.609449282102299,
+    "experiment_cost": 5
+   },
+   "v2/community": {
+    "reward": 0.5622930781833086,
+    "separation": 0.38306390268374646,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.13478260869565217,
+    "experiment_cost": 5
+   },
+   "v2/random-multistart": {
+    "reward": 0.5527956616976621,
+    "separation": 0.372341156585353,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.044444444444444446,
+    "experiment_cost": 5
+   },
+   "v2/smallest-legal": {
+    "reward": 0.20218209904038542,
+    "separation": 0.26624190774681356,
+    "coverage": 0.5284548550980107,
+    "completeness": 0.03387477063778653,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.08849557522123894,
+    "experiment_cost": null
+   },
+   "v2/coherence-matched": {
+    "reward": 0.4503897793330019,
+    "separation": 0.2646351595368165,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.14644351464435146,
+    "experiment_cost": 5
+   }
+  }
+ }
+]

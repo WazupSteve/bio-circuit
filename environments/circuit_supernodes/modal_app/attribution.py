@@ -64,6 +64,24 @@ class Attributor:
         layers, features, positions = zip(*members, strict=True)
         return acts[list(layers), list(positions), list(features)].sum().item()
 
+    @staticmethod
+    def _clamp_values(base_acts, members, ablation: str) -> list[float]:
+        """The value each feature is clamped to.
+
+        ``zero`` removes the feature outright. ``mean`` removes only its
+        deviation from its own average activation over the prompt's positions,
+        which reweights a group's members unequally — the property that makes it
+        a genuinely different operator rather than a weaker version of the same
+        one. Scoring uses ``mean`` while the agent's tool offers ``zero``, so a
+        circuit fitted to what the agent measured has to generalise to be
+        credited.
+        """
+        if ablation == "zero":
+            return [0.0] * len(members)
+        return [
+            base_acts[layer, :, feat].mean().item() for layer, feat, _ in members
+        ]
+
     @modal.method()
     def intervene(
         self,
@@ -72,6 +90,7 @@ class Attributor:
         target_token: str,
         complement: list[tuple[int, int, int]] | None = None,
         ablation_indices: list[int] | None = None,
+        ablation: str = "zero",
     ) -> dict:
         import torch
 
@@ -89,13 +108,16 @@ class Attributor:
                 "ablations": [],
                 "complement_prob": None,
             }
-            del base_logits, base_acts
             indices = (
                 range(len(groups)) if ablation_indices is None else ablation_indices
             )
             for index in indices:
                 g = groups[index]
-                interventions = [(layer, pos, feat, 0.0) for layer, feat, pos in g]
+                values = self._clamp_values(base_acts, g, ablation)
+                interventions = [
+                    (layer, pos, feat, v)
+                    for (layer, feat, pos), v in zip(g, values, strict=True)
+                ]
                 logits, acts = self.model.feature_intervention(tokens, interventions)
                 acts = self._normalize_acts(acts)
                 out["ablations"].append(
@@ -108,14 +130,17 @@ class Attributor:
                 )
                 del logits, acts
             if complement:
+                values = self._clamp_values(base_acts, complement, ablation)
                 interventions = [
-                    (layer, pos, feat, 0.0) for layer, feat, pos in complement
+                    (layer, pos, feat, v)
+                    for (layer, feat, pos), v in zip(complement, values, strict=True)
                 ]
                 logits, _ = self.model.feature_intervention(
                     tokens, interventions, return_activations=False
                 )
                 out["complement_prob"] = self._target_prob(logits, target_id)
                 del logits
+            del base_logits, base_acts
         return out
 
     @modal.method()

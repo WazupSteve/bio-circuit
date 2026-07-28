@@ -19,6 +19,8 @@ from circuit_supernodes.experiments import (
 from circuit_supernodes.graphs import graph_to_json, load_graph_json, slim_graph
 from circuit_supernodes.rubric import (
     MIN_GROUP_SIZE,
+    SCORING_ABLATION,
+    TOOL_ABLATION,
     InterventionScoring,
     completion_text,
     parse_proposal,
@@ -492,13 +494,22 @@ def test_split_nonce_is_shared_by_a_step_and_fixed_for_eval():
     )
 
 
+def test_scoring_and_the_tool_use_different_ablation_operators():
+    # If they matched, an agent could measure exactly what it will be scored on
+    # and fitting would be enough. Holding the operator out is what forces the
+    # circuit to generalise.
+    assert TOOL_ABLATION != SCORING_ABLATION
+    assert InterventionScoring().ablation == SCORING_ABLATION
+
+
 def test_intervene_cache_dedups_identical_proposals():
     scorer = InterventionScoring()
     calls = 0
 
-    async def fake_remote(prompt, groups, target, complement, indices):
+    async def fake_remote(prompt, groups, target, complement, indices, ablation):
         nonlocal calls
         calls += 1
+        assert ablation == SCORING_ABLATION  # scoring never uses the agent's operator
         return {"ok": True}
 
     async def run():

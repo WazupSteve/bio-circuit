@@ -21,6 +21,8 @@ CACHE_MAX = 4096
 OUTPUT = "output"
 P_CLIP = 1e-6
 RETRY_DELAYS = (1.0, 4.0, 15.0)  # infra backoff; exhausting these raises
+TOOL_ABLATION = "zero"  # what circuit_run_ablation does
+SCORING_ABLATION = "mean"  # what scoring does — deliberately not the same
 SALT_ENV = "CIRCUIT_SPLIT_SALT"
 DEFAULT_SALT = "circuit-supernodes-v2"
 FLOOR = (("parse", 0.01), ("membership", 0.02), ("topology", 0.02))
@@ -264,6 +266,14 @@ class InterventionScoring:
     (which lets an agent pre-measure the entire scored matrix and transcribe it),
     v2 ablates two hidden halves and credits an edge only when both reproduce the
     effect. The oracle audit runs the same attacks through both.
+
+    ``ablation`` is what makes the interventions genuinely *held out*. The agent's
+    tool zero-clamps; scoring mean-ablates, removing only each feature's deviation
+    from its own average activation. That reweights a group's members unequally,
+    so a circuit fitted to the measurements the agent can buy has to generalise to
+    be credited — which fitting alone does not. Uniformly scaling the ablation
+    would not do this: it attenuates every feature identically and the fitted
+    edges transfer unchanged.
     """
 
     def __init__(
@@ -272,10 +282,12 @@ class InterventionScoring:
         split_halves: bool = True,
         salt: str | None = None,
         min_group_size: int = MIN_GROUP_SIZE,
+        ablation: str = SCORING_ABLATION,
     ):
         self.split_halves = split_halves
         self.salt = salt
         self.min_group_size = min_group_size
+        self.ablation = ablation
         self._attributor = None
         self._cache: dict[str, asyncio.Future] = {}
         self._lock = asyncio.Lock()
@@ -287,8 +299,10 @@ class InterventionScoring:
         target_token: str,
         complement: list,
         indices=None,
+        ablation: str | None = None,
     ) -> dict:
-        key = json.dumps([prompt, target_token, groups, complement, indices])
+        ablation = ablation or self.ablation
+        key = json.dumps([prompt, target_token, groups, complement, indices, ablation])
         async with self._lock:
             if self._attributor is None:
                 import modal
@@ -306,6 +320,7 @@ class InterventionScoring:
                         target_token,
                         complement or None,
                         indices,
+                        ablation,
                     )
                 )
                 self._cache[key] = fut
@@ -431,11 +446,17 @@ class InterventionScoring:
         """Whole-group effect matrix for a partition — what an attacker with
         unlimited measurement learns. Used only by the oracle audit to upper-bound
         measure-then-copy; the reward never calls it.
+
+        Measured with the *tool's* operator, not the scorer's: an attacker can
+        only buy what the agent's tool sells. Handing it the held-out operator
+        would defeat the point of holding one out.
         """
         names = list(sns)
         groups = [feature_coords(sns[n]) for n in names]
         target_token = g.top_outputs[0][0] if g.top_outputs else ""
-        result = await self._intervene(prompt, groups, target_token, [], None)
+        result = await self._intervene(
+            prompt, groups, target_token, [], None, TOOL_ABLATION
+        )
         base_prob, base_acts = result["base_prob"], result["base_group_acts"]
         return {
             "names": names,
@@ -460,7 +481,12 @@ class InterventionScoring:
         feats = [n.id for n in g.feature_nodes]
         target_token = g.top_outputs[0][0] if g.top_outputs else ""
         result = await self._intervene(
-            prompt, [feature_coords([f]) for f in feats], target_token, [], None
+            prompt,
+            [feature_coords([f]) for f in feats],
+            target_token,
+            [],
+            None,
+            TOOL_ABLATION,
         )
         base = result["base_prob"]
         return {
