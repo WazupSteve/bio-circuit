@@ -26,6 +26,16 @@ TWO_HOP = [
     ("Munich", "Germany", "Berlin", "country"),
     ("Osaka", "Japan", "Tokyo", "country"),
     ("Marseille", "France", "Paris", "country"),
+    ("Rotterdam", "Netherlands", "Amsterdam", "country"),
+    ("Porto", "Portugal", "Lisbon", "country"),
+    ("Krakow", "Poland", "Warsaw", "country"),
+    ("Guadalajara", "Mexico", "Mexico City", "country"),
+    ("Busan", "South Korea", "Seoul", "country"),
+    ("Salvador", "Brazil", "Brasilia", "country"),
+    ("Calgary", "Alberta", "Edmonton", "province"),
+    ("Buffalo", "New York", "Albany", "state"),
+    ("Portland", "Oregon", "Salem", "state"),
+    ("Tucson", "Arizona", "Phoenix", "state"),
 ]
 
 ANTONYMS = {
@@ -38,14 +48,29 @@ ANTONYMS = {
         ("tall", "short"),
         ("early", "late"),
         ("wet", "dry"),
+        ("hard", "soft"),
+        ("rich", "poor"),
+        ("clean", "dirty"),
+        ("open", "closed"),
+        ("heavy", "light"),
+        ("sharp", "blunt"),
     ],
     "fr": [
         ("petit", "grand"),
         ("chaud", "froid"),
         ("rapide", "lent"),
         ("jeune", "vieux"),
+        ("fort", "faible"),
+        ("propre", "sale"),
+        ("lourd", "léger"),
     ],
-    "es": [("grande", "pequeño"), ("caliente", "frío"), ("alto", "bajo")],
+    "es": [
+        ("grande", "pequeño"),
+        ("caliente", "frío"),
+        ("alto", "bajo"),
+        ("nuevo", "viejo"),
+        ("fuerte", "débil"),
+    ],
 }
 ANTONYM_TEMPLATES = {
     "en": 'The opposite of "{w}" is "',
@@ -61,6 +86,14 @@ ANALOGIES = [
     ("Lisbon", "Portugal", "Helsinki", "Finland", "capital-to-country"),
     ("puppy", "dog", "kitten", "cat", "young-of"),
     ("France", "French", "Germany", "German", "language-of"),
+    ("Brazil", "real", "Poland", "zloty", "currency-of"),
+    ("Norway", "krone", "Sweden", "krona", "currency-of"),
+    ("Ottawa", "Canada", "Canberra", "Australia", "capital-to-country"),
+    ("Vienna", "Austria", "Athens", "Greece", "capital-to-country"),
+    ("calf", "cow", "foal", "horse", "young-of"),
+    ("cub", "bear", "chick", "chicken", "young-of"),
+    ("Italy", "Italian", "Portugal", "Portuguese", "language-of"),
+    ("Japan", "Japanese", "Korea", "Korean", "language-of"),
 ]
 
 ACRONYM_WORDS = {
@@ -79,6 +112,14 @@ FACTUAL_SPORTS = [
     ("Wayne Gretzky", "hockey"),
     ("Usain Bolt", "sprinting"),
     ("Tom Brady", "football"),
+    ("Roger Federer", "tennis"),
+    ("Cristiano Ronaldo", "soccer"),
+    ("LeBron James", "basketball"),
+    ("Muhammad Ali", "boxing"),
+    ("Michael Phelps", "swimming"),
+    ("Simone Biles", "gymnastics"),
+    ("Rory McIlroy", "golf"),
+    ("Sidney Crosby", "hockey"),
 ]
 
 INCONTEXT_ATTRS = [
@@ -90,6 +131,14 @@ INCONTEXT_ATTRS = [
     ("snow", "white"),
     ("coal", "black"),
     ("grape", "purple"),
+    ("lime", "green"),
+    ("ash", "grey"),
+    ("cherry", "red"),
+    ("sand", "beige"),
+    ("ocean", "blue"),
+    ("banana", "yellow"),
+    ("chocolate", "brown"),
+    ("pearl", "white"),
 ]
 
 
@@ -216,9 +265,9 @@ def _acronym(rng: random.Random) -> CircuitSample:
 
 
 def _sequence(rng: random.Random) -> CircuitSample:
-    step = rng.choice([3, 4, 6, 7, 9, 11])
-    start = step * rng.randint(1, 4)
-    terms = [start + i * step for i in range(5)]
+    step = rng.choice([3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17])
+    start = step * rng.randint(1, 9)
+    terms = [start + i * step for i in range(rng.choice([4, 5, 6]))]
     nxt = terms[-1] + step
     return CircuitSample(
         family="sequence",
@@ -238,11 +287,20 @@ def _sequence(rng: random.Random) -> CircuitSample:
     )
 
 
+FACTUAL_FRAMES = [
+    "Fact: {person} plays the sport of",
+    "{person} competes professionally in the sport of",
+    "The athlete {person} is famous for playing",
+    "Trivia: the sport most associated with {person} is",
+    "{person} built a career in the sport of",
+]
+
+
 def _factual(rng: random.Random) -> CircuitSample:
     person, sport = rng.choice(FACTUAL_SPORTS)
     return CircuitSample(
         family="factual",
-        prompt=f"Fact: {person} plays the sport of",
+        prompt=rng.choice(FACTUAL_FRAMES).format(person=person),
         target=f" {sport}",
         expected_supernodes=[
             ("entity", person.split()),
@@ -270,8 +328,154 @@ def _incontext(rng: random.Random) -> CircuitSample:
     )
 
 
+# --- sealed OOD families -------------------------------------------------
+#
+# Held back for the final evaluation and never used for training, tuning or
+# inspection. Each is built so the answer cannot be reached by a surface
+# shortcut: the agreement prompts put an attractor noun of the opposite number
+# between subject and verb, the comparisons are balanced across both answers and
+# across whether the larger number appears first, and the weekday arithmetic
+# wraps the week so the offset cannot be read off the ordering.
+
+SVA_SUBJECTS = [
+    # (singular, plural, attractor-singular, attractor-plural)
+    ("key", "keys", "cabinet", "cabinets"),
+    ("author", "authors", "novel", "novels"),
+    ("pilot", "pilots", "aircraft", "aircraft"),
+    ("senator", "senators", "committee", "committees"),
+    ("painting", "paintings", "gallery", "galleries"),
+    ("engineer", "engineers", "server", "servers"),
+    ("farmer", "farmers", "tractor", "tractors"),
+    ("surgeon", "surgeons", "clinic", "clinics"),
+    ("teacher", "teachers", "classroom", "classrooms"),
+    ("dancer", "dancers", "rehearsal", "rehearsals"),
+    ("architect", "architects", "blueprint", "blueprints"),
+    ("chemist", "chemists", "reagent", "reagents"),
+    ("banker", "bankers", "ledger", "ledgers"),
+    ("captain", "captains", "vessel", "vessels"),
+    ("journalist", "journalists", "archive", "archives"),
+    ("gardener", "gardeners", "greenhouse", "greenhouses"),
+    ("mechanic", "mechanics", "workshop", "workshops"),
+    ("violinist", "violinists", "recital", "recitals"),
+]
+
+# The attractor has to sit between subject and verb, so the phrase varies too —
+# ten subjects alone give only twenty prompts, which is memorisation bait at RL
+# visit counts.
+SVA_PHRASES = [
+    "near the",
+    "beside the",
+    "behind the",
+    "across from the",
+    "in front of the",
+    "next to the",
+    "opposite the",
+    "beyond the",
+]
+
+WEEKDAYS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
+
+
+def _agreement(rng: random.Random) -> CircuitSample:
+    """Subject-verb agreement with a number-mismatched attractor in between."""
+    sing, plur, attr_s, attr_p = rng.choice(SVA_SUBJECTS)
+    subject_plural = rng.random() < 0.5
+    subject = plur if subject_plural else sing
+    attractor = attr_s if subject_plural else attr_p  # deliberately mismatched
+    verb = "are" if subject_plural else "is"
+    phrase = rng.choice(SVA_PHRASES)
+    return CircuitSample(
+        family="agreement",
+        prompt=f"The {subject} {phrase} {attractor}",
+        target=f" {verb}",
+        expected_supernodes=[
+            ("subject-number", [subject, "plural" if subject_plural else "singular"]),
+            ("attractor", [attractor]),
+            (f"say-{verb}", [verb, "say"]),
+        ],
+        expected_edges=[
+            ("subject-number", f"say-{verb}"),
+            ("attractor", f"say-{verb}"),
+        ],
+    )
+
+
+def _comparison(rng: random.Random) -> CircuitSample:
+    """Two-digit comparison, balanced over the answer AND over argument order.
+
+    With a single relation the two are perfectly correlated — "is X greater than
+    Y" answers Yes exactly when the larger number comes first — so a model can
+    score without comparing anything. Varying the relation decorrelates them:
+    "is 27 less than 63" is also Yes, with the smaller number first.
+    """
+    want_yes = rng.random() < 0.5
+    greater = rng.random() < 0.5
+    high, low = sorted(rng.sample(range(10, 100), 2), reverse=True)
+    # "greater" is true iff the larger is first; "less" iff the smaller is.
+    larger_first = greater == want_yes
+    first, second = (high, low) if larger_first else (low, high)
+    relation = "greater" if greater else "less"
+    answer = "Yes" if want_yes else "No"
+    return CircuitSample(
+        family="comparison",
+        prompt=(
+            f"Q: Is 63 greater than 27? A: Yes\n"
+            f"Q: Is {first} {relation} than {second}? A:"
+        ),
+        target=f" {answer}",
+        expected_supernodes=[
+            ("left-operand", [str(first)]),
+            ("right-operand", [str(second)]),
+            ("comparison-relation", [relation, "compare", "than"]),
+            (f"say-{answer}", [answer, "say"]),
+        ],
+        expected_edges=[
+            ("left-operand", f"say-{answer}"),
+            ("right-operand", f"say-{answer}"),
+            ("comparison-relation", f"say-{answer}"),
+        ],
+    )
+
+
+def _weekday(rng: random.Random) -> CircuitSample:
+    """Day-of-week arithmetic, wrapping so the offset is not readable in order."""
+    start = rng.randrange(len(WEEKDAYS))
+    offset = rng.randint(2, 6)
+    answer = WEEKDAYS[(start + offset) % len(WEEKDAYS)]
+    ex_start = rng.randrange(len(WEEKDAYS))
+    ex_offset = rng.randint(2, 6)
+    ex_answer = WEEKDAYS[(ex_start + ex_offset) % len(WEEKDAYS)]
+    return CircuitSample(
+        family="weekday",
+        prompt=(
+            f"{ex_offset} days after {WEEKDAYS[ex_start]} is {ex_answer}.\n"
+            f"{offset} days after {WEEKDAYS[start]} is"
+        ),
+        target=f" {answer}",
+        expected_supernodes=[
+            ("start-day", [WEEKDAYS[start]]),
+            ("offset", [str(offset), "days after"]),
+            (f"say-{answer}", [answer, "say"]),
+        ],
+        expected_edges=[("start-day", f"say-{answer}"), ("offset", f"say-{answer}")],
+    )
+
+
+SEALED_FAMILIES = ("agreement", "comparison", "weekday")
+
 FAMILIES = {
     "two_hop": _two_hop,
+    "agreement": _agreement,
+    "comparison": _comparison,
+    "weekday": _weekday,
     "addition": _addition,
     "antonym": _antonym,
     "analogy": _analogy,

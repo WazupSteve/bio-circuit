@@ -41,8 +41,10 @@ def test_generate_even_family_quotas():
 
 
 def test_generate_fails_loudly_on_bad_input():
-    with pytest.raises(ValueError, match="factual"):
-        generate(9, families=["factual"])  # only 8 distinct factual prompts exist
+    with pytest.raises(ValueError, match="ran out of unique prompts"):
+        # analogy has the smallest pool of the train families; asking for more
+        # distinct prompts than exist must fail rather than repeat them.
+        generate(100, families=["analogy"])
     with pytest.raises(ValueError, match="unknown"):
         generate(4, families=["twohop"])  # typo'd family name
     with pytest.raises(ValueError, match=">= 1"):
@@ -236,3 +238,81 @@ def test_reward_value_reads_both_trace_layouts(raw, expected):
 def test_reward_value_refuses_to_guess_between_rewards():
     with pytest.raises(ValueError):
         reward_value({"a": 0.1, "b": 0.2})
+
+
+def test_sealed_families_are_never_referenced_by_a_config():
+    """The "don't touch the sealed families" rule, made mechanical.
+
+    A config that trained or tuned on them would invalidate the final result
+    silently, so the check lives here rather than in a document.
+    """
+    from circuit_supernodes.datagen import SEALED_FAMILIES
+
+    for path in sorted(CONFIGS.rglob("*.toml")):
+        text = path.read_text()
+        for family in SEALED_FAMILIES:
+            assert family not in text, f"{path.name} references sealed {family!r}"
+
+
+def test_sealed_and_training_families_are_disjoint():
+    from circuit_supernodes.datagen import FAMILIES, SEALED_FAMILIES
+
+    train = ["antonym", "analogy", "acronym", "sequence", "factual", "incontext"]
+    dev = ["two_hop", "addition"]
+    assert not set(SEALED_FAMILIES) & set(train + dev)
+    assert set(SEALED_FAMILIES) <= set(FAMILIES)
+
+
+def test_every_family_can_fill_its_share_of_the_planned_splits():
+    # 150 train graphs over 6 families and 36 sealed over 3; a family that runs
+    # out repeats prompts, which is memorisation bait at RL visit counts.
+    from circuit_supernodes.datagen import SEALED_FAMILIES, generate
+
+    train = ["antonym", "analogy", "acronym", "sequence", "factual", "incontext"]
+    for family in train:
+        assert len({s.prompt for s in generate(25, seed=0, families=[family])}) == 25
+    for family in SEALED_FAMILIES:
+        assert len({s.prompt for s in generate(12, seed=0, families=[family])}) == 12
+
+
+def test_comparison_answer_is_not_readable_from_argument_order():
+    """Anti-shortcut check on the sealed comparison family.
+
+    With one relation, "is X greater than Y" is Yes exactly when the larger
+    number comes first, so a model can answer without comparing. Varying the
+    relation has to break that.
+    """
+    import re
+
+    from circuit_supernodes.datagen import generate
+
+    samples = generate(400, seed=0, families=["comparison"])
+    agree = yes = 0
+    for s in samples:
+        query = s.prompt.splitlines()[-1]
+        left, _, right = re.search(
+            r"Is (\d+) (greater|less) than (\d+)", query
+        ).groups()
+        larger_first = int(left) > int(right)
+        answered_yes = s.target.strip() == "Yes"
+        agree += larger_first == answered_yes
+        yes += answered_yes
+    assert 0.4 < yes / len(samples) < 0.6, "answers are unbalanced"
+    assert 0.4 < agree / len(samples) < 0.6, "argument order predicts the answer"
+
+
+def test_agreement_attractor_always_mismatches_the_subject():
+    """The attractor exists to be a distractor; if it agreed with the subject
+    the prompt would test nothing."""
+    from circuit_supernodes.datagen import SVA_SUBJECTS, generate
+
+    plural_nouns = {plur for _, plur, _, _ in SVA_SUBJECTS} | {
+        attr_p for _, _, _, attr_p in SVA_SUBJECTS
+    }
+    for s in generate(60, seed=0, families=["agreement"]):
+        words = s.prompt.replace("The ", "").split()
+        subject, attractor = words[0], words[-1]
+        subject_plural = subject in plural_nouns
+        assert s.target.strip() == ("are" if subject_plural else "is")
+        if attractor != "aircraft":  # the one noun with no number contrast
+            assert (attractor in plural_nouns) != subject_plural
