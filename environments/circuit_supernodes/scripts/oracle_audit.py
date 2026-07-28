@@ -159,6 +159,35 @@ def budget_feasible(g: Graph, min_size: int) -> dict[str, list[str]]:
     return _name([feats[i * size : (i + 1) * size] for i in range(k)])
 
 
+def layer_bands(g: Graph, k: int, min_size: int) -> dict[str, list[str]]:
+    """Contiguous bands of the layer ordering — no measurement, no experiments.
+
+    The non-agentic heuristic the plan requires in the baseline table. It is also
+    a hypothesis about the reward: later layers are downstream of earlier ones by
+    construction, so a layer-ordered partition claiming forward edges may collect
+    causal credit for structure that is simply visible in the graph, rather than
+    for having discovered anything.
+    """
+    feats = sorted(
+        _ranked_features(g), key=lambda f: (g.nodes[f].layer, g.nodes[f].ctx_idx)
+    )
+    size = max(min_size, -(-len(feats) // k))
+    return _name([feats[i * size : (i + 1) * size] for i in range(k)])
+
+
+def layer_spanning(g: Graph, k: int, min_size: int) -> dict[str, list[str]]:
+    """The control for ``layer_bands``: same sizes, same features, every group
+    spread across the whole layer range instead of confined to a band.
+
+    If banding scores far higher than spanning, the reward is being paid for the
+    layer ordering rather than for the grouping.
+    """
+    feats = sorted(
+        _ranked_features(g), key=lambda f: (g.nodes[f].layer, g.nodes[f].ctx_idx)
+    )
+    return _name(_rebalance([feats[i::k] for i in range(k)], k, min_size))
+
+
 def coherence_matched(
     g: Graph, signatures: dict[str, float], k: int, min_size: int
 ) -> dict[str, list[str]]:
@@ -271,6 +300,8 @@ def attacks(
         ],
         "smallest-legal": [smallest_legal(g, min_size)],
         "budget-feasible": [budget_feasible(g, min_size)],
+        "layer-bands": [layer_bands(g, k, min_size)],
+        "layer-spanning": [layer_spanning(g, k, min_size)],
     }
     if signatures is not None:
         suite["coherence-matched"] = [

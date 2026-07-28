@@ -215,6 +215,8 @@ def test_attack_suite_covers_every_documented_family():
         "random-multistart",
         "smallest-legal",
         "budget-feasible",
+        "layer-bands",
+        "layer-spanning",
     }
     assert len(suite["random-multistart"]) == 4
 
@@ -279,3 +281,45 @@ def test_budget_feasible_attack_respects_the_tool_the_agent_actually_has():
     assert all(len(ms) <= MAX_ABLATED_FEATURES for ms in sns.values())
     parsed, reason = validate_members(as_proposal(sns), GRAPH)
     assert parsed is not None, reason
+
+
+def test_layer_control_differs_from_layer_bands_only_in_layer_structure():
+    """The control has to be matched on everything except the thing under test.
+
+    Same features, same group count, comparable sizes — bands confined to a
+    narrow layer range, spanning groups spread across the whole range. If they
+    are not matched, a score difference says nothing about layer structure.
+    """
+    from oracle_audit import layer_bands, layer_spanning
+
+    bands = layer_bands(GRAPH, 3, MIN_GROUP_SIZE)
+    spanning = layer_spanning(GRAPH, 3, MIN_GROUP_SIZE)
+
+    assert len(bands) == len(spanning)
+    assert {m for ms in bands.values() for m in ms} == {
+        m for ms in spanning.values() for m in ms
+    }
+    for sns in (bands, spanning):
+        parsed, reason = validate_members(as_proposal(sns), GRAPH)
+        assert parsed is not None, reason
+
+    def width(sns):
+        return [
+            max(GRAPH.nodes[m].layer for m in ms)
+            - min(GRAPH.nodes[m].layer for m in ms)
+            for ms in sns.values()
+        ]
+
+    assert max(width(bands)) < max(width(spanning))
+
+
+def test_layer_bands_need_no_experiments_to_propose():
+    """The point of the heuristic: it is readable off the graph. Its inputs are
+    the graph and the group count — no measurement is available to it."""
+    import inspect
+
+    from oracle_audit import coherence_matched, layer_bands
+
+    assert set(inspect.signature(layer_bands).parameters) == {"g", "k", "min_size"}
+    # ...unlike the attack that does need measurement.
+    assert "signatures" in inspect.signature(coherence_matched).parameters
