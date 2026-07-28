@@ -76,11 +76,31 @@ Malformed proposals are **rejected, not repaired**: silently fixing them teaches
 the policy that malformed proposals are fine. A proposal scores zero when it has
 fewer than 2 or more than 8 supernodes, repeats or overlaps members, names a
 non-FEATURE id, contains a supernode below the minimum size, gives one group over
-70% of grouped influence, or whose edges do not form a DAG in which every
-supernode reaches `output`.
+70% of grouped influence, or whose edges do not form a DAG.
+
+At least one supernode must reach `output`, but not every one. A group with no
+outgoing edge claims that ablating it changes nothing downstream, which is a
+falsifiable prediction the calibration term already checks. Requiring every group
+to reach `output` made the true answer unstateable whenever a group is genuinely
+off-path — the honest proposal was rejected and the agent had to assert an effect
+the subject model does not have, which cost the correct answer about 14%.
 
 Edges are scored as **reachability**, not as direct connections: two edge sets
 with the same transitive closure receive the same score.
+
+### Held-out intervention operator
+
+`circuit_run_ablation` clamps features to zero. Scoring **mean-ablates**,
+removing only each feature's deviation from its own average activation over the
+prompt. Fitting edges to whatever the agent measured is what lets any partition
+score well, so the operator the agent can buy is deliberately not the operator it
+is graded under, and a circuit has to generalise across them to earn credit.
+
+The two disagree about ordering, not just magnitude — on a sample graph zero-clamp
+ranks one group as moving the target most (0.906 vs 0.875) while mean-ablation
+ranks the other (0.860 vs 0.838) — and reordering is what breaks a fitted edge
+set. A uniform rescaling would not do this: it attenuates every feature equally
+and fitted edges transfer unchanged.
 
 ### Reward modes
 
@@ -93,6 +113,19 @@ number see the real score.
 Infrastructure failures are retried with backoff and then **raise**. They are
 never scored: a false zero would corrupt every advantage in its GRPO group.
 Identical interventions are cached within the scorer.
+
+`REWARD_VERSION` records which definition produced a score. Numbers from
+different versions are not comparable — the frontier ranking under v1 turned out
+to be an artefact of terms that v2 removed.
+
+### What the reward does not measure
+
+The displayed slice is the top `max_features` by influence, and the influence
+distribution is flat: 60 features carry only about 31% of total feature
+influence, half of it would take roughly 196 features and 80% roughly 722. The
+complement ablation touches only the ungrouped *displayed* features, so the rest
+is never intervened on. A proposal at coverage 1.0 has grouped everything it was
+shown, which is a considerably weaker claim than having captured the circuit.
 
 ## Setup
 
