@@ -218,18 +218,15 @@ def test_attack_suite_covers_the_four_documented_families():
     assert len(suite["random-multistart"]) == 4
 
 
-def test_reward_does_not_yet_prefer_the_true_partition():
-    """Characterization test for a known, unfixed defect.
+def test_reward_prefers_the_true_partition():
+    """The property the whole reward exists to have.
 
     With a ground-truth causal structure and the best edge set an exhaustive DAG
-    search can find, a blind shuffle scores at or above the true feature
-    grouping. Separation rewards groups whose activations respond to many
-    ablations in a graded way, and a mixture does that better than a
-    functionally pure group — so the metric is biased toward exactly the
-    partitions a supernode reward should reject.
-
-    If a reward change makes this fail, that is the fix landing: delete the
-    xfail-style assertion below and assert the true partition wins instead.
+    search can find, the true feature grouping must beat blind shuffles. An
+    earlier version of this test asserted the opposite, because the simulator it
+    ran against propagated effects only one hop while the reward scores
+    transitive reachability — the mismatch, not the metric, was what preferred
+    mixtures. Keep the subject transitive or this measures nothing.
     """
     from partition_discrimination import _shuffle, best_edges, build
 
@@ -244,7 +241,23 @@ def test_reward_does_not_yet_prefer_the_true_partition():
         return true, blind
 
     true, blind = asyncio.run(run())
-    assert max(blind) >= true, (
-        f"the reward now prefers the true partition (true={true:.3f}, "
-        f"blind={blind}) — update this test, the defect is fixed"
-    )
+    assert true >= max(blind), f"true={true:.3f} lost to a shuffle: {blind}"
+
+
+def test_holding_the_condition_out_widens_the_margin():
+    """Fitting edges to what the agent measured is what lets a blind partition
+    score well. Scoring under an operator it cannot run costs a shuffle more
+    than it costs the truth."""
+    from partition_discrimination import _shuffle, best_edges, build, retention
+
+    roles, features, drives, graph = build(3, 4)
+    keep = retention(features)
+    blind_sns = _shuffle(features, 3, 0)
+
+    async def margin(held):
+        k = keep if held else None
+        true = await best_edges(graph, roles, drives, dict(roles), True, k)
+        blind = await best_edges(graph, roles, drives, blind_sns, True, k)
+        return true - blind
+
+    assert asyncio.run(margin(True)) > asyncio.run(margin(False))

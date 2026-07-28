@@ -11,13 +11,11 @@ is checkable from a clean checkout in seconds.
 
     uv run python scripts/partition_discrimination.py
 
-The mechanism behind the result: separation rewards a group whose activation
-responds to many ablations in a graded way, because that yields a rich, cleanly
-ordered set of observations. A functionally *pure* group responds sparsely and
-near-binarily; a random group is a mixture and responds to everything a little.
-So the metric has an active bias toward mixed groups, which is the opposite of
-what a supernode reward is supposed to reward, and no change to how the group is
-split can repair it.
+The subject must propagate effects transitively. The reward scores *reachability*
+— A -> B -> output claims that ablating A moves both B and the output — so a
+one-hop simulator makes the true, transitive claim look wrong for reasons that
+have nothing to do with the partition. An earlier version of this script had that
+bug and appeared to show blind shuffles beating the ground truth.
 """
 
 import argparse
@@ -85,6 +83,19 @@ def simulator(roles: dict, drives: dict, proposal: dict, keep: dict | None = Non
     """
     role_of = {f: r for r, ms in roles.items() for f in ms}
     names = list(proposal)
+    # Effects propagate along the chain: killing r0 starves r1, which starves
+    # r2, which starves the output. Applying only the direct edge would make the
+    # subject non-transitive while the reward scores reachability, and the two
+    # would disagree for reasons that have nothing to do with the partition.
+    reach: dict[str, set[str]] = {}
+    for r in drives:
+        seen, stack = set(), list(drives[r])
+        while stack:
+            n = stack.pop()
+            if n not in seen:
+                seen.add(n)
+                stack.extend(drives.get(n, ()))
+        reach[r] = seen
 
     async def intervene(prompt, sent, target, complement, indices=None):
         ids = [[f"{a}_{b}_{c}" for a, b, c in grp] for grp in sent]
@@ -97,7 +108,7 @@ def simulator(roles: dict, drives: dict, proposal: dict, keep: dict | None = Non
                 for r, ms in roles.items()
             }
             downstream: dict[str, float] = {}
-            for r, targets in drives.items():
+            for r, targets in reach.items():
                 for t in targets:
                     downstream[t] = downstream.get(t, 0.0) + removed[r]
             acts = []
@@ -197,8 +208,9 @@ async def main() -> None:
         v2 = await best_edges(graph, roles, drives, sns, True, keep)
         print(f"{label:<34}{v1:>8.3f}{v2:>8.3f}")
     print(
-        "\nA blind shuffle scoring at or above the true partition means the reward"
-        "\nis not measuring circuit discovery, and no change to the split repairs it."
+        "\nThe true partition must beat every shuffle. Holding the scoring"
+        "\ncondition out widens the margin, because fitting edges to what the"
+        "\nagent measured is what lets a blind partition score at all."
     )
 
 
