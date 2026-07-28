@@ -1,0 +1,24 @@
+# Frontier baseline under reward v2.1, on the full held-out split.
+#   prime eval run configs/eval/final-kimik3.toml --hosted --follow
+#
+# All three final configs use the same 20 tasks so the comparison is paired;
+# only the model differs. Two rollouts give a per-task variance estimate without
+# doubling spend — the audit showed graph-to-graph variation dominates, and
+# pairing handles that.
+model = "moonshotai/kimi-k3"
+num_tasks = 20
+num_rollouts = 2
+max_turns = 8
+
+[sampling]
+max_tokens = 32768  # xhigh reasoning; 16k risks truncating a rollout into a zero
+reasoning_effort = "xhigh"
+
+[taskset]
+id = "circuit-supernodes"
+dataset_file = "heldout.jsonl"
+reward_mode = "eval"
+max_features = 60
+
+[harness]
+id = "null"

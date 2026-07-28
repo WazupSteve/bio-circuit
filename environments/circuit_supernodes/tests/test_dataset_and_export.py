@@ -248,10 +248,24 @@ def test_sealed_families_are_never_referenced_by_a_config():
     """
     from circuit_supernodes.datagen import SEALED_FAMILIES
 
+    def values(node):
+        if isinstance(node, dict):
+            for v in node.values():
+                yield from values(v)
+        elif isinstance(node, list):
+            for v in node:
+                yield from values(v)
+        elif isinstance(node, str):
+            yield node
+
     for path in sorted(CONFIGS.rglob("*.toml")):
-        text = path.read_text()
-        for family in SEALED_FAMILIES:
-            assert family not in text, f"{path.name} references sealed {family!r}"
+        # Parsed values only — a comment mentioning a family by name is prose,
+        # not a reference, and an earlier version of this failed on one.
+        for value in values(tomllib.loads(path.read_text())):
+            for family in SEALED_FAMILIES:
+                assert family not in value, (
+                    f"{path.name} references sealed {family!r} in {value!r}"
+                )
 
 
 def test_sealed_and_training_families_are_disjoint():
