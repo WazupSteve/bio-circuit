@@ -1,4 +1,8 @@
 # Frontier baseline under reward v2.1, on the full held-out split.
+# Run `bash scripts/fix_harness_mcp.sh` first — verifiers 0.2.1 leaves `mcp`
+# unpinned in its harness script, so uv pulls 2.0.0 and every rollout dies at
+# 0 turns with a HarnessError.
+#
 # Run from environments/circuit_supernodes with PRIME_API_KEY exported:
 #   uv run eval @ ../../configs/eval/final-sol56.toml --no-push
 #
@@ -10,6 +14,11 @@ model = "openai/gpt-5.6-sol"
 num_tasks = 20
 num_rollouts = 2
 max_turns = 8
+
+# Every rollout spawns its own MCP tool-server subprocess; the archived run that
+# worked used 1. Four keeps memory and process count comfortable and still
+# finishes well within an hour.
+max_concurrent = 4
 
 [sampling]
 max_tokens = 32768  # xhigh reasoning; 16k risks truncating a rollout into a zero
