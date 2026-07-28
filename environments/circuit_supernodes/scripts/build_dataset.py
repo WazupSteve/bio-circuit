@@ -5,7 +5,7 @@ from urllib.request import Request, urlopen
 
 import modal
 from circuit_supernodes.datagen import generate
-from circuit_supernodes.graphs import load_graph_json, slim_graph
+from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS
 
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
@@ -70,12 +70,31 @@ def add_neuronpedia_labels(graph_json: dict, max_features: int = 60) -> int:
     return count
 
 
+def is_clean(
+    graph_json: dict, max_error: float, max_features: int
+) -> tuple[bool, dict]:
+    """Screen on graph quality, not just on whether the answer was right.
+
+    Only about a quarter of prompts yield a graph whose circuit is mostly
+    explained rather than mostly error, and an unexplained graph teaches nothing
+    however well the policy reads it.
+    """
+    stats = graph_quality(load_graph_json(graph_json), max_features)
+    return stats["error"] <= max_error, stats
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--families", nargs="*", help="restrict to these prompt families")
     ap.add_argument("--out", default=str(DATA_DIR / "dataset.jsonl"))
+    ap.add_argument(
+        "--max-error-share",
+        type=float,
+        default=0.35,
+        help="reject graphs where error nodes carry more than this influence",
+    )
     ap.add_argument(
         "--neuronpedia-labels",
         action="store_true",
@@ -97,7 +116,7 @@ def main() -> None:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(out.suffix + ".tmp")
-    kept, stats = 0, {}
+    kept, stats, quality = 0, {}, []
     with tmp.open("w") as f:
         for s, graph in zip(samples, graphs, strict=True):
             if graph is None:
@@ -111,6 +130,14 @@ def main() -> None:
                     f"model says {top_tok!r}, wanted {s.target!r} — skipping"
                 )
                 continue
+            clean, stats = is_clean(graph, args.max_error_share, 60)
+            if not clean:
+                print(
+                    f"  ! low-quality graph [{s.family}] {s.prompt!r}: "
+                    f"error nodes carry {stats['error']:.0%} of influence — skipping"
+                )
+                continue
+            quality.append(stats)
             if args.neuronpedia_labels:
                 try:
                     labeled = add_neuronpedia_labels(graph)
@@ -125,6 +152,14 @@ def main() -> None:
         "faithfulness by family:",
         {k: f"{sum(v)}/{len(v)}" for k, v in sorted(stats.items())},
     )
+    if quality:
+        print(
+            f"graph quality: error influence "
+            f"{sum(q['error'] for q in quality) / len(quality):.1%}, "
+            f"top-60 features cover "
+            f"{sum(q['displayed'] for q in quality) / len(quality):.1%}"
+            f" of feature influence"
+        )
     if not kept:
         tmp.unlink()
         raise SystemExit("no faithful graphs generated; existing dataset preserved")

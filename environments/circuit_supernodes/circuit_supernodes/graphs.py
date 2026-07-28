@@ -141,6 +141,36 @@ def load_graph_json(data: dict) -> Graph:
     return g
 
 
+def graph_quality(g: Graph, max_features: int = 60) -> dict[str, float]:
+    """Screening statistics for a candidate graph.
+
+    Error nodes stand for everything the transcoders failed to explain, so a
+    graph where they carry most of the influence is one whose circuit is mostly
+    missing. ``displayed`` is the share of *feature* influence inside the slice
+    the agent actually sees — the influence distribution is flat enough that the
+    top 60 features carry only about a third of it, which bounds what any
+    proposal can claim regardless of how good it is.
+    """
+    total = sum(n.share for n in g.nodes.values())
+    if total <= 0:
+        return {"error": 1.0, "feature": 0.0, "displayed": 0.0, "features": 0}
+    kinds: dict[str, float] = {}
+    for n in g.nodes.values():
+        kinds[n.kind] = kinds.get(n.kind, 0.0) + n.share
+    feats = sorted(g.feature_nodes, key=lambda n: -n.share)
+    feature_total = sum(n.share for n in feats)
+    return {
+        "error": kinds.get("error", 0.0) / total,
+        "feature": kinds.get("feature", 0.0) / total,
+        "displayed": (
+            sum(n.share for n in feats[:max_features]) / feature_total
+            if feature_total > 0
+            else 0.0
+        ),
+        "features": len(feats),
+    }
+
+
 def feature_coords(ids: list[str]) -> list[tuple[int, int, int]]:
     return [tuple(map(int, node_id.split("_"))) for node_id in ids]
 

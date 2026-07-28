@@ -316,3 +316,58 @@ def test_agreement_attractor_always_mismatches_the_subject():
         assert s.target.strip() == ("are" if subject_plural else "is")
         if attractor != "aircraft":  # the one noun with no number contrast
             assert (attractor in plural_nouns) != subject_plural
+
+
+def test_graph_quality_screens_on_unexplained_influence():
+    from circuit_supernodes.graphs import graph_quality, load_graph_json
+
+    def graph(error_influence: float):
+        # `influence` is cumulative, so build it by accumulating contributions.
+        parts = [
+            ("1_10_0", "cross layer transcoder", 1.0 - error_influence),
+            ("E_0_0", "mlp reconstruction error", error_influence),
+        ]
+        running, nodes = 0.0, []
+        for nid, kind, own in parts:
+            running += own
+            nodes.append(
+                {
+                    "node_id": nid,
+                    "feature_type": kind,
+                    "layer": 1,
+                    "ctx_idx": 0,
+                    "influence": running,
+                }
+            )
+        return load_graph_json(
+            {"metadata": {"prompt_tokens": ["t"]}, "nodes": nodes, "links": []}
+        )
+
+    assert graph_quality(graph(0.1))["error"] == pytest.approx(0.1)
+    assert graph_quality(graph(0.9))["error"] == pytest.approx(0.9)
+
+
+def test_is_clean_rejects_a_mostly_error_graph():
+    from build_dataset import is_clean
+
+    def raw(error_influence: float):
+        parts = [
+            ("1_10_0", "cross layer transcoder", 1.0 - error_influence),
+            ("E_0_0", "mlp reconstruction error", error_influence),
+        ]
+        running, nodes = 0.0, []
+        for nid, kind, own in parts:
+            running += own
+            nodes.append(
+                {
+                    "node_id": nid,
+                    "feature_type": kind,
+                    "layer": 1,
+                    "ctx_idx": 0,
+                    "influence": running,
+                }
+            )
+        return {"metadata": {"prompt_tokens": ["t"]}, "nodes": nodes, "links": []}
+
+    assert is_clean(raw(0.2), 0.35, 60)[0]
+    assert not is_clean(raw(0.6), 0.35, 60)[0]
