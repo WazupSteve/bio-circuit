@@ -141,6 +141,8 @@ def test_verifiers_v1_loader_resolves_taskset_and_lazy_selection(tmp_path, monke
                 "taskset": {
                     "id": "circuit-supernodes",
                     "dataset_file": "mini.jsonl",
+                    "reward_mode": "train",
+                    "experiment_budget": 3,
                 },
                 "harness": {"id": "null"},
                 "max_turns": 8,
@@ -153,6 +155,10 @@ def test_verifiers_v1_loader_resolves_taskset_and_lazy_selection(tmp_path, monke
     tasks = env.taskset.select(1)
     assert len(tasks) == 1
     assert tasks[0].data.family == "two_hop"
+    # Run-level settings must reach the row: the floor and the stated budget.
+    assert tasks[0].data.reward_mode == "train"
+    assert tasks[0].data.experiment_budget == 3
+    assert "Experiment budget: 3." in tasks[0].data.prompt
 
 
 def test_configs_train_on_different_split_than_eval():
@@ -170,9 +176,41 @@ def test_configs_train_on_different_split_than_eval():
     assert rl["env"][0]["max_turns"] == ev["max_turns"] == 8
 
 
+def test_only_training_gets_the_shaped_floor():
+    # Checkpoint selection and any published number must see the strict score.
+    rl = tomllib.loads((CONFIGS / "rl" / "circuit-supernodes.toml").read_text())
+    ev = tomllib.loads((CONFIGS / "eval" / "circuit-supernodes.toml").read_text())
+    assert rl["env"][0]["taskset"]["reward_mode"] == "train"
+    assert rl["eval"]["env"][0]["taskset"]["reward_mode"] == "eval"
+    assert ev["taskset"]["reward_mode"] == "eval"
+
+
+def test_thinking_matches_between_training_and_evaluation():
+    # Comparing a thinking policy against a non-thinking one measures the mode.
+    rl = tomllib.loads((CONFIGS / "rl" / "circuit-supernodes.toml").read_text())
+    ev = tomllib.loads((CONFIGS / "eval" / "circuit-supernodes.toml").read_text())
+    assert rl["sampling"]["enable_thinking"] == ev["sampling"]["enable_thinking"]
+
+
+def test_training_batches_hold_whole_groups():
+    # Prime counts batch_size in rollouts, so a batch that is not a multiple of
+    # the group size would split a GRPO group across steps.
+    rl = tomllib.loads((CONFIGS / "rl" / "circuit-supernodes.toml").read_text())
+    group = rl["rollouts_per_example"]
+    assert rl["batch_size"] % group == 0
+    assert rl["batch_size"] // group >= 2  # more than one group per step
+
+
+def test_fault_injection_is_off_outside_the_canary():
+    for path in sorted((CONFIGS / "rl").glob("*.toml")):
+        taskset = tomllib.loads(path.read_text())["env"][0]["taskset"]
+        expected = path.name.startswith("canary-")
+        assert bool(taskset.get("fault_rate", 0.0)) is expected, path.name
+
+
 def test_archived_traces_still_yield_reward_components():
-    # The reward audit in STEPS.md sec.2 is derived from these traces; keep them
-    # readable so the claim stays checkable from a clean checkout.
+    # The reward audit is derived from these traces; keep them readable so the
+    # claim stays checkable from a clean checkout.
     archive = Path(__file__).parents[1] / "archive" / "eval15"
     runs = sorted(archive.glob("*/traces.jsonl"))
     assert [p.parent.name for p in runs] == ["fable", "opus", "sol"]

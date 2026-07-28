@@ -1,8 +1,8 @@
 # Figure provenance
 
 **Status: both charts in this directory are preliminary and must not be reused as
-capability results.** They are kept as exhibits for the reward audit (STEPS.md §2),
-not as findings.
+capability results.** They are kept as exhibits for the reward audit, not as
+findings.
 
 ## `01_model_comparison.png` — "Off-the-shelf models separate sharply"
 
@@ -36,8 +36,8 @@ reversing this chart's ordering. Sample size differs, so this is not a contradic
 on its own — but combined with (1) there is no reason to trust either ordering as a
 statement about circuit-finding ability.
 
-The replacement is the v2 frontier baseline built in STEPS.md Stage 3. Until then,
-any use of this figure must carry the component table above.
+The replacement is a frontier baseline measured under the v2 (split-half) reward.
+Until then, any use of this figure must carry the component table above.
 
 ## `02_pass_at_k.png` — "Sampling more rollouts helps only models that can already
 find circuits"
@@ -52,6 +52,6 @@ regardless.
 
 `environments/circuit_supernodes/archive/eval15/` has tracked `traces.jsonl`,
 `config.toml`, and `eval.log` for all three models. That run is the basis of the
-component table above and of STEPS.md §2 finding 2. Its own summary chart
+component table above. Its own summary chart
 (`eval15_all_results.png`) was produced by a script that was never committed; the
 numbers behind it are recoverable from the traces via `scripts/reward_components.py`.

@@ -1,9 +1,9 @@
 import verifiers.v1 as vf
 
 from .graphs import Graph, feature_coords, load_graph_json
-from .rubric import MODAL_APP, MODAL_CLS, relative_drop
+from .rubric import MODAL_APP, MODAL_CLS, intervene_with_retries, relative_drop
 
-MAX_EXPERIMENTS = 7
+DEFAULT_BUDGET = 7
 MAX_ABLATED_FEATURES = 12
 MAX_PROBE_GROUPS = 8
 MAX_PROBE_FEATURES = 60
@@ -21,15 +21,17 @@ class AblationTools(vf.Toolset[vf.ToolsetConfig, CircuitState]):
         self._attributor = None
         self._graph: Graph | None = None
         self._prompt = self._target = ""
+        self._budget = DEFAULT_BUDGET
 
     async def setup_task(self, task) -> None:
         self._graph = load_graph_json(task.graph)
         self._prompt = task.subject_prompt
         self._target = self._graph.top_outputs[0][0] if self._graph.top_outputs else ""
+        self._budget = task.experiment_budget
 
     @property
     def remaining(self) -> int:
-        return max(0, MAX_EXPERIMENTS - self.state.experiments_used)
+        return max(0, self._budget - self.state.experiments_used)
 
     def _fail(self, message: str) -> dict:
         return {"error": message, "experiments_remaining": self.remaining}
@@ -55,8 +57,8 @@ class AblationTools(vf.Toolset[vf.ToolsetConfig, CircuitState]):
             import modal
 
             self._attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
-        return await self._attributor.intervene.remote.aio(
-            self._prompt, groups, self._target, None, [0]
+        return await intervene_with_retries(
+            self._attributor, self._prompt, groups, self._target, None, [0]
         )
 
     @vf.tool(name="run_ablation")
@@ -93,14 +95,14 @@ class AblationTools(vf.Toolset[vf.ToolsetConfig, CircuitState]):
         except ValueError as exc:
             return self._fail(str(exc))
 
+        # Budget is spent on evidence, not on infra faults: charge after the call
+        # returns, and let an exhausted retry chain raise rather than silently
+        # burning the agent's experiments.
+        groups = [feature_coords(ablated)] + [
+            feature_coords(ids) for ids in probes.values()
+        ]
+        result = await self._remote(groups)
         self.state.experiments_used += 1
-        try:
-            groups = [feature_coords(ablated)] + [
-                feature_coords(ids) for ids in probes.values()
-            ]
-            result = await self._remote(groups)
-        except Exception as exc:
-            return self._fail(f"ablation failed: {type(exc).__name__}: {exc}")
 
         probe_results = {}
         for name, base, changed in zip(

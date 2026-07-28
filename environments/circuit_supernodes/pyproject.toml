@@ -21,4 +21,6 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-include = ["circuit_supernodes/**", "tests/**", "pyproject.toml"]
+# Ship the tests and scripts too: the suite imports from scripts/, and the
+# oracle audit is the evidence a reviewer needs to trust the reward.
+include = ["circuit_supernodes/**", "tests/**", "scripts/**", "pyproject.toml"]

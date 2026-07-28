@@ -1,17 +1,24 @@
+import hashlib
 import json
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Literal
 
 import verifiers.v1 as vf
 from pydantic import Field
 
-from .experiments import MAX_EXPERIMENTS, AblationTools, CircuitState
+from .experiments import DEFAULT_BUDGET, AblationTools, CircuitState
 from .graphs import graph_to_json, load_graph_json, render_graph, slim_graph
-from .rubric import InterventionScoring, parse_proposal
+from .rubric import (
+    MIN_GROUP_SIZE,
+    InterventionScoring,
+    parse_proposal,
+    shaped_reward,
+)
 
 DATA_DIR = Path(__file__).parent / "data"
 
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT = f"""\
 You are analyzing an attribution graph of Qwen3-4B built with per-layer
 transcoders. Group FEATURE nodes by concept and causal role, then connect the
 groups into a directed circuit.
@@ -21,17 +28,23 @@ nodes to zero and reports changes in output probability and requested probe-grou
 activations. Use it to test uncertain causal links.
 
 Your final proposal is scored by independent ablations for causal separation,
-feature coverage, and completeness. Use 2-8 disjoint supernodes, FEATURE IDs
-only. Every supernode needs an outgoing edge. "output" is the reserved terminal.
-Edges mean reachability: A -> B -> output predicts that ablating A reduces B and
-the output.
+feature coverage, and completeness. Scoring splits every supernode into two halves
+under a hidden seed and ablates each half separately, so a group earns credit only
+when its causal role is shared across its members rather than carried by one or two
+of them.
+
+Rules — violations are rejected, not repaired:
+- 2-8 disjoint supernodes, at least {MIN_GROUP_SIZE} FEATURE ids each, FEATURE ids only.
+- Edges form a DAG in which every supernode reaches "output", the reserved terminal.
+- Edges mean reachability: A -> B -> output predicts that ablating A reduces B
+  and the output.
 
 Finish with a short analysis and exactly one JSON code block:
 ```json
-{
-  "supernodes": [{"name": "<concept>", "nodes": ["<node_id>", ...]}, ...],
+{{
+  "supernodes": [{{"name": "<concept>", "nodes": ["<node_id>", ...]}}, ...],
   "edges": [["<source>", "<target or output>"], ...]
-}
+}}
 ```"""
 
 
@@ -39,9 +52,40 @@ class CircuitTaskData(vf.TaskData):
     family: str
     subject_prompt: str
     graph: dict
+    experiment_budget: int = DEFAULT_BUDGET
+    reward_mode: Literal["train", "eval"] = "eval"
+    fault_rate: float = 0.0
 
 
 _SCORER = InterventionScoring()
+
+
+def fails_injected_fault(rollout_id: str, rate: float) -> bool:
+    """Canary instrument (``fault_rate = 0`` everywhere else).
+
+    Whether a scoring exception makes the trainer drop the rollout or silently
+    contribute a zero is undocumented and decides whether this reward is safe to
+    train on at all, so the run that answers it needs a way to fail on demand.
+    Deterministic in the rollout id, so a canary is reproducible.
+    """
+    if rate <= 0.0:
+        return False
+    draw = hashlib.blake2b(rollout_id.encode(), digest_size=4).digest()
+    return int.from_bytes(draw, "big") / 2**32 < rate
+
+
+def split_nonce(trace: vf.Trace) -> str:
+    """Nonce for the hidden split, taken from the run the rollout belongs to.
+
+    Every rollout of a GRPO group shares a (run, step), so siblings are scored
+    under the same split with no extra plumbing, and the split rotates between
+    steps so no fixed per-task split can be memorized. Eval uses a constant so
+    model comparisons stay reproducible.
+    """
+    run = getattr(trace, "run", None)
+    if run is None or getattr(run, "type", "eval") != "train":
+        return "eval"
+    return f"{run.id}:{run.step}"
 
 
 class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
@@ -53,26 +97,32 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
 
     @vf.reward
     async def circuit_faithfulness(self, trace: vf.Trace) -> float:
+        # Infra failures deliberately propagate: verifiers records a task error
+        # the trainer can drop, where a 0.0 would corrupt the group's advantages.
+        if fails_injected_fault(trace.id, self.data.fault_rate):
+            raise RuntimeError("injected scoring failure (fault_rate canary)")
         proposal = parse_proposal(trace.last_reply)
         if proposal is None:
-            trace.info["scoring_error"] = "missing final proposal JSON"
-            return 0.0
-        try:
+            result = {"reward": 0.0, "gated": "missing proposal JSON", "parse": False}
+        else:
             result = await _SCORER.score(
                 self.data.subject_prompt,
                 load_graph_json(self.data.graph),
                 proposal,
+                nonce=split_nonce(trace),
             )
-        except Exception as exc:
-            trace.info["intervention_error"] = f"{type(exc).__name__}: {exc}"
-            return 0.0
         trace.info["reward_components"] = result
+        if self.data.reward_mode == "train":
+            return shaped_reward(result)
         return result["reward"]
 
 
 class CircuitTasksetConfig(vf.TasksetConfig):
     dataset_file: str = "dataset.jsonl"
     max_features: int = Field(60, ge=2, le=4096)
+    experiment_budget: int = Field(DEFAULT_BUDGET, ge=0)
+    reward_mode: Literal["train", "eval"] = "eval"
+    fault_rate: float = Field(0.0, ge=0.0, le=1.0)
 
 
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
@@ -91,11 +141,15 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 graph = slim_graph(
                     load_graph_json(row["graph"]), self.config.max_features
                 )
+                # Per-row budgets let the budget-curve variants be a data change.
+                budget = int(
+                    row.get("experiment_budget", self.config.experiment_budget)
+                )
                 prompt = (
                     f"Subject prompt: {row['prompt']!r}\n"
                     f"Expected continuation: {row['target']!r}\n\n"
                     f"{render_graph(graph)}\n\n"
-                    f"Experiment budget: {MAX_EXPERIMENTS}. "
+                    f"Experiment budget: {budget}. "
                     "Submit the final circuit when ready."
                 )
                 data = CircuitTaskData(
@@ -106,5 +160,8 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                     family=row["family"],
                     subject_prompt=row["prompt"],
                     graph=graph_to_json(graph),
+                    experiment_budget=budget,
+                    reward_mode=self.config.reward_mode,
+                    fault_rate=self.config.fault_rate,
                 )
                 yield CircuitTask(data, self.config.task)

@@ -1,3 +1,12 @@
+"""Reference scores for the keyword-matched "expected" circuit and a random one.
+
+Adversarial attacks live in ``oracle_audit.py``: a hack that merely trips a gate
+proves nothing, so gate-compliant attacks are scored there against both reward
+versions.
+
+    uv run python scripts/calibrate.py --dataset heldout.jsonl
+"""
+
 import argparse
 import asyncio
 import json
@@ -6,7 +15,7 @@ from itertools import pairwise
 from pathlib import Path
 
 from circuit_supernodes.graphs import Graph, load_graph_json, slim_graph
-from circuit_supernodes.rubric import InterventionScoring
+from circuit_supernodes.rubric import MIN_GROUP_SIZE, InterventionScoring
 
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 
@@ -31,25 +40,16 @@ def expected_proposal(row: dict, g: Graph) -> dict:
 
 
 def random_proposal(g: Graph, seed: int) -> dict:
+    """Matched-random control: same size and shape, no understanding."""
     feats = [n.id for n in g.feature_nodes if n.share > 0]
     random.Random(seed).shuffle(feats)
-    chunks = [feats[i::4] for i in range(4)]
+    groups = max(2, min(4, len(feats) // MIN_GROUP_SIZE))
+    chunks = [feats[i::groups] for i in range(groups)]
     supernodes = [{"name": f"g{i}", "nodes": c} for i, c in enumerate(chunks) if c]
     names = [sn["name"] for sn in supernodes]
     edges = [list(pair) for pair in pairwise(names)]
     edges.append([names[-1], "output"])
     return {"supernodes": supernodes, "edges": edges}
-
-
-def hack_proposal(g: Graph) -> dict:
-    feats = sorted(g.feature_nodes, key=lambda n: -n.share)
-    return {
-        "supernodes": [
-            {"name": "driver", "nodes": [n.id for n in feats[:3]]},
-            {"name": "decoy", "nodes": [n.id for n in feats[-3:]]},
-        ],
-        "edges": [["driver", "output"]],
-    }
 
 
 async def main() -> None:
@@ -78,7 +78,6 @@ async def main() -> None:
         for kind, proposal in [
             ("expected", expected_proposal(row, g)),
             ("random", random_proposal(g, seed=i)),
-            ("hack", hack_proposal(g)),
         ]:
             jobs.append(score(row, g, kind, proposal))
     results = await asyncio.gather(*jobs)

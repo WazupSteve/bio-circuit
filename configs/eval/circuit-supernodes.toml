@@ -1,4 +1,4 @@
-# uv run eval @ ../../configs/eval/circuit-supernodes.toml
+# prime eval run configs/eval/circuit-supernodes.toml [--hosted]
 # Override --model to evaluate another policy model with the same task settings.
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 16
@@ -7,10 +7,12 @@ max_turns = 8
 
 [sampling]
 max_tokens = 16384
+enable_thinking = false  # must match the RL config; never compare across modes
 
 [taskset]
 id = "circuit-supernodes"
 dataset_file = "heldout.jsonl"
+reward_mode = "eval"
 
 [harness]
 id = "null"

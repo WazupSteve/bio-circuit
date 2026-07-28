@@ -1,0 +1,38 @@
+# Stage 1.2 — hard blocker, a few dollars.
+#
+#   prime train run configs/rl/canary-error-semantics.toml
+#
+# prime-rl now "trains on partial groups instead of dropping them on rollout
+# error". The question that decides whether this reward is safe to train on is
+# narrower: does a scoring exception EXCLUDE the rollout from its group, or
+# contribute a zero? A false zero drags every sibling's advantage with it.
+#
+# `fault_rate` makes one rollout in eight raise deterministically. Read the run's
+# rollout table afterwards and check that faulted rollouts are absent from the
+# group statistics rather than present with reward 0.0.
+model = "Qwen/Qwen3.5-0.8B"
+
+max_steps = 3
+batch_size = 16  # 2 groups of 8, so a faulted sibling is visible in both
+rollouts_per_example = 8
+
+[sampling]
+max_tokens = 4096
+enable_thinking = false
+
+# Deliberately NOT filtering here: the point is to observe the raw handling.
+[[post_batch_filters]]
+type = "zero_advantage"
+enforce = false
+
+[[env]]
+max_turns = 4
+
+[env.taskset]
+id = "circuit-supernodes"
+dataset_file = "heldout.jsonl"
+reward_mode = "train"
+fault_rate = 0.125
+
+[env.harness]
+id = "null"
