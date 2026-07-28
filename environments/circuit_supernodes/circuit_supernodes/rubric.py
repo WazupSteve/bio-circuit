@@ -162,8 +162,14 @@ def validate_topology(
 ) -> tuple[dict[str, set[str]] | None, str]:
     """Strict topology gate returning each supernode's downstream closure.
 
-    The reward scores *reachability*, so this is what a proposal actually claims:
-    a DAG in which every supernode reaches ``output``.
+    The reward scores *reachability*, so a proposal claims a DAG over supernodes.
+    A group with no outgoing edges is allowed and means "ablating this changes
+    nothing downstream" — itself a falsifiable claim, and one the calibration
+    term already checks. Requiring every group to reach ``output`` instead made
+    the true answer unstateable whenever a group is genuinely off-path: the
+    honest proposal was rejected and the agent had to assert an effect the
+    subject model does not have. At least one group must still reach ``output``,
+    or the proposal predicts nothing at all.
     """
     lookup = {n.lower(): n for n in names} | {OUTPUT: OUTPUT}
     adj: dict[str, set[str]] = {n: set() for n in names}
@@ -191,9 +197,9 @@ def validate_topology(
             stack.extend(adj.get(n, ()))
         if start in seen:
             return None, f"{start!r} lies on a cycle; the circuit must be a DAG"
-        if OUTPUT not in seen:
-            return None, f"{start!r} has no path to {OUTPUT!r}"
         closure[start] = seen
+    if not any(OUTPUT in reached for reached in closure.values()):
+        return None, f"no supernode reaches {OUTPUT!r}; the circuit predicts nothing"
     return closure, ""
 
 

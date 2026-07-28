@@ -225,7 +225,7 @@ def test_membership_gate_accepts_a_clean_proposal():
     ("edges", "expected"),
     [
         ([["A", "B"], ["B", "A"], ["A", "output"]], "cycle"),
-        ([["A", "output"]], "no path to"),  # B predicts nothing
+        ([["A", "B"]], "no supernode reaches"),  # nothing predicts the output
         (
             [["A", "output"], ["output", "B"], ["B", "output"]],
             "cannot be an edge source",
@@ -429,7 +429,7 @@ def test_gated_results_report_the_stage_they_failed_at():
     out = score(tiny)
     assert out["parse"] and not out["membership"] and not out["topology"]
 
-    dangling = {**PROPOSAL, "edges": [["A", "B"]]}
+    dangling = {**PROPOSAL, "edges": [["A", "B"]]}  # nothing reaches output
     out = score(dangling)
     assert out["parse"] and out["membership"] and not out["topology"]
 

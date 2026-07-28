@@ -65,8 +65,24 @@ def build(roles: int, per_role: int):
     return groups, features, drives, graph
 
 
-def simulator(roles: dict, drives: dict, proposal: dict):
-    """Effects follow the FEATURES' true roles, never the agent's grouping."""
+def retention(features: list[str], seed: int = 0) -> dict[str, float]:
+    """Per-feature fraction of contribution a *mean* ablation leaves behind.
+
+    Zero-clamping removes a feature outright; mean-ablation only removes its
+    deviation from its average activation, and how much that is differs per
+    feature. So the two conditions reweight a group's members differently — the
+    lever a held-out condition pulls.
+    """
+    rng = random.Random(seed)
+    return {f: rng.uniform(0.3, 0.8) for f in features}
+
+
+def simulator(roles: dict, drives: dict, proposal: dict, keep: dict | None = None):
+    """Effects follow the FEATURES' true roles, never the agent's grouping.
+
+    ``keep`` switches the intervention operator: None is zero-clamp (the tool the
+    agent has), a retention map is mean-ablation (a condition it cannot run).
+    """
     role_of = {f: r for r, ms in roles.items() for f in ms}
     names = list(proposal)
 
@@ -75,7 +91,11 @@ def simulator(roles: dict, drives: dict, proposal: dict):
         ablations = []
         for i in range(len(sent)) if indices is None else indices:
             killed = set(ids[i])
-            removed = {r: len(killed & set(ms)) / len(ms) for r, ms in roles.items()}
+            strength = (lambda f: 1.0) if keep is None else (lambda f: 1.0 - keep[f])
+            removed = {
+                r: sum(strength(f) for f in killed & set(ms)) / len(ms)
+                for r, ms in roles.items()
+            }
             downstream: dict[str, float] = {}
             for r, targets in drives.items():
                 for t in targets:
@@ -108,9 +128,9 @@ def simulator(roles: dict, drives: dict, proposal: dict):
     return intervene
 
 
-async def score(graph, roles, drives, sns, edges, split_halves) -> float:
+async def score(graph, roles, drives, sns, edges, split_halves, keep=None) -> float:
     scorer = InterventionScoring(split_halves=split_halves)
-    scorer._intervene = simulator(roles, drives, sns)
+    scorer._intervene = simulator(roles, drives, sns, keep)
     result = await scorer.score(
         "p",
         graph,
@@ -122,15 +142,25 @@ async def score(graph, roles, drives, sns, edges, split_halves) -> float:
     return result["reward"]
 
 
-async def best_edges(graph, roles, drives, sns, split_halves) -> float:
-    """Exhaustive over DAGs: the most generous edge fit an attacker could buy."""
-    top = 0.0
+async def best_edges(graph, roles, drives, sns, split_halves, keep=None) -> float:
+    """Exhaustive over DAGs: the most generous edge fit an attacker could buy.
+
+    With ``keep`` set, the search still fits against zero-clamp — what the agent
+    can measure — but the returned score is under mean-ablation, which it cannot.
+    A partition that means something should transfer; one fitted to the
+    measurement should not.
+    """
+    top, best = 0.0, None
     for order in itertools.permutations(sns):
         pairs = [(a, b) for i, a in enumerate(order) for b in [*order[i + 1 :], OUTPUT]]
         for bits in range(1 << len(pairs)):
             edges = [list(p) for k, p in enumerate(pairs) if bits >> k & 1]
-            top = max(top, await score(graph, roles, drives, sns, edges, split_halves))
-    return top
+            fitted = await score(graph, roles, drives, sns, edges, split_halves)
+            if fitted >= top:
+                top, best = fitted, edges
+    if keep is None:
+        return top
+    return await score(graph, roles, drives, sns, best, split_halves, keep)
 
 
 async def main() -> None:
@@ -138,16 +168,23 @@ async def main() -> None:
     ap.add_argument("--roles", type=int, default=4)
     ap.add_argument("--per-role", type=int, default=6)
     ap.add_argument("--shuffles", type=int, default=4)
+    ap.add_argument(
+        "--holdout",
+        action="store_true",
+        help="fit edges under zero-clamp, score under mean-ablation",
+    )
     args = ap.parse_args()
 
     roles, features, drives, graph = build(args.roles, args.per_role)
-    true_edges = [[a, b] for a, ts in drives.items() for b in ts] + [
-        [f"r{args.roles - 1}", OUTPUT]
-    ]
+    # The inert role claims nothing — now sayable, since a group with no
+    # outgoing edge predicts "ablating this changes nothing downstream".
+    true_edges = [[a, b] for a, ts in drives.items() for b in ts]
 
-    print(f"{args.roles} roles x {args.per_role} features, exhaustive edge search\n")
+    keep = retention(features) if args.holdout else None
+    mode = "fit on zero-clamp, scored on mean-ablation" if keep else "same condition"
+    print(f"{args.roles} roles x {args.per_role} features, {mode}\n")
     print(f"{'partition':<34}{'v1':>8}{'v2':>8}")
-    honest = await score(graph, roles, drives, roles, true_edges, True)
+    honest = await score(graph, roles, drives, roles, true_edges, True, keep)
     print(f"{'true partition, TRUE edges':<34}{'-':>8}{honest:>8.3f}")
     for label, sns in [("true partition, best edges", dict(roles))] + [
         (
@@ -156,8 +193,8 @@ async def main() -> None:
         )
         for seed in range(args.shuffles)
     ]:
-        v1 = await best_edges(graph, roles, drives, sns, False)
-        v2 = await best_edges(graph, roles, drives, sns, True)
+        v1 = await best_edges(graph, roles, drives, sns, False, keep)
+        v2 = await best_edges(graph, roles, drives, sns, True, keep)
         print(f"{label:<34}{v1:>8.3f}{v2:>8.3f}")
     print(
         "\nA blind shuffle scoring at or above the true partition means the reward"
