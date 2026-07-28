@@ -12,7 +12,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.21264367816091953,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6609026914362964
+    ]
    },
    "v1/community": {
     "reward": 0.8400410524654829,
@@ -23,7 +26,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2028985507246377,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.8400410524654829
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.8302309040479262,
@@ -34,7 +40,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5546190538598009,
+     0.6903924907610588,
+     0.7182200639566867,
+     0.6202070105310016,
+     0.5669708135461842,
+     0.7568478630910838,
+     0.7631047283281648,
+     0.7155094166326608,
+     0.826875831264316,
+     0.5495681097977835,
+     0.7124859524700697,
+     0.7532645852555074,
+     0.3749529078832928,
+     0.4852324125611021,
+     0.5309146582093616,
+     0.8302309040479262
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.191455747257912,
@@ -45,18 +69,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.14919354838709678,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.191455747257912
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.4270240954995831,
-    "separation": 0.34078139076036645,
-    "coverage": 0.926616069536567,
-    "completeness": 0.3871992137978859,
+    "reward": 0.6182020916131498,
+    "separation": 0.448625666815104,
+    "coverage": 1.0,
+    "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.203125,
-    "experiment_cost": 5
+    "threshold": 0.26991150442477874,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6182020916131498,
+     0.38693333432317323
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.3811418740859546,
@@ -67,7 +98,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.3045977011494253,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.3811418740859546
+    ]
    },
    "v2/community": {
     "reward": 0.6230319784598576,
@@ -78,7 +112,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2028985507246377,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6230319784598576
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.7318911723053821,
@@ -89,7 +126,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.25252525252525254,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5479201464019705,
+     0.568654404777276,
+     0.7318911723053821,
+     0.5810300044053889,
+     0.1337025196174172,
+     0.4908908911796814,
+     0.5556864422612844,
+     0.5484173726029781,
+     0.6415017529394513,
+     0.37311762318952807,
+     0.6508076582540574,
+     0.6970332259756815,
+     0.23368217404171532,
+     0.46961811474253223,
+     0.5043908992364813,
+     0.665665571272585
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.12715961483284877,
@@ -100,18 +155,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.16363636363636364,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.12715961483284877
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.4374448147150076,
-    "separation": 0.35475404557909695,
-    "coverage": 0.926616069536567,
-    "completeness": 0.3871992137978859,
+    "reward": 0.5860885144352599,
+    "separation": 0.4104611122805421,
+    "coverage": 1.0,
+    "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.203125,
-    "experiment_cost": 5
+    "threshold": 0.26991150442477874,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5860885144352599,
+     0.40053936651165273
+    ]
    }
   }
  },
@@ -120,15 +182,18 @@
   "prompt": "Fact: the capital of the country containing Osaka is Tokyo.\nFact: the capital of the country containing Munich is",
   "scores": {
    "v1/blind-balanced": {
-    "reward": 0.7561238471311171,
-    "separation": 0.6275594767694214,
+    "reward": 0.8670703105936443,
+    "separation": 0.7884192019123187,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.2488479262672811,
-    "experiment_cost": 5
+    "threshold": 0.23529411764705882,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.8670703105936443
+    ]
    },
    "v1/community": {
     "reward": 0.5907690273273767,
@@ -139,51 +204,82 @@
     "membership": true,
     "topology": true,
     "threshold": 0.11046511627906977,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.5907690273273767
+    ]
    },
    "v1/random-multistart": {
-    "reward": 0.7424367027348574,
-    "separation": 0.6087407693604693,
+    "reward": 0.7599283303875171,
+    "separation": 0.6328309713051082,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.3355263157894737,
-    "experiment_cost": 5
+    "threshold": 0.3106060606060606,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6068086497664485,
+     0.7123166116384366,
+     0.726278323317656,
+     0.7131386508560617,
+     0.7015674055214791,
+     0.55599585350254,
+     0.5536700047778277,
+     0.40176826950325734,
+     0.5734723734628853,
+     0.5558208119576217,
+     0.5508034363559038,
+     0.7599283303875171,
+     0.5379976695170423,
+     0.7517110956244899,
+     0.4938147930061306,
+     0.3663298790280472
+    ]
    },
    "v1/smallest-legal": {
-    "reward": 0.11989649726590004,
+    "reward": 0.11838578437256059,
     "separation": 0.45837321843186846,
     "coverage": 0.5923796489700817,
-    "completeness": 0.00043428481330808066,
+    "completeness": 0.00040760541476661007,
     "parse": true,
     "membership": true,
     "topology": true,
     "threshold": 0.07407407407407407,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.11838578437256059
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.5233599706730953,
-    "separation": 0.33988670005261373,
+    "reward": 0.39860805831544344,
+    "separation": 0.21589543376888423,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.2289156626506024,
-    "experiment_cost": 5
+    "threshold": 0.10738255033557047,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.39860805831544344,
+     0.38642197708512155
+    ]
    },
    "v2/blind-balanced": {
-    "reward": 0.6274866110072477,
-    "separation": 0.45991132703013543,
+    "reward": 0.6669630842459605,
+    "separation": 0.5091389563698239,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.32941176470588235,
-    "experiment_cost": 5
+    "threshold": 0.40641711229946526,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6669630842459605
+    ]
    },
    "v2/community": {
     "reward": 0.6023683002545855,
@@ -194,40 +290,68 @@
     "membership": true,
     "topology": true,
     "threshold": 0.4329608938547486,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.6023683002545855
+    ]
    },
    "v2/random-multistart": {
-    "reward": 0.7281895259875647,
-    "separation": 0.5893962656074698,
+    "reward": 0.7040997415835893,
+    "separation": 0.5572588506453705,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.2541436464088398,
-    "experiment_cost": 5
+    "threshold": 0.3204225352112676,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.46108219991646165,
+     0.6328366607590629,
+     0.3288738294393188,
+     0.6931671719094283,
+     0.5268294040852656,
+     0.0,
+     0.5500007790681222,
+     0.3918167510361436,
+     0.4424279542492374,
+     0.3706127968325901,
+     0.6318249536195808,
+     0.5843765039369891,
+     0.5401063312089743,
+     0.7040997415835893,
+     0.28422270948507694,
+     0.0
+    ]
    },
    "v2/smallest-legal": {
-    "reward": 0.09167753173395049,
+    "reward": 0.0911024323466303,
     "separation": 0.29427726614652294,
     "coverage": 0.5923796489700817,
-    "completeness": 0.0004289871587393611,
+    "completeness": 0.0004156995874475447,
     "parse": true,
     "membership": true,
     "topology": true,
     "threshold": 0.07407407407407407,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.0911024323466303
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.5408000176385559,
-    "separation": 0.35897248529518533,
+    "reward": 0.39712992966175215,
+    "separation": 0.21456276876278307,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.2289156626506024,
-    "experiment_cost": 5
+    "threshold": 0.34023668639053256,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.39712992966175215,
+     0.2835202601611162
+    ]
    }
   }
  },
@@ -236,15 +360,18 @@
   "prompt": "calc: 36+50=86\ncalc: 66+76=",
   "scores": {
    "v1/blind-balanced": {
-    "reward": 0.31292855897535615,
-    "separation": 0.144236552578516,
+    "reward": 0.373748618802948,
+    "separation": 0.19392449119594257,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.12,
-    "experiment_cost": 5
+    "threshold": 0.16,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.373748618802948
+    ]
    },
    "v1/community": {
     "reward": 0.40251880015356095,
@@ -255,18 +382,39 @@
     "membership": true,
     "topology": true,
     "threshold": 0.6954854514180929,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.40251880015356095
+    ]
    },
    "v1/random-multistart": {
-    "reward": 0.5397535103514447,
-    "separation": 0.3578154804313683,
+    "reward": 0.5501390153621151,
+    "separation": 0.3693635846445301,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.061587856073970965,
-    "experiment_cost": 5
+    "threshold": 0.14502634749889656,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5501390153621151,
+     0.4279419457863164,
+     0.5496128741870485,
+     0.0,
+     0.0,
+     0.4724306021818812,
+     0.4472259071530547,
+     0.2325438144374,
+     0.3843575545231066,
+     0.383462675590973,
+     0.0,
+     0.422643837517185,
+     0.3842438671199283,
+     0.5183452568644557,
+     0.0,
+     0.0
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.4043896517117265,
@@ -277,18 +425,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0896551724137931,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.4043896517117265
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.2240389777538782,
-    "separation": 0.10987158459746435,
-    "coverage": 0.9558437028773006,
-    "completeness": 0.44522020412796665,
+    "reward": 0.2944149722948893,
+    "separation": 0.16873861943460053,
+    "coverage": 0.9088497218067465,
+    "completeness": 0.5065985085220327,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.035897435897435895,
-    "experiment_cost": 5
+    "threshold": 0.08717948717948718,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.24650329735408563,
+     0.2944149722948893
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.0,
@@ -298,8 +453,11 @@
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.2849162011173184,
-    "experiment_cost": 5
+    "threshold": 0.25,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0
+    ]
    },
    "v2/community": {
     "reward": 0.39557694976275304,
@@ -310,18 +468,39 @@
     "membership": true,
     "topology": true,
     "threshold": 0.6954854514180929,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.39557694976275304
+    ]
    },
    "v2/random-multistart": {
-    "reward": 0.46574606308547223,
-    "separation": 0.2798435624986117,
+    "reward": 0.4468897570213418,
+    "separation": 0.26121653690997537,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.061587856073970965,
-    "experiment_cost": 5
+    "threshold": 0.2,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.38859636518798985,
+     0.434747400481935,
+     0.17258447568763716,
+     0.24457899527390964,
+     0.0,
+     0.4147428622331328,
+     0.3765222355736723,
+     0.2115740175982168,
+     0.17379520712767083,
+     0.40934540894998855,
+     0.0,
+     0.34374941557921945,
+     0.0,
+     0.4468897570213418,
+     0.27035887287940147,
+     0.0
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.1451263090542794,
@@ -332,18 +511,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.05091254221642525,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.1451263090542794
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.24334683149522215,
-    "separation": 0.09485119929296155,
+    "reward": 0.34328631686417044,
+    "separation": 0.16830389049442607,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.07723577235772358,
-    "experiment_cost": 5
+    "threshold": 0.08536585365853659,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.34328631686417044,
+     0.2936799055030514
+    ]
    }
   }
  },
@@ -360,7 +546,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.35784313725490197,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6003646395350655
+    ]
    },
    "v1/community": {
     "reward": 0.0,
@@ -368,8 +557,11 @@
     "parse": true,
     "membership": false,
     "topology": false,
-    "threshold": 0.9997260387254193,
-    "experiment_cost": null
+    "threshold": 0.9997267470974976,
+    "experiment_cost": null,
+    "all_rewards": [
+     0.0
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.7986092307173845,
@@ -380,7 +572,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.358974358974359,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6227099142693159,
+     0.6307139308770597,
+     0.6202788093069669,
+     0.5780379439582977,
+     0.6923313066912332,
+     0.6305798714313131,
+     0.7986092307173845,
+     0.4564513670708064,
+     0.4913834911148569,
+     0.698720860820136,
+     0.4784696355717989,
+     0.4092876744355943,
+     0.6317379230424691,
+     0.6482228753964784,
+     0.6001418734050575,
+     0.5220045101071834
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.05876266091175894,
@@ -391,18 +601,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.18170968837435356,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.05876266091175894
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.3032296868094186,
-    "separation": 0.16423540777569845,
-    "coverage": 0.9631962356422404,
-    "completeness": 0.6008186855617933,
+    "reward": 0.0,
+    "separation": 0.0,
+    "coverage": 1.0,
+    "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.11363636363636363,
-    "experiment_cost": 5
+    "threshold": 0.7883064516129032,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0,
+     0.0
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.383921062772831,
@@ -413,7 +630,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.07564872286006298,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.383921062772831
+    ]
    },
    "v2/community": {
     "reward": 0.0,
@@ -421,8 +641,11 @@
     "parse": true,
     "membership": false,
     "topology": false,
-    "threshold": 0.9997155948402089,
-    "experiment_cost": null
+    "threshold": 0.9997280999694098,
+    "experiment_cost": null,
+    "all_rewards": [
+     0.0
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.7303104459213594,
@@ -433,7 +656,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2441860465116279,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.4239506120877338,
+     0.49154637808667917,
+     0.5022859387414322,
+     0.34469622349413737,
+     0.7289123645368764,
+     0.4451079912237997,
+     0.5785109984309643,
+     0.38873885085446386,
+     0.5082004497644966,
+     0.4004940249119863,
+     0.36276071502724866,
+     0.4410835464128801,
+     0.46889191645580086,
+     0.7303104459213594,
+     0.5259959089130725,
+     0.27324813504831535
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.04982567997750329,
@@ -444,18 +685,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.25961538461538464,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.04982567997750329
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.24888196729620155,
-    "separation": 0.11816884278086555,
-    "coverage": 0.9631962356422404,
-    "completeness": 0.6008186855617933,
+    "reward": 0.1979701141932635,
+    "separation": 0.06724593802118696,
+    "coverage": 1.0,
+    "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.07954545454545454,
-    "experiment_cost": 5
+    "threshold": 0.29577464788732394,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.1979701141932635,
+     0.0
+    ]
    }
   }
  },
@@ -472,7 +720,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.3447368421052632,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.946291839224146
+    ]
    },
    "v1/community": {
     "reward": 0.9324150816929615,
@@ -483,7 +734,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.4261744966442953,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.9324150816929615
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.9397184105864659,
@@ -494,7 +748,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.9999909258619238,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.9397184105864659,
+     0.9227800237752526,
+     0.7642777888307006,
+     0.8332964583152804,
+     0.7080192307880503,
+     0.8143539453292857,
+     0.8117891454457273,
+     0.9070868152591604,
+     0.8051570746351816,
+     0.769396752213203,
+     0.9111136650324878,
+     0.8281328805975358,
+     0.7953969522404494,
+     0.9089883148881255,
+     0.7672283753891702,
+     0.8580318229226493
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.10643818109751411,
@@ -505,18 +777,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.272215864608675,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.10643818109751411
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.6493469586460562,
-    "separation": 0.4869241908879017,
+    "reward": 0.6874260216455987,
+    "separation": 0.5354389326937783,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.21575342465753425,
-    "experiment_cost": 5
+    "threshold": 0.2828282828282828,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6874260216455987,
+     0.42891594958931045
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.8409187497312577,
@@ -527,7 +806,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.3447368421052632,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.8409187497312577
+    ]
    },
    "v2/community": {
     "reward": 0.6945090658016311,
@@ -538,7 +820,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0989010989010989,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6945090658016311
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.9605503002651913,
@@ -549,7 +834,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.9999909258619238,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.9605503002651913,
+     0.9003177373758378,
+     0.7484925343126214,
+     0.8433999101378992,
+     0.48764217359278167,
+     0.7027685221109978,
+     0.815745115346752,
+     0.8004049551432987,
+     0.9095222945637407,
+     0.8105316005976552,
+     0.8136338541709964,
+     0.8340133741767869,
+     0.784048165757696,
+     0.77540866227961,
+     0.6756235004209331,
+     0.7872090134602863
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.09145294581668033,
@@ -560,18 +863,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.44011976047904194,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.09145294581668033
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.6432206960468176,
-    "separation": 0.47929181901362783,
+    "reward": 0.6470887907202371,
+    "separation": 0.48410525237061297,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
     "threshold": 0.4772727272727273,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6470887907202371,
+     0.4248656296086655
+    ]
    }
   }
  },
@@ -588,7 +898,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.20987654320987653,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.306392145469147
+    ]
    },
    "v1/community": {
     "reward": 0.5626041223240992,
@@ -599,7 +912,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0945945945945946,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5626041223240992
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.389857135266827,
@@ -610,7 +926,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.1141552511415525,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0,
+     0.3309905208865817,
+     0.13356223108321763,
+     0.3153469027310432,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.389857135266827,
+     0.35496774970291517,
+     0.0,
+     0.0,
+     0.0,
+     0.31177460789661815,
+     0.38505314849036737,
+     0.0
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.33471481859194774,
@@ -621,18 +955,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.044444444444444446,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.33471481859194774
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.3296009812586763,
-    "separation": 0.15727058175754222,
-    "coverage": 1.0,
-    "completeness": 1.0,
+    "reward": 0.33620031622212365,
+    "separation": 0.174607754985058,
+    "coverage": 0.9604815710185246,
+    "completeness": 0.8400612771560361,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.0759493670886076,
-    "experiment_cost": 5
+    "threshold": 0.048672566371681415,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.13430732607878965,
+     0.33620031622212365
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.31458536676116655,
@@ -643,7 +984,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.20987654320987653,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.31458536676116655
+    ]
    },
    "v2/community": {
     "reward": 0.5393652678517292,
@@ -654,7 +998,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0945945945945946,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5393652678517292
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.4034300694877735,
@@ -665,7 +1012,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0979020979020979,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0,
+     0.0,
+     0.0,
+     0.3383833144094449,
+     0.0,
+     0.0,
+     0.0976255963712482,
+     0.0,
+     0.33033563717737685,
+     0.262055793018685,
+     0.0,
+     0.18829811797842133,
+     0.0,
+     0.19625376545775972,
+     0.4034300694877735,
+     0.0
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.1213897247669323,
@@ -676,18 +1041,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.05357142857142857,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.1213897247669323
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.28888306953902443,
-    "separation": 0.1262418887151104,
-    "coverage": 1.0,
-    "completeness": 1.0,
+    "reward": 0.311699882873056,
+    "separation": 0.15391976711608601,
+    "coverage": 0.9604815710185246,
+    "completeness": 0.8400612771560361,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.06692913385826772,
-    "experiment_cost": 5
+    "threshold": 0.048672566371681415,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0,
+     0.311699882873056
+    ]
    }
   }
  },
@@ -704,7 +1076,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.23563218390804597,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.777039494747792
+    ]
    },
    "v1/community": {
     "reward": 0.7906478861443085,
@@ -715,7 +1090,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.9966403724884574,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.7906478861443085
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.8458090580876145,
@@ -726,7 +1104,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.3861111111111111,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6215271147527861,
+     0.4660409284236902,
+     0.43860685658178994,
+     0.7025231245939889,
+     0.4102481810470611,
+     0.6976992401456535,
+     0.8458090580876145,
+     0.8371988411545468,
+     0.7077662555525079,
+     0.732709641963702,
+     0.5049889481687078,
+     0.4678831121735701,
+     0.7133462883974115,
+     0.3624119245624148,
+     0.778506209895118,
+     0.6079899420775654
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.16945370389810857,
@@ -737,18 +1133,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.1588785046728972,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.16945370389810857
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.6241344349800674,
-    "separation": 0.455823705375717,
+    "reward": 0.7397660370427371,
+    "separation": 0.6050955810503806,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.2947019867549669,
-    "experiment_cost": 5
+    "threshold": 0.2743055555555556,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.7397660370427371,
+     0.4427339045074219
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.4652788985324453,
@@ -759,7 +1162,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.572463768115942,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.4652788985324453
+    ]
    },
    "v2/community": {
     "reward": 0.5466413227200345,
@@ -770,7 +1176,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.9966403724884574,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.5466413227200345
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.7055708124545287,
@@ -781,7 +1190,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.35542168674698793,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5754744759517265,
+     0.16233759916307355,
+     0.39571330336262434,
+     0.6165142008191293,
+     0.1689674358512124,
+     0.5101070247926877,
+     0.6464019585717704,
+     0.5678738084213081,
+     0.5728806142918786,
+     0.7055708124545287,
+     0.0,
+     0.2549464340523724,
+     0.6606010060901885,
+     0.5154102819814003,
+     0.519878420115041,
+     0.4082793024261009
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.14606952728993786,
@@ -792,18 +1219,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.1588785046728972,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.14606952728993786
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.5785467116970595,
-    "separation": 0.40169588473655593,
+    "reward": 0.7732700798006235,
+    "separation": 0.6514563832679033,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.4,
-    "experiment_cost": 5
+    "threshold": 0.21875,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.7732700798006235,
+     0.41873137386810855
+    ]
    }
   }
  },
@@ -820,7 +1254,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2647058823529412,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6870533874164599
+    ]
    },
    "v1/community": {
     "reward": 0.9328871385880868,
@@ -831,7 +1268,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.24,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.9328871385880868
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.6563324738872429,
@@ -842,7 +1282,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2885375494071146,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5225295924561498,
+     0.6563324738872429,
+     0.5179784470719243,
+     0.5704292373444434,
+     0.5724971830042034,
+     0.2549102398978643,
+     0.3331268437086003,
+     0.5950298504248622,
+     0.4678824445986092,
+     0.400145385084801,
+     0.4433738757181502,
+     0.0,
+     0.3760262280172346,
+     0.563351602508041,
+     0.5937274835749037,
+     0.4752279015961433
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.09340081165893444,
@@ -853,18 +1311,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.044,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.09340081165893444
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.6383899849339774,
-    "separation": 0.558232003132089,
-    "coverage": 0.932713166242454,
-    "completeness": 0.65348861594591,
+    "reward": 0.5885016008668178,
+    "separation": 0.48141528019004765,
+    "coverage": 0.9603276356738721,
+    "completeness": 0.6588085150724939,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.14705882352941177,
-    "experiment_cost": 5
+    "threshold": 0.2839506172839506,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.4979588251688064,
+     0.5885016008668178
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.4716460055441072,
@@ -875,7 +1340,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2647058823529412,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.4716460055441072
+    ]
    },
    "v2/community": {
     "reward": 0.6656485875872282,
@@ -886,7 +1354,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.24,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.6656485875872282
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.5003831611016605,
@@ -897,7 +1368,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.2827586206896552,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5003831611016605,
+     0.48317082990319393,
+     0.33868330707162103,
+     0.42337385917242804,
+     0.4026371287815286,
+     0.2685147463440814,
+     0.0,
+     0.42357147564196906,
+     0.34921135699284817,
+     0.35241687002112804,
+     0.34227709934906675,
+     0.0,
+     0.0,
+     0.2536312246223132,
+     0.37865877347595467,
+     0.25994753380533225
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.07164662581890519,
@@ -908,18 +1397,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.1935483870967742,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.07164662581890519
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.5843795598067307,
-    "separation": 0.40846830347989815,
+    "reward": 0.5543229827133627,
+    "separation": 0.37405730624774836,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.22857142857142856,
-    "experiment_cost": 5
+    "threshold": 0.24571428571428572,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5543229827133627,
+     0.4213620804576335
+    ]
    }
   }
  },
@@ -936,7 +1432,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0970464135021097,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.40301410838984947
+    ]
    },
    "v1/community": {
     "reward": 0.0,
@@ -945,7 +1444,10 @@
     "membership": false,
     "topology": false,
     "threshold": 0.9181988120748109,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.0
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.5117128269167754,
@@ -956,7 +1458,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.10232558139534884,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5117128269167754,
+     0.34126330460233445,
+     0.33750353318419163,
+     0.32816375386554464,
+     0.0,
+     0.43271711073176783,
+     0.4213743676831869,
+     0.24356703515980563,
+     0.198456789083353,
+     0.41052894380987465,
+     0.0,
+     0.0,
+     0.43736884548381777,
+     0.0,
+     0.3638747023644098,
+     0.4454440765723837
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.3629510718138601,
@@ -967,18 +1487,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.037037037037037035,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.3629510718138601
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.44154620761216795,
-    "separation": 0.25603161658264434,
+    "reward": 0.44478976011181276,
+    "separation": 0.25917392192999056,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.19172932330827067,
-    "experiment_cost": 5
+    "threshold": 0.12258064516129032,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.44478976011181276,
+     0.35791857742262956
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.1733137751093659,
@@ -989,7 +1516,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.03482587064676617,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.1733137751093659
+    ]
    },
    "v2/community": {
     "reward": 0.0,
@@ -998,7 +1528,10 @@
     "membership": false,
     "topology": false,
     "threshold": 0.9181988120748109,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.0
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.5121129412971065,
@@ -1009,7 +1542,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.10232558139534884,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5121129412971065,
+     0.0,
+     0.39134066727779837,
+     0.2957951426291157,
+     0.0,
+     0.28435750780294433,
+     0.3879677423416545,
+     0.3820028129704127,
+     0.0,
+     0.22611598754223075,
+     0.0,
+     0.1444886029527358,
+     0.2804856271303966,
+     0.0,
+     0.39336427155002407,
+     0.41567248882091234
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.19822995832235418,
@@ -1020,18 +1571,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.4534412955465587,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.19822995832235418
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.4398168712758878,
-    "separation": 0.2543625330983347,
+    "reward": 0.3773417836907857,
+    "separation": 0.1970417079843668,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
     "threshold": 0.19172932330827067,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.3773417836907857,
+     0.31440686018293496
+    ]
    }
   }
  },
@@ -1048,7 +1606,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.18857142857142858,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5164823468066766
+    ]
    },
    "v1/community": {
     "reward": 0.7485005362812724,
@@ -1059,7 +1620,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.13478260869565217,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.7485005362812724
+    ]
    },
    "v1/random-multistart": {
     "reward": 0.6704996269727659,
@@ -1070,7 +1634,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.044444444444444446,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0,
+     0.5186963275892604,
+     0.6704996269727659,
+     0.49943011801132,
+     0.4401075547879033,
+     0.22966674293356895,
+     0.25888387970687904,
+     0.5289869245089112,
+     0.6464868242213208,
+     0.0,
+     0.5035429342017274,
+     0.28778132432048203,
+     0.34156025956408914,
+     0.3171255169765046,
+     0.4926978928627627,
+     0.4908831765585243
+    ]
    },
    "v1/smallest-legal": {
     "reward": 0.27255057262988824,
@@ -1081,18 +1663,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.0752212389380531,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.27255057262988824
+    ]
    },
    "v1/coherence-matched": {
-    "reward": 0.5921116551010849,
-    "separation": 0.4175155768831711,
-    "coverage": 1.0,
-    "completeness": 1.0,
+    "reward": 0.3309168350047979,
+    "separation": 0.29122359721967156,
+    "coverage": 0.9309997552840477,
+    "completeness": 0.1725699037407254,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.14644351464435146,
-    "experiment_cost": 5
+    "threshold": 0.125,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.3046020478833153,
+     0.3309168350047979
+    ]
    },
    "v2/blind-balanced": {
     "reward": 0.0,
@@ -1103,7 +1692,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.609449282102299,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0
+    ]
    },
    "v2/community": {
     "reward": 0.5622930781833086,
@@ -1114,7 +1706,10 @@
     "membership": true,
     "topology": true,
     "threshold": 0.13478260869565217,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.5622930781833086
+    ]
    },
    "v2/random-multistart": {
     "reward": 0.5527956616976621,
@@ -1125,7 +1720,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.044444444444444446,
-    "experiment_cost": 5
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.0,
+     0.3042619497864436,
+     0.5527956616976621,
+     0.3571852905537306,
+     0.25177647176736434,
+     0.0,
+     0.1569995538938245,
+     0.42297914662192365,
+     0.507250477235332,
+     0.2736552453906332,
+     0.4758221691051095,
+     0.0,
+     0.1950582183177795,
+     0.0,
+     0.3105720216853736,
+     0.3832656575428169
+    ]
    },
    "v2/smallest-legal": {
     "reward": 0.20218209904038542,
@@ -1136,18 +1749,25 @@
     "membership": true,
     "topology": true,
     "threshold": 0.08849557522123894,
-    "experiment_cost": null
+    "experiment_cost": null,
+    "all_rewards": [
+     0.20218209904038542
+    ]
    },
    "v2/coherence-matched": {
-    "reward": 0.4503897793330019,
-    "separation": 0.2646351595368165,
+    "reward": 0.45130509972999633,
+    "separation": 0.2655321233968216,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.14644351464435146,
-    "experiment_cost": 5
+    "threshold": 0.2037037037037037,
+    "experiment_cost": 5,
+    "all_rewards": [
+     0.45130509972999633,
+     0.37580431364146694
+    ]
    }
   }
  }

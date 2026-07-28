@@ -23,7 +23,9 @@ import asyncio
 import json
 import random
 from collections import Counter, defaultdict
+from math import comb
 from pathlib import Path
+from statistics import mean, pstdev
 
 from circuit_supernodes.experiments import (
     DEFAULT_BUDGET,
@@ -285,6 +287,10 @@ async def audit_row(row: dict, args) -> dict:
             out["scores"][f"{version}/{attack}"] = {
                 **best,
                 "experiment_cost": min(affordable) if affordable else None,
+                # Every partition, not just the winner: reporting only the max
+                # conflates "this attack works" with "trying N times works", and
+                # a GRPO group of G rollouts is a search of size G.
+                "all_rewards": [r["reward"] for r in results],
             }
     return out
 
@@ -333,10 +339,54 @@ async def main() -> None:
         f"\n'exps' is what a policy would spend to measure the same matrix"
         f" (budget {DEFAULT_BUDGET}); 'n/a' means the tool cannot express it."
     )
+    _report_blind_baseline(results)
 
     if args.out:
         args.out.write_text(json.dumps(results, indent=1))
         print(f"\nwrote {args.out}")
+
+
+def _report_blind_baseline(results: list[dict]) -> None:
+    """What a random partition scores, and whether a good one can be told apart.
+
+    Quoting the best of N restarts against a single-shot policy compares a search
+    to one draw. GRPO scores a rollout against its own group's *mean*, so that is
+    the number a training run actually competes with, and the spread around it is
+    what decides whether the gradient is signal or luck.
+    """
+    draws = [
+        r["scores"]["v2/random-multistart"].get("all_rewards")
+        for r in results
+        if r["scores"].get("v2/random-multistart", {}).get("all_rewards")
+    ]
+    if not draws:
+        return
+    n = len(draws[0])
+    means = [mean(s) for s in draws]
+    sds = [pstdev(s) for s in draws]
+    print(f"\nblind partition baseline ({len(draws)} graphs x {n} restarts)")
+    print(f"{'k':>4}{'E[best of k]':>15}")
+    for k in (1, 2, 4, 8, 16):
+        if k > n:
+            break
+        expected = [
+            sum(sorted(s)[i] * comb(i, k - 1) for i in range(k - 1, n)) / comb(n, k)
+            for s in draws
+        ]
+        print(f"{k:>4}{mean(expected):>15.3f}")
+    print(
+        f"  single-draw mean {mean(means):.3f}, within-graph sd {mean(sds):.3f}"
+        f"\n  a proposal must beat the mean by ~{2 * mean(sds) / 8**0.5:.3f}"
+        f" to clear 2 se at a group of 8"
+    )
+    saturated = [
+        (r["family"], m) for r, m in zip(results, means, strict=True) if m > 0.6
+    ]
+    if saturated:
+        print(
+            f"  {len(saturated)} graph(s) where a RANDOM partition already scores"
+            f" > 0.6 and so carry little signal: {saturated}"
+        )
 
 
 if __name__ == "__main__":
