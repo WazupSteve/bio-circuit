@@ -120,7 +120,18 @@ def load_graph_json(data: dict) -> Graph:
                 weight=float(raw.get("weight", 0.0) or 0.0),
             )
         )
-    # Upstream influence is cumulative; adjacent differences recover node shares.
+    # circuit-tracer's `influence` is CUMULATIVE, not per-node: it is the running
+    # share of total influence accounted for as nodes are added in importance
+    # order, and it stops at the exporter's node_threshold (0.8 for this dataset —
+    # every graph's maximum is exactly that, which is how you can tell). So the
+    # node with the SMALLEST influence is the most important one, and adjacent
+    # differences down the sorted list recover each node's own contribution.
+    #
+    # Do not "fix" this to rank by raw influence. That inverts the ordering and
+    # selects the least important features: measured over the held-out graphs,
+    # the top nodes by `share` sit at mean layer 28 with 90% at the final token
+    # position, while the top nodes by raw influence sit at mean layer 10 with
+    # 28% there. See test_share_recovers_per_node_influence.
     ranked = sorted(g.nodes.values(), key=lambda n: n.influence)
     prev = 0.0
     for n in ranked:

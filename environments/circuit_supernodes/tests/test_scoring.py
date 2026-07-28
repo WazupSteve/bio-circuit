@@ -633,3 +633,43 @@ def test_experiments_used_metric_is_awaitable_for_verifiers_v1():
     assert inspect.iscoroutinefunction(CircuitTask.experiments_used)
     trace = SimpleNamespace(state=CircuitState(experiments_used=3))
     assert asyncio.run(CircuitTask.experiments_used(None, trace)) == 3.0
+
+
+def test_share_recovers_per_node_influence():
+    """`influence` is cumulative, so `share` must invert it, not rank by it.
+
+    A graph where nodes contribute 0.4, 0.3, 0.2 and 0.1 of the total exports
+    cumulative influences of 0.1, 0.3, 0.6 and 1.0 — the most important node
+    carries the *smallest* number. Ranking by raw influence would pick exactly
+    the wrong features, so this pins the direction.
+    """
+    contributions = {"1_10_1": 0.4, "2_20_2": 0.3, "3_30_3": 0.2, "4_40_4": 0.1}
+    running, cumulative = 0.0, {}
+    for nid, own in sorted(contributions.items(), key=lambda kv: -kv[1]):
+        running += own
+        cumulative[nid] = running
+
+    g = load_graph_json(
+        {
+            "metadata": {"prompt_tokens": ["t"]},
+            "nodes": [
+                {
+                    "node_id": nid,
+                    "feature_type": "cross layer transcoder",
+                    "layer": int(nid.split("_")[0]),
+                    "ctx_idx": 0,
+                    "influence": inf,
+                }
+                for nid, inf in cumulative.items()
+            ],
+            "links": [],
+        }
+    )
+    for nid, own in contributions.items():
+        assert g.nodes[nid].share == pytest.approx(own), nid
+
+    # The most important feature must survive a slim to one node.
+    assert [n.id for n in slim_graph(g, max_features=1).feature_nodes] == ["1_10_1"]
+    # ...and it is the one raw influence ranks LAST.
+    assert min(cumulative, key=cumulative.get) == "1_10_1"
+    assert max(cumulative, key=cumulative.get) == "4_40_4"
