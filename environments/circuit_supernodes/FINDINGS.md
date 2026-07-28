@@ -118,6 +118,7 @@ Attacks over twenty graphs, models over their fifteen proposals:
 | random, best of 2 | 0.255 | 0.155 | 0.099 |
 | blind-balanced | 0.162 | 0.084 | 0.078 |
 | layer-bands | 0.551 | 0.521 | **0.030** |
+| Claude Opus 5 (xhigh) | 0.515 | 0.467 | **0.048** |
 | Claude Fable 5 | 0.389 | 0.359 | **0.030** |
 | GPT-5.6 Sol | 0.459 | 0.455 | **0.004** |
 | Claude Opus 4.8 | 0.456 | 0.475 | **−0.019** |
@@ -129,6 +130,19 @@ partition built by sorting on layer number. Every blind attack adds more over
 the null than any model does.
 
 The layer-bands figure was 0.031 on six graphs and 0.030 on twenty.
+
+Claude Opus 5 was run afterwards at xhigh reasoning on all twenty graphs, two
+rollouts each, at 150 displayed features — the strongest model and the most
+favourable settings tested. All forty rollouts completed, none were rejected by
+the gates. It has the highest separation of any model measured, 0.515, and
+**91% of that is the layer ordering**. Its margin over the null is 0.048, which
+is above a pure layer-band partition (0.030) and below every blind attack that
+is not one (0.078 to 0.189). Its mean reward, 0.296, is indistinguishable from
+the 0.290 a single blind partition scores on the same graphs.
+
+A stronger model, more reasoning, and a wider slice therefore do not change the
+conclusion. They raise the separation term and leave the part of it that is not
+layer ordering where it was.
 
 The reason is visible in what the models proposed. Claude Fable 5's supernodes
 include *"Mid-layer capital retrieval at ' is' (L24-30)"* and *"Late-layer
