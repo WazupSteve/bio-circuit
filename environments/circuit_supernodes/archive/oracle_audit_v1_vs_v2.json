@@ -1,0 +1,794 @@
+[
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Oakland is Sacramento.\nFact: the capital of the state containing Savannah is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.6539711315666631,
+    "separation": 0.4927170935579429,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.24867724867724866
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v1/random-multistart": {
+    "reward": 0.8570311833786758,
+    "separation": 0.7732638491304171,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2
+   },
+   "v1/smallest-legal": {
+    "reward": 0.43603123357325135,
+    "separation": 0.4467995830706194,
+    "coverage": 0.9023467051178339,
+    "completeness": 0.19582867405222842,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.15053763440860216
+   },
+   "v2/blind-balanced": {
+    "reward": 0.43299246701906396,
+    "separation": 0.2478186012090223,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3045977011494253
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v2/random-multistart": {
+    "reward": 0.7310001297045087,
+    "separation": 0.5931926438050281,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.25252525252525254
+   },
+   "v2/smallest-legal": {
+    "reward": 0.28922616073037977,
+    "separation": 0.22541321904478803,
+    "coverage": 0.9023467051178339,
+    "completeness": 0.19582867405222842,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.34
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the country containing Osaka is Tokyo.\nFact: the capital of the country containing Munich is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.7535844485213146,
+    "separation": 0.6240507064112508,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2488479262672811
+   },
+   "v1/community": {
+    "reward": 0.47434510989612205,
+    "separation": 0.2885076807229789,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1144578313253012
+   },
+   "v1/random-multistart": {
+    "reward": 0.7662551236160419,
+    "separation": 0.6416363886436902,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.29411764705882354
+   },
+   "v1/smallest-legal": {
+    "reward": 0.3008074804590026,
+    "separation": 0.313955555130497,
+    "coverage": 0.9201399101471487,
+    "completeness": 0.08649375991997976,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.09580838323353294
+   },
+   "v2/blind-balanced": {
+    "reward": 0.6390060976679043,
+    "separation": 0.47406912390804085,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.32941176470588235
+   },
+   "v2/community": {
+    "reward": 0.4231663771906558,
+    "separation": 0.2385165884965588,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1144578313253012
+   },
+   "v2/random-multistart": {
+    "reward": 0.772654049503535,
+    "separation": 0.6505916351894427,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2541436464088398
+   },
+   "v2/smallest-legal": {
+    "reward": 0.26524914808298666,
+    "separation": 0.25457189064889535,
+    "coverage": 0.9201399101471487,
+    "completeness": 0.08649375991997976,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0658682634730539
+   }
+  }
+ },
+ {
+  "family": "addition",
+  "prompt": "calc: 36+50=86\ncalc: 66+76=",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.3312692344364245,
+    "separation": 0.15859950958960603,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.12
+   },
+   "v1/community": {
+    "reward": 0.39922046799701283,
+    "separation": 0.21644854247926384,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.6954854514180929
+   },
+   "v1/random-multistart": {
+    "reward": 0.567326557789617,
+    "separation": 0.38879606177257375,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.14502634749889656
+   },
+   "v1/smallest-legal": {
+    "reward": 0.4070180239125908,
+    "separation": 0.26094907419904756,
+    "coverage": 0.8888048726546942,
+    "completeness": 0.7072850837948484,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0449438202247191
+   },
+   "v2/blind-balanced": {
+    "reward": 0.0,
+    "separation": 0.0,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2849162011173184
+   },
+   "v2/community": {
+    "reward": 0.4037557829310318,
+    "separation": 0.22056228863841723,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.6954854514180929
+   },
+   "v2/random-multistart": {
+    "reward": 0.47317927141291455,
+    "separation": 0.2873268325981775,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.061587856073970965
+   },
+   "v2/smallest-legal": {
+    "reward": 0.3334229506860625,
+    "separation": 0.18715101015488633,
+    "coverage": 0.8888048726546942,
+    "completeness": 0.7072850837948484,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0449438202247191
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the country containing Shanghai is Beijing.\nFact: the capital of the country containing Munich is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.6284918513637927,
+    "separation": 0.46113995421154985,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.35784313725490197
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9996448385741785
+   },
+   "v1/random-multistart": {
+    "reward": 0.8183576591562596,
+    "separation": 0.7159871901657359,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.358974358974359
+   },
+   "v1/smallest-legal": {
+    "reward": 0.31863915505818846,
+    "separation": 0.3417426802779801,
+    "coverage": 0.9164910814502326,
+    "completeness": 0.08979864881419941,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.16
+   },
+   "v2/blind-balanced": {
+    "reward": 0.4243870618512206,
+    "separation": 0.23966441680991143,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07564872286006298
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9996448385741785
+   },
+   "v2/random-multistart": {
+    "reward": 0.7639122392559814,
+    "separation": 0.6383699674023491,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2441860465116279
+   },
+   "v2/smallest-legal": {
+    "reward": 0.2379131622793817,
+    "separation": 0.2100058700530463,
+    "coverage": 0.9164910814502326,
+    "completeness": 0.08979864881419941,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.19704433497536947
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Oakland is Sacramento.\nFact: the capital of the state containing Miami is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.9243329244432993,
+    "separation": 0.8770964863710644,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.22527472527472528
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v1/random-multistart": {
+    "reward": 0.9427397519747955,
+    "separation": 0.9063995895600304,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.19932432432432431
+   },
+   "v1/smallest-legal": {
+    "reward": 0.3297291023597187,
+    "separation": 0.5241352142241219,
+    "coverage": 0.9028218661359135,
+    "completeness": 0.02998156616496272,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.18421052631578946
+   },
+   "v2/blind-balanced": {
+    "reward": 0.830100654372748,
+    "separation": 0.7331923534902529,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3447368421052632
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v2/random-multistart": {
+    "reward": 0.9596719657451162,
+    "separation": 0.9336942416295281,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.9999909258619238
+   },
+   "v2/smallest-legal": {
+    "reward": 0.27545527916691903,
+    "separation": 0.38838850881577075,
+    "coverage": 0.9028218661359135,
+    "completeness": 0.02998156616496272,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.9986552180370079
+   }
+  }
+ },
+ {
+  "family": "addition",
+  "prompt": "calc: 49+14=63\ncalc: 40+70=",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.31698010305681823,
+    "separation": 0.14736239472458923,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.20987654320987653
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v1/random-multistart": {
+    "reward": 0.4276114373584956,
+    "separation": 0.24270693620581008,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1141552511415525
+   },
+   "v1/smallest-legal": {
+    "reward": 0.4111545562169959,
+    "separation": 0.25797928583318586,
+    "coverage": 0.8937583212999839,
+    "completeness": 0.7656863933764287,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07623318385650224
+   },
+   "v2/blind-balanced": {
+    "reward": 0.3065855719089229,
+    "separation": 0.13939681623063585,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.20987654320987653
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v2/random-multistart": {
+    "reward": 0.39966424348715135,
+    "separation": 0.21684969987187647,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0979020979020979
+   },
+   "v2/smallest-legal": {
+    "reward": 0.33219337958709216,
+    "separation": 0.18081228961945459,
+    "coverage": 0.8937583212999839,
+    "completeness": 0.7656863933764287,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07623318385650224
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the country containing Munich is Berlin.\nFact: the capital of the country containing Shanghai is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.7577499486426349,
+    "separation": 0.6298104457067069,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.23563218390804597
+   },
+   "v1/community": {
+    "reward": 0.8000533038332721,
+    "separation": 0.6894956622622523,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.10666666666666667
+   },
+   "v1/random-multistart": {
+    "reward": 0.8698785169795095,
+    "separation": 0.7926795892209979,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3861111111111111
+   },
+   "v1/smallest-legal": {
+    "reward": 0.5546612398860602,
+    "separation": 0.4340021567298803,
+    "coverage": 0.9263127041789128,
+    "completeness": 0.693275427392855,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.16666666666666666
+   },
+   "v2/blind-balanced": {
+    "reward": 0.44061809091240145,
+    "separation": 0.25513529406512997,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.572463768115942
+   },
+   "v2/community": {
+    "reward": 0.5973404213571499,
+    "separation": 0.423678578788765,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4298780487804878
+   },
+   "v2/random-multistart": {
+    "reward": 0.8014699641386922,
+    "separation": 0.6915316881716834,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.35542168674698793
+   },
+   "v2/smallest-legal": {
+    "reward": 0.47126652982255646,
+    "separation": 0.3307931580819805,
+    "coverage": 0.9263127041789128,
+    "completeness": 0.693275427392855,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2125
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Dallas is Austin.\nFact: the capital of the province containing Vancouver is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.7216534371530742,
+    "separation": 0.5806054936281337,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2647058823529412
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v1/random-multistart": {
+    "reward": 0.7001114090597824,
+    "separation": 0.552007855770337,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2134387351778656
+   },
+   "v1/smallest-legal": {
+    "reward": 0.18143341705081253,
+    "separation": 0.0966511129541534,
+    "coverage": 0.9146748081755951,
+    "completeness": 0.23806694772835418,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.14009661835748793
+   },
+   "v2/blind-balanced": {
+    "reward": 0.5354668733163417,
+    "separation": 0.35309183960032114,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2647058823529412
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v2/random-multistart": {
+    "reward": 0.5621558162652083,
+    "separation": 0.38290806518694875,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2134387351778656
+   },
+   "v2/smallest-legal": {
+    "reward": 0.2601470843674565,
+    "separation": 0.17621505000435045,
+    "coverage": 0.9146748081755951,
+    "completeness": 0.23806694772835418,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.16666666666666666
+   }
+  }
+ },
+ {
+  "family": "addition",
+  "prompt": "calc: 16+73=89\ncalc: 62+87=",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.4630841081135879,
+    "separation": 0.27718291789089017,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.0970464135021097
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9181988120748109
+   },
+   "v1/random-multistart": {
+    "reward": 0.5317409649485736,
+    "separation": 0.349006513481367,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.10232558139534884
+   },
+   "v1/smallest-legal": {
+    "reward": 0.26307357508902907,
+    "separation": 0.12537717672844667,
+    "coverage": 0.8863257096245565,
+    "completeness": 0.7213355371296549,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.06951871657754011
+   },
+   "v2/blind-balanced": {
+    "reward": 0.33759336460942374,
+    "separation": 0.16367782171218645,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.03482587064676617
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "catch-all supernode dominates grouped influence",
+    "parse": true,
+    "membership": false,
+    "topology": false,
+    "threshold": 0.9181988120748109
+   },
+   "v2/random-multistart": {
+    "reward": 0.5281413018129426,
+    "separation": 0.34507769306468156,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.10232558139534884
+   },
+   "v2/smallest-legal": {
+    "reward": 0.2322373344648597,
+    "separation": 0.10185362847501866,
+    "coverage": 0.8863257096245565,
+    "completeness": 0.7213355371296549,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.06951871657754011
+   }
+  }
+ },
+ {
+  "family": "two_hop",
+  "prompt": "Fact: the capital of the state containing Oakland is Sacramento.\nFact: the capital of the state containing Cleveland is",
+  "scores": {
+   "v1/blind-balanced": {
+    "reward": 0.5791077206603118,
+    "separation": 0.40234529304611877,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.18857142857142858
+   },
+   "v1/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v1/random-multistart": {
+    "reward": 0.7321597718772115,
+    "separation": 0.5947618521310795,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.26136363636363635
+   },
+   "v1/smallest-legal": {
+    "reward": 0.4659175180299426,
+    "separation": 0.3129983446015821,
+    "coverage": 0.903740747901859,
+    "completeness": 0.7922736513441211,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07865168539325842
+   },
+   "v2/blind-balanced": {
+    "reward": 0.0,
+    "separation": 0.0,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.609449282102299
+   },
+   "v2/community": {
+    "reward": 0.0,
+    "gated": "attack produced too few groups"
+   },
+   "v2/random-multistart": {
+    "reward": 0.6397542777021391,
+    "separation": 0.47499459098842073,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.3181818181818182
+   },
+   "v2/smallest-legal": {
+    "reward": 0.33616952787563875,
+    "separation": 0.1816732064447556,
+    "coverage": 0.903740747901859,
+    "completeness": 0.7922736513441211,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.05
+   }
+  }
+ }
+]
