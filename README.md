@@ -41,5 +41,12 @@ a wheel from the Environments Hub, and Modal credentials reach it as environment
 secrets. Two canary configs under `configs/` are hard blockers that must pass
 before any real run — see the environment documentation.
 
+**Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) first.** The
+reward was audited before training anything on it, and the audit is currently the
+main result: its causal signal turns out to be dominated by the transformer's
+layer ordering, which a partition can exploit with zero experiments. Three
+frontier models add approximately nothing over that baseline. Every claim there
+is reproducible from this checkout.
+
 See the [environment documentation](environments/circuit_supernodes/README.md)
 for the task contract, reward, validation, export, and training workflows.
