@@ -8,7 +8,13 @@ import verifiers.v1 as vf
 from pydantic import Field
 
 from .experiments import DEFAULT_BUDGET, AblationTools, CircuitState
-from .graphs import graph_to_json, load_graph_json, render_graph, slim_graph
+from .graphs import (
+    Graph,
+    graph_to_json,
+    load_graph_json,
+    render_graph,
+    slim_graph,
+)
 from .rubric import (
     MIN_GROUP_SIZE,
     InterventionScoring,
@@ -121,6 +127,13 @@ class CircuitTasksetConfig(vf.TasksetConfig):
     dataset_file: str = "dataset.jsonl"
     max_features: int = Field(60, ge=2, le=4096)
     experiment_budget: int = Field(DEFAULT_BUDGET, ge=0)
+    experiment_budgets: list[int] | None = None
+    """Emit one task per budget from every graph, for the budget-curve arms.
+
+    Expanding at load time rather than in the file keeps one copy of each graph
+    on disk — the graph is by far the largest thing in a row — and keeps a GRPO
+    group homogeneous, since every rollout of a task shares its budget.
+    """
     reward_mode: Literal["train", "eval"] = "eval"
     fault_rate: float = Field(0.0, ge=0.0, le=1.0)
 
@@ -133,35 +146,40 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 f"{path} missing; run `uv run python scripts/build_dataset.py`."
             )
 
+        idx = 0
         with path.open() as rows:
-            for idx, line in enumerate(rows):
+            for line in rows:
                 if not line.strip():
                     continue
                 row = json.loads(line)
                 graph = slim_graph(
                     load_graph_json(row["graph"]), self.config.max_features
                 )
-                # Per-row budgets let the budget-curve variants be a data change.
-                budget = int(
-                    row.get("experiment_budget", self.config.experiment_budget)
-                )
-                prompt = (
-                    f"Subject prompt: {row['prompt']!r}\n"
-                    f"Expected continuation: {row['target']!r}\n\n"
-                    f"{render_graph(graph)}\n\n"
-                    f"Experiment budget: {budget}. "
-                    "Submit the final circuit when ready."
-                )
-                data = CircuitTaskData(
-                    idx=idx,
-                    name=f"{row['family']}-{idx}",
-                    prompt=prompt,
-                    system_prompt=SYSTEM_PROMPT,
-                    family=row["family"],
-                    subject_prompt=row["prompt"],
-                    graph=graph_to_json(graph),
-                    experiment_budget=budget,
-                    reward_mode=self.config.reward_mode,
-                    fault_rate=self.config.fault_rate,
-                )
-                yield CircuitTask(data, self.config.task)
+                budgets = self.config.experiment_budgets or [
+                    int(row.get("experiment_budget", self.config.experiment_budget))
+                ]
+                for budget in budgets:
+                    yield self._task(idx, row, graph, budget)
+                    idx += 1
+
+    def _task(self, idx: int, row: dict, graph: Graph, budget: int) -> CircuitTask:
+        prompt = (
+            f"Subject prompt: {row['prompt']!r}\n"
+            f"Expected continuation: {row['target']!r}\n\n"
+            f"{render_graph(graph)}\n\n"
+            f"Experiment budget: {budget}. "
+            "Submit the final circuit when ready."
+        )
+        data = CircuitTaskData(
+            idx=idx,
+            name=f"{row['family']}-{idx}-b{budget}",
+            prompt=prompt,
+            system_prompt=SYSTEM_PROMPT,
+            family=row["family"],
+            subject_prompt=row["prompt"],
+            graph=graph_to_json(graph),
+            experiment_budget=budget,
+            reward_mode=self.config.reward_mode,
+            fault_rate=self.config.fault_rate,
+        )
+        return CircuitTask(data, self.config.task)

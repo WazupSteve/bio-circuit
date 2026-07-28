@@ -371,3 +371,37 @@ def test_is_clean_rejects_a_mostly_error_graph():
 
     assert is_clean(raw(0.2), 0.35, 60)[0]
     assert not is_clean(raw(0.6), 0.35, 60)[0]
+
+
+def test_budget_variants_expand_at_load_without_duplicating_graphs(
+    tmp_path, monkeypatch
+):
+    """Each graph becomes one task per budget, so the headline budget curve is
+    in-distribution and every rollout of a task shares its allowance."""
+    import circuit_supernodes.circuit_supernodes as loader
+
+    row = {"family": "two_hop", "prompt": "p", "target": "x", "graph": RAW_GRAPH}
+    (tmp_path / "mini.jsonl").write_text(
+        json.dumps(row) + "\n" + json.dumps(row) + "\n"
+    )
+    monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
+    env = vf.Environment(
+        vf.EnvConfig.model_validate(
+            {
+                "taskset": {
+                    "id": "circuit-supernodes",
+                    "dataset_file": "mini.jsonl",
+                    "experiment_budgets": [0, 3, 7],
+                },
+                "harness": {"id": "null"},
+                "max_turns": 8,
+            }
+        )
+    )
+    tasks = env.taskset.select(6)
+    assert len(tasks) == 6  # two graphs x three budgets
+    assert [t.data.experiment_budget for t in tasks] == [0, 3, 7, 0, 3, 7]
+    assert len({t.data.name for t in tasks}) == 6  # names stay distinct
+    assert len({t.data.idx for t in tasks}) == 6
+    for t in tasks:
+        assert f"Experiment budget: {t.data.experiment_budget}." in t.data.prompt
