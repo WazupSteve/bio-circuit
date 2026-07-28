@@ -18,7 +18,10 @@ reasoning_effort = "xhigh"
 id = "circuit-supernodes"
 dataset_file = "heldout.jsonl"
 reward_mode = "eval"
-max_features = 60
+max_features = 150  # the audit's recommendation: at 60 a policy can partition
+# everything into 5x12 and measure the whole scored matrix in 5 of its 7
+# experiments. Above 96 that stops being possible, and the policy-reachable
+# blind strategy loses 39% of its separation while a real proposal loses none.
 
 [harness]
 id = "null"
