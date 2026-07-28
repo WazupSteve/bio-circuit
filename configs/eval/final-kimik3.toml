@@ -1,5 +1,6 @@
 # Frontier baseline under reward v2.1, on the full held-out split.
-#   prime eval run configs/eval/final-kimik3.toml --hosted --follow
+# Run from environments/circuit_supernodes with PRIME_API_KEY exported:
+#   uv run eval @ ../../configs/eval/final-kimik3.toml --no-push
 #
 # All three final configs use the same 20 tasks so the comparison is paired;
 # only the model differs. Two rollouts give a per-task variance estimate without
@@ -25,3 +26,7 @@ max_features = 150  # the audit's recommendation: at 60 a policy can partition
 
 [harness]
 id = "null"
+
+[client]
+base_url = "https://api.pinference.ai/api/v1"
+api_key_var = "PRIME_API_KEY"
