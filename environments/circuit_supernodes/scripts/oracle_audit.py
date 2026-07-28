@@ -4,8 +4,13 @@ The v1 reward can be pre-measured — seven experiments are enough to recover th
 whole matrix the scorer will compute — so an attacker who never looks at what the
 features *mean* can transcribe a high-scoring circuit. Every attack here does
 exactly that: it picks a partition without understanding it, measures the true
-effect matrix (unlimited measurement, an upper bound on any budgeted agent), fits
-the best reachability claim that measurement allows, and reports the score.
+effect matrix, fits the best reachability claim that measurement allows, and
+reports the score.
+
+The ``exps`` column says whether that is hypothetical. Five groups of twelve cost
+five experiments against a budget of seven, so the blind attacks are not oracle
+fantasies — they are strategies a policy can run with budget to spare. Only the
+per-feature signatures behind ``coherence-matched`` are genuinely unaffordable.
 
 v2 must beat these. If it does not, the reward is not measuring circuit discovery
 and the audit itself is the result.
@@ -20,6 +25,12 @@ import random
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from circuit_supernodes.experiments import (
+    DEFAULT_BUDGET,
+    MAX_ABLATED_FEATURES,
+    MAX_PROBE_FEATURES,
+    MAX_PROBE_GROUPS,
+)
 from circuit_supernodes.graphs import Graph, load_graph_json, slim_graph
 from circuit_supernodes.rubric import (
     MAX_GROUPS,
@@ -96,6 +107,15 @@ def community(g: Graph, k: int, min_size: int) -> dict[str, list[str]]:
     clusters: dict[int, list[str]] = defaultdict(list)
     for f in feats:
         clusters[labels[f]].append(f)
+    if len(clusters) < 2:
+        # Dense attribution graphs collapse to one label. Fall back to layer
+        # bands, which are still structure-only and never degenerate — without
+        # this the attack silently reports "gated" and looks harmless.
+        ordered = sorted(feats, key=lambda f: (g.nodes[f].layer, g.nodes[f].ctx_idx))
+        size = max(min_size, len(ordered) // k)
+        clusters = dict(
+            enumerate(ordered[i : i + size] for i in range(0, len(ordered), size))
+        )
     return _name(_rebalance(list(clusters.values()), k, min_size))
 
 
@@ -109,9 +129,12 @@ def random_partition(
 
 def smallest_legal(g: Graph, min_size: int) -> dict[str, list[str]]:
     """As many minimum-size groups as the gate allows, taken off the top of the
-    influence ranking. This is the attack the hidden split is most exposed to: a
-    group of m admits only C(m, m//2)/2 halvings, so at small m the 'hidden' seed
-    hides nothing and the attacker knows exactly what will be ablated.
+    influence ranking.
+
+    Intended to test whether small groups make the split guessable; measured, it
+    does the opposite — blind small groups are punished *harder*, because two
+    features picked off an influence ranking are never interchangeable. The
+    attack that actually tests the split is ``coherence_matched``.
     """
     feats = _ranked_features(g)
     k = min(MAX_GROUPS, len(feats) // min_size)
@@ -173,6 +196,23 @@ def fit_edges(
         if OUTPUT not in seen:
             edges.append([name, OUTPUT])
     return edges
+
+
+def experiment_cost(sns: dict) -> int | None:
+    """Experiments a *policy* needs to reconstruct this partition's effect matrix,
+    under the real tool limits — or None if the tool cannot express it.
+
+    This is what separates a hypothetical oracle from a reachable strategy. Five
+    groups of twelve costs five experiments against a budget of seven, so the
+    blind attacks below are not upper bounds an agent could never reach: they are
+    strategies a policy can execute and have budget left over.
+    """
+    sizes = [len(m) for m in sns.values()]
+    if len(sizes) < 2 or max(sizes) > MAX_ABLATED_FEATURES:
+        return None
+    if len(sns) - 1 > MAX_PROBE_GROUPS or sum(sizes) - min(sizes) > MAX_PROBE_FEATURES:
+        return None
+    return len(sns)
 
 
 async def best_score(
@@ -239,9 +279,13 @@ async def audit_row(row: dict, args) -> dict:
             results = [
                 await best_score(scorer, row["prompt"], g, sns) for sns in partitions
             ]
-            out["scores"][f"{version}/{attack}"] = max(
-                results, key=lambda r: r["reward"]
-            )
+            best = max(results, key=lambda r: r["reward"])
+            costs = [experiment_cost(sns) for sns in partitions]
+            affordable = [c for c in costs if c is not None and c <= DEFAULT_BUDGET]
+            out["scores"][f"{version}/{attack}"] = {
+                **best,
+                "experiment_cost": min(affordable) if affordable else None,
+            }
     return out
 
 
@@ -273,15 +317,22 @@ async def main() -> None:
 
     keys = list(results[0]["scores"])
     print(f"{len(rows)} graphs, min group size {args.min_group_size}\n")
-    print(f"{'attack':<28}{'reward':>9}{'separation':>12}{'gated':>8}")
+    print(f"{'attack':<28}{'reward':>9}{'separation':>12}{'gated':>7}{'exps':>7}")
     for key in keys:
         scores = [r["scores"][key] for r in results]
         rewards = [s["reward"] for s in scores]
         seps = [s["separation"] for s in scores if "separation" in s]
         gated = sum("gated" in s for s in scores)
+        costs = [s.get("experiment_cost") for s in scores]
+        cheapest = [c for c in costs if c is not None]
         sep = f"{sum(seps) / len(seps):>12.3f}" if seps else f"{'-':>12}"
-        print(f"{key:<28}{sum(rewards) / len(rewards):>9.3f}{sep}{gated:>8}")
-    print("\nv2 must score below v1 on every attack, or the split is not binding.")
+        cost = f"{min(cheapest):>7}" if cheapest else f"{'n/a':>7}"
+        print(f"{key:<28}{sum(rewards) / len(rewards):>9.3f}{sep}{gated:>7}{cost}")
+    print(
+        f"\nv2 must score below v1 on every attack, or the split is not binding."
+        f"\n'exps' is what a policy would spend to measure the same matrix"
+        f" (budget {DEFAULT_BUDGET}); 'n/a' means the tool cannot express it."
+    )
 
     if args.out:
         args.out.write_text(json.dumps(results, indent=1))

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "modal>=1.5.1",
+    "prime>=0.6.20",
     "verifiers==0.2.1",
 ]
 

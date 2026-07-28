@@ -21,6 +21,7 @@ from oracle_audit import (
     blind_balanced,
     coherence_matched,
     community,
+    experiment_cost,
     fit_edges,
     random_partition,
     smallest_legal,
@@ -81,6 +82,35 @@ def test_signature_attack_is_opt_in():
     assert "coherence-matched" in attacks(
         GRAPH, 3, MIN_GROUP_SIZE, 2, dict.fromkeys(FEATURE_IDS, 0.5)
     )
+
+
+def test_experiment_cost_separates_reachable_attacks_from_oracle_fantasies():
+    from circuit_supernodes.experiments import DEFAULT_BUDGET, MAX_ABLATED_FEATURES
+
+    # Five groups of twelve is one ablation each — inside the budget, so this
+    # attack is something a policy can actually run, not an upper bound.
+    affordable = {f"g{i}": [f"f{i}_{j}" for j in range(12)] for i in range(5)}
+    assert experiment_cost(affordable) == 5 <= DEFAULT_BUDGET
+
+    too_wide = {
+        "a": [f"f{j}" for j in range(MAX_ABLATED_FEATURES + 1)],
+        "b": ["x", "y"],
+    }
+    assert experiment_cost(too_wide) is None  # tool cannot ablate that many
+
+    assert experiment_cost({"only": ["a", "b"]}) is None  # needs two groups
+
+    # Sixty singleton groups (the per-feature signatures) blow every limit.
+    assert experiment_cost({f"g{i}": [f"f{i}"] for i in range(60)}) is None
+
+
+def test_community_falls_back_when_propagation_collapses():
+    # A densely connected graph drives label propagation to a single cluster;
+    # without a fallback the attack silently reports "gated" and looks harmless.
+    sns = community(GRAPH, 3, MIN_GROUP_SIZE)
+    assert len(sns) >= 2
+    parsed, reason = validate_members(as_proposal(sns), GRAPH)
+    assert parsed is not None, reason
 
 
 def test_random_multistart_actually_varies():
