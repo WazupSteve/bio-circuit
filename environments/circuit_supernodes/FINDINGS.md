@@ -87,38 +87,48 @@ The control holds features, group count and sizes fixed, and differs only in
 whether a group sits inside a layer band or spans the whole range:
 
 ```bash
-uv run python scripts/oracle_audit.py --rows 8 --max-features 150
+uv run python scripts/oracle_audit.py --rows 20 --max-features 150
 ```
+
+Over all twenty held-out graphs:
 
 | partition | reward | separation |
 |---|---:|---:|
-| layer-bands | **0.759** | **0.636** |
-| layer-spanning | 0.254 | 0.169 |
+| layer-bands | **0.695** | **0.551** |
+| layer-spanning | 0.217 | 0.127 |
 
-**3.8x on the causal term from layer structure alone**, and layer-bands beats
+**4.3x on the causal term from layer structure alone**, and layer-bands beats
 every model measured. A layer-band partition needs no experiments at all; it is
-readable straight off the graph.
+readable straight off the graph. The effect was 3.8x on the first eight graphs,
+so it strengthens rather than regresses with sample size.
 
 ## 5. Correcting for it leaves the models with nothing
 
 Scoring a second time against the closure that "later layers are downstream"
 already predicts, and reporting the increment (`separation_over_null`):
 
+Attacks over twenty graphs, models over their fifteen proposals:
+
 | | separation | layer null | over null |
 |---|---:|---:|---:|
-| community partition | 0.577 | 0.375 | **0.202** |
-| coherence-matched | 0.261 | 0.086 | 0.175 |
-| budget-feasible | 0.185 | 0.027 | 0.157 |
-| blind-balanced | 0.238 | 0.083 | 0.154 |
-| random, best of 3 | 0.349 | 0.221 | 0.129 |
-| layer-bands | 0.620 | 0.590 | **0.031** |
+| coherence-matched | 0.206 | 0.017 | **0.189** |
+| community partition | 0.563 | 0.456 | 0.108 |
+| layer-spanning | 0.127 | 0.023 | 0.104 |
+| budget-feasible | 0.116 | 0.016 | 0.100 |
+| random, best of 2 | 0.255 | 0.155 | 0.099 |
+| blind-balanced | 0.162 | 0.084 | 0.078 |
+| layer-bands | 0.551 | 0.521 | **0.030** |
 | Claude Fable 5 | 0.389 | 0.359 | **0.030** |
 | GPT-5.6 Sol | 0.459 | 0.455 | **0.004** |
 | Claude Opus 4.8 | 0.456 | 0.475 | **−0.019** |
 
 Layer-bands goes from first to last, because a layer-banded partition *is* the
-null. The frontier models go with it. Every blind attack adds more over the null
-than any model does.
+null. The frontier models go with it — Claude Fable 5 lands on exactly the same
+0.030, which is to say that in these terms it is indistinguishable from a
+partition built by sorting on layer number. Every blind attack adds more over
+the null than any model does.
+
+The layer-bands figure was 0.031 on six graphs and 0.030 on twenty.
 
 The reason is visible in what the models proposed. Claude Fable 5's supernodes
 include *"Mid-layer capital retrieval at ' is' (L24-30)"* and *"Late-layer

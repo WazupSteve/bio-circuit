@@ -17,6 +17,12 @@ FINDINGS = ENV / "FINDINGS.md"
 # Which archived run backs each table, and which column of it.
 TABLES = {
     "archive/oracle_layers.json": {"reward": 1, "separation": 2},
+    "archive/oracle_layers_full.json": {
+        "reward": 1,
+        "separation": 1,
+        "separation_layer_null": 2,
+        "separation_over_null": 3,
+    },
     "archive/oracle_null.json": {
         "separation": 1,
         "separation_layer_null": 2,
@@ -30,6 +36,7 @@ ROWS = {
     "coherence-matched": "v2/coherence-matched",
     "budget-feasible": "v2/budget-feasible",
     "blind-balanced": "v2/blind-balanced",
+    "random, best of 2": "v2/random-multistart",
     "random, best of 3": "v2/random-multistart",
 }
 
