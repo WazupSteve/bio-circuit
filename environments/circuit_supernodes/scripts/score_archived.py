@@ -27,7 +27,7 @@ DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 
 
 async def score_run(scorer, rows, path: Path, max_features: int) -> dict:
-    kept, gated, rewards, seps = 0, {}, [], []
+    kept, gated, rewards, seps, overs = 0, {}, [], [], []
     for line in path.read_text().splitlines():
         if not line.strip():
             continue
@@ -47,6 +47,8 @@ async def score_run(scorer, rows, path: Path, max_features: int) -> dict:
         kept += 1
         rewards.append(result["reward"])
         seps.append(result["separation"])
+        if result.get("separation_over_null") is not None:
+            overs.append(result["separation_over_null"])
     return {
         "run": path.parent.name,
         "scored": kept,
@@ -54,6 +56,7 @@ async def score_run(scorer, rows, path: Path, max_features: int) -> dict:
         "reward": mean(rewards) if rewards else 0.0,
         "reward_when_valid": mean(r for r in rewards if r > 0) if kept else 0.0,
         "separation": mean(seps) if seps else 0.0,
+        "over_null": mean(overs) if overs else 0.0,
         "gated": gated,
     }
 
@@ -84,11 +87,15 @@ async def main() -> None:
 
     version = "v1 (whole-group)" if args.v1 else "v2 (hidden split)"
     print(f"{len(results)} runs, reward {version}\n")
-    print(f"{'run':<12}{'scored':>8}{'reward':>9}{'if valid':>10}{'separation':>12}")
+    print(
+        f"{'run':<12}{'scored':>8}{'reward':>9}{'if valid':>10}"
+        f"{'separation':>12}{'over null':>11}"
+    )
     for r in sorted(results, key=lambda r: -r["reward"]):
         print(
             f"{r['run']:<12}{r['scored']}/{r['total']:<6}{r['reward']:>9.3f}"
             f"{r['reward_when_valid']:>10.3f}{r['separation']:>12.3f}"
+            f"{r['over_null']:>11.3f}"
         )
     for r in results:
         if r["gated"]:

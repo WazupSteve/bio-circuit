@@ -454,6 +454,20 @@ class InterventionScoring:
         shift = abs(logit(result["complement_prob"]) - logit(result["base_prob"]))
         return math.exp(-shift / TAU_LOGODDS)
 
+    @staticmethod
+    def _layer_null(sns: dict, g: Graph) -> dict[str, set[str]]:
+        """The closure a layer-ordering predicts, with no discovery involved.
+
+        Later layers are downstream of earlier ones by construction, so claiming
+        every later group plus the output is causally correct for free. Measured
+        on real graphs a layer-banded partition scores 0.636 separation against
+        0.169 for the same features spread across layers, so most of what the
+        separation term rewards is this, not the grouping.
+        """
+        names = list(sns)
+        depth = {n: sum(g.nodes[m].layer for m in sns[n]) / len(sns[n]) for n in names}
+        return {n: {m for m in names if depth[m] > depth[n]} | {OUTPUT} for n in names}
+
     async def measure(self, prompt: str, g: Graph, sns: dict) -> dict:
         """Whole-group effect matrix for a partition — what an attacker with
         unlimited measurement learns. Used only by the oracle audit to upper-bound
@@ -546,6 +560,11 @@ class InterventionScoring:
         )
         if separation is None:
             return gated("no falsifiable prediction", membership=True, topology=True)
+        # Diagnostic, not yet part of the reward: how much of the causal credit
+        # survives once the free layer-ordering prediction is accounted for.
+        null = self._separation(
+            self._observations(result, names, sources, self._layer_null(sns, g)), names
+        )
         coverage = sum(g.nodes[m].share for m in member_ids) / sum(
             n.share for n in g.feature_nodes
         )
@@ -553,6 +572,8 @@ class InterventionScoring:
         return {
             "reward": separation**EXP_SEP * coverage**EXP_COV * completeness**EXP_COMP,
             "separation": separation,
+            "separation_layer_null": null,
+            "separation_over_null": None if null is None else separation - null,
             "coverage": coverage,
             "completeness": completeness,
             "parse": True,
