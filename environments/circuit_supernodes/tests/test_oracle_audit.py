@@ -216,3 +216,35 @@ def test_attack_suite_covers_the_four_documented_families():
         "smallest-legal",
     }
     assert len(suite["random-multistart"]) == 4
+
+
+def test_reward_does_not_yet_prefer_the_true_partition():
+    """Characterization test for a known, unfixed defect.
+
+    With a ground-truth causal structure and the best edge set an exhaustive DAG
+    search can find, a blind shuffle scores at or above the true feature
+    grouping. Separation rewards groups whose activations respond to many
+    ablations in a graded way, and a mixture does that better than a
+    functionally pure group — so the metric is biased toward exactly the
+    partitions a supernode reward should reject.
+
+    If a reward change makes this fail, that is the fix landing: delete the
+    xfail-style assertion below and assert the true partition wins instead.
+    """
+    from partition_discrimination import _shuffle, best_edges, build
+
+    roles, features, drives, graph = build(3, 4)
+
+    async def run():
+        true = await best_edges(graph, roles, drives, dict(roles), True)
+        blind = [
+            await best_edges(graph, roles, drives, _shuffle(features, 3, s), True)
+            for s in range(3)
+        ]
+        return true, blind
+
+    true, blind = asyncio.run(run())
+    assert max(blind) >= true, (
+        f"the reward now prefers the true partition (true={true:.3f}, "
+        f"blind={blind}) — update this test, the defect is fixed"
+    )
