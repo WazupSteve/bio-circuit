@@ -11,7 +11,7 @@ from .graphs import Graph, feature_coords
 MODAL_APP = "circuit-supernodes-attribution"
 MODAL_CLS = "Attributor"
 MAX_GROUPS = 8  # bound GPU cost per rollout
-MIN_GROUP_SIZE = 6  # see split_members
+MIN_GROUP_SIZE = 2  # mechanical floor: a singleton cannot be split (see split_members)
 MAX_DOMINANCE = 0.7  # max fraction of grouped influence in one supernode
 TAU_RANK = 0.05  # soft-comparison width for the rank AUC (relative-drop units)
 DELTA_ABS = 0.3  # relative drop treated as a full-size causal effect
@@ -213,9 +213,15 @@ def split_seed(graph_id: str, nonce: str, salt: str | None = None) -> bytes:
 def split_members(members: list[str], seed: bytes) -> tuple[list[str], list[str]]:
     """Halve a supernode under the hidden seed.
 
-    A group admits ``C(m, m//2)/2`` distinct halvings — 1 at m=2, 3 at m=4, 10 at
-    m=6, 462 at m=12. Below ``MIN_GROUP_SIZE`` the split is effectively known in
-    advance and hides nothing, which is why membership gates on it.
+    ``MIN_GROUP_SIZE`` is 2 because that is the mechanical floor — a singleton has
+    no halves — and *not* to make the split hard to guess. A group admits only
+    ``C(m, m//2)/2`` halvings (1 at m=2, 10 at m=6), so a larger floor looks like
+    it should buy unguessability, but the oracle audit measured otherwise: raising
+    the floor from 2 to 6 left the adaptive coherence-matched attack no worse off
+    (the split cost it 10.0% of separation at 2, 7.3% at 6) and *weakened* the
+    penalty on blind small groups (40.5% down to 28.2%). Knowing the split only
+    helps an attacker that can also satisfy it, which takes per-feature
+    measurement, not small groups. See ``scripts/oracle_audit.py``.
     """
     order = sorted(
         members, key=lambda m: hmac.new(seed, m.encode(), hashlib.sha256).digest()

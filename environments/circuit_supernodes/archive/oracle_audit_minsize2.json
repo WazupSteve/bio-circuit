@@ -37,6 +37,16 @@
     "topology": true,
     "threshold": 0.14919354838709678
    },
+   "v1/coherence-matched": {
+    "reward": 0.37080674785203555,
+    "separation": 0.33526935430050586,
+    "coverage": 0.9381719242861407,
+    "completeness": 0.1982778209618202,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.09473684210526316
+   },
    "v2/blind-balanced": {
     "reward": 0.43299246701906396,
     "separation": 0.2478186012090223,
@@ -70,6 +80,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.16363636363636364
+   },
+   "v2/coherence-matched": {
+    "reward": 0.3646673468506025,
+    "separation": 0.3260688204095341,
+    "coverage": 0.9381719242861407,
+    "completeness": 0.1982778209618202,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.30448717948717946
    }
   }
  },
@@ -108,14 +128,24 @@
     "threshold": 0.36595131621895216
    },
    "v1/smallest-legal": {
-    "reward": 0.07909823994867894,
+    "reward": 0.07945786605850044,
     "separation": 0.4700297679840505,
     "coverage": 0.5923796489700817,
-    "completeness": 5.0333586704993725e-05,
+    "completeness": 5.1488265977560146e-05,
     "parse": true,
     "membership": true,
     "topology": true,
     "threshold": 0.07407407407407407
+   },
+   "v1/coherence-matched": {
+    "reward": 0.47873006057591516,
+    "separation": 0.29296641128069073,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07222222222222222
    },
    "v2/blind-balanced": {
     "reward": 0.72206027867284,
@@ -148,14 +178,24 @@
     "threshold": 0.31790123456790126
    },
    "v2/smallest-legal": {
-    "reward": 0.06090945832929124,
+    "reward": 0.060799773420060224,
     "separation": 0.3047005570215892,
     "coverage": 0.5923796489700817,
-    "completeness": 5.0026925357899686e-05,
+    "completeness": 4.957810575500817e-05,
     "parse": true,
     "membership": true,
     "topology": true,
     "threshold": 0.07407407407407407
+   },
+   "v2/coherence-matched": {
+    "reward": 0.4579777642985843,
+    "separation": 0.2721075891121657,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2833333333333333
    }
   }
  },
@@ -164,14 +204,14 @@
   "prompt": "calc: 36+50=86\ncalc: 66+76=",
   "scores": {
    "v1/blind-balanced": {
-    "reward": 0.38372835331689586,
-    "separation": 0.2026312778889316,
+    "reward": 0.3312692344364245,
+    "separation": 0.15859950958960603,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.16
+    "threshold": 0.12
    },
    "v1/community": {
     "reward": 0.4078528958071544,
@@ -184,8 +224,8 @@
     "threshold": 0.6954854514180929
    },
    "v1/random-multistart": {
-    "reward": 0.5774557304095965,
-    "separation": 0.40043419702214145,
+    "reward": 0.567326557789617,
+    "separation": 0.38879606177257375,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
@@ -203,6 +243,16 @@
     "topology": true,
     "threshold": 0.07142857142857142
    },
+   "v1/coherence-matched": {
+    "reward": 0.33990808444572895,
+    "separation": 0.2016992685848685,
+    "coverage": 0.9305645152585442,
+    "completeness": 0.5942210226934087,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07179487179487179
+   },
    "v2/blind-balanced": {
     "reward": 0.0,
     "separation": 0.0,
@@ -211,7 +261,7 @@
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.25
+    "threshold": 0.2849162011173184
    },
    "v2/community": {
     "reward": 0.40300765478538764,
@@ -224,14 +274,14 @@
     "threshold": 0.6954854514180929
    },
    "v2/random-multistart": {
-    "reward": 0.42211258223691883,
-    "separation": 0.23752746265584326,
+    "reward": 0.47317927141291455,
+    "separation": 0.2873268325981775,
     "coverage": 1.0,
     "completeness": 1.0,
     "parse": true,
     "membership": true,
     "topology": true,
-    "threshold": 0.06395348837209303
+    "threshold": 0.061587856073970965
    },
    "v2/smallest-legal": {
     "reward": 0.12277293160480944,
@@ -242,6 +292,16 @@
     "membership": true,
     "topology": true,
     "threshold": 1.0
+   },
+   "v2/coherence-matched": {
+    "reward": 0.3377292617640249,
+    "separation": 0.19954904380522073,
+    "coverage": 0.9305645152585442,
+    "completeness": 0.5942210226934087,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.07179487179487179
    }
   }
  },
@@ -265,7 +325,7 @@
     "parse": true,
     "membership": false,
     "topology": false,
-    "threshold": 0.9997231214649662
+    "threshold": 0.9997293592359495
    },
    "v1/random-multistart": {
     "reward": 0.6672274482731367,
@@ -287,6 +347,16 @@
     "topology": true,
     "threshold": 0.12686567164179105
    },
+   "v1/coherence-matched": {
+    "reward": 0.34632959284220416,
+    "separation": 0.1707979565906665,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.38345864661654133
+   },
    "v2/blind-balanced": {
     "reward": 0.4243870618512206,
     "separation": 0.23966441680991143,
@@ -303,7 +373,7 @@
     "parse": true,
     "membership": false,
     "topology": false,
-    "threshold": 0.9997316094997664
+    "threshold": 0.9997304458519316
    },
    "v2/random-multistart": {
     "reward": 0.5676873015692486,
@@ -324,6 +394,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.25961538461538464
+   },
+   "v2/coherence-matched": {
+    "reward": 0.25512304638901784,
+    "separation": 0.10262412963737164,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.606951871657754
    }
   }
  },
@@ -365,6 +445,16 @@
     "topology": true,
     "threshold": 0.272215864608675
    },
+   "v1/coherence-matched": {
+    "reward": 0.6635415123680606,
+    "separation": 0.5047932014207547,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.39285714285714285
+   },
    "v2/blind-balanced": {
     "reward": 0.830100654372748,
     "separation": 0.7331923534902529,
@@ -398,6 +488,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.40503681967250804
+   },
+   "v2/coherence-matched": {
+    "reward": 0.6963408526148834,
+    "separation": 0.5470618857727078,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.4772727272727273
    }
   }
  },
@@ -439,6 +539,16 @@
     "topology": true,
     "threshold": 0.044444444444444446
    },
+   "v1/coherence-matched": {
+    "reward": 0.4346835428241594,
+    "separation": 0.26421005505796447,
+    "coverage": 0.9368531915017528,
+    "completeness": 0.8981449348081816,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.06842105263157895
+   },
    "v2/blind-balanced": {
     "reward": 0.3065855719089229,
     "separation": 0.13939681623063585,
@@ -472,6 +582,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.05357142857142857
+   },
+   "v2/coherence-matched": {
+    "reward": 0.3741540832359331,
+    "separation": 0.2057839472437579,
+    "coverage": 0.9368531915017528,
+    "completeness": 0.8981449348081816,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.05517241379310345
    }
   }
  },
@@ -519,6 +639,16 @@
     "topology": true,
     "threshold": 0.1588785046728972
    },
+   "v1/coherence-matched": {
+    "reward": 0.6738748917786876,
+    "separation": 0.517963064660164,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.38961038961038963
+   },
    "v2/blind-balanced": {
     "reward": 0.44061809091240145,
     "separation": 0.25513529406512997,
@@ -558,6 +688,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.1588785046728972
+   },
+   "v2/coherence-matched": {
+    "reward": 0.7254674830451653,
+    "separation": 0.5857288091514509,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.38961038961038963
    }
   }
  },
@@ -599,6 +739,16 @@
     "topology": true,
     "threshold": 0.044
    },
+   "v1/coherence-matched": {
+    "reward": 0.5428973804138566,
+    "separation": 0.40808050931251316,
+    "coverage": 0.9546702594844869,
+    "completeness": 0.7269386824759012,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2654320987654321
+   },
    "v2/blind-balanced": {
     "reward": 0.5354668733163417,
     "separation": 0.35309183960032114,
@@ -632,6 +782,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.1935483870967742
+   },
+   "v2/coherence-matched": {
+    "reward": 0.4923411296940613,
+    "separation": 0.3069800810155316,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.2342857142857143
    }
   }
  },
@@ -677,6 +837,16 @@
     "topology": true,
     "threshold": 0.037037037037037035
    },
+   "v1/coherence-matched": {
+    "reward": 0.4054054078466442,
+    "separation": 0.2502262597001819,
+    "coverage": 0.9379447910818268,
+    "completeness": 0.7451981350220449,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.056338028169014086
+   },
    "v2/blind-balanced": {
     "reward": 0.33759336460942374,
     "separation": 0.16367782171218645,
@@ -714,6 +884,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.4534412955465587
+   },
+   "v2/coherence-matched": {
+    "reward": 0.4189985438750741,
+    "separation": 0.2346141434253929,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.19172932330827067
    }
   }
  },
@@ -755,6 +935,16 @@
     "topology": true,
     "threshold": 0.0752212389380531
    },
+   "v1/coherence-matched": {
+    "reward": 0.48365333959629964,
+    "separation": 0.2980050690699228,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.1297071129707113
+   },
    "v2/blind-balanced": {
     "reward": 0.0,
     "separation": 0.0,
@@ -788,6 +978,16 @@
     "membership": true,
     "topology": true,
     "threshold": 0.08849557522123894
+   },
+   "v2/coherence-matched": {
+    "reward": 0.30409283757848554,
+    "separation": 0.13751296679254732,
+    "coverage": 1.0,
+    "completeness": 1.0,
+    "parse": true,
+    "membership": true,
+    "topology": true,
+    "threshold": 0.10074626865671642
    }
   }
  }

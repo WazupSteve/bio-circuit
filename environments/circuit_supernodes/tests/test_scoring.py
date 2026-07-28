@@ -183,7 +183,7 @@ def members(**overrides) -> dict:
         ),
         (
             [
-                {"name": "A", "nodes": GROUPS["A"][:5]},
+                {"name": "A", "nodes": GROUPS["A"][:1]},
                 {"name": "B", "nodes": GROUPS["B"]},
             ],
             f"at least {MIN_GROUP_SIZE}",

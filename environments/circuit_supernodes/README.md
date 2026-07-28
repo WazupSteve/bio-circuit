@@ -12,7 +12,7 @@ between those groups.
 - Experiment budget: 7 calls to `circuit_run_ablation` by default, overridable
   per dataset row (`experiment_budget`) for budget-curve variants
 - Displayed graph: up to 60 feature nodes, plus embedding and logit nodes
-- Allowed proposal size: 2–8 disjoint supernodes, at least 6 features each
+- Allowed proposal size: 2–8 disjoint supernodes, at least 2 features each
 - Reserved terminal node: `output`
 
 Each experiment clamps selected feature nodes to zero and reports the change in
@@ -62,9 +62,13 @@ scored under the same split by construction, the split rotates between steps so
 no fixed split can be memorized, and evaluation stays reproducible. Set
 `CIRCUIT_SPLIT_SALT` to commit a run's salt in advance and publish it afterwards.
 
-Because a group of `m` members admits only `C(m, m//2)/2` distinct halvings — one
-at m=2, three at m=4, ten at m=6 — supernodes below `MIN_GROUP_SIZE` would make
-the split predictable, so membership gates on it.
+`MIN_GROUP_SIZE` is 2 because a singleton has no halves — a mechanical floor, not
+an adversarial one. A larger floor looks like it should make the split harder to
+guess (a group of `m` admits only `C(m, m//2)/2` halvings), but the oracle audit
+measured otherwise: raising it from 2 to 6 left the adaptive coherence-matched
+attack no worse off and *weakened* the penalty on blind small groups. Knowing the
+split only helps an attacker that can also satisfy it, which takes per-feature
+measurement rather than small groups.
 
 ### Gates
 
@@ -186,17 +190,18 @@ uv run python scripts/calibrate.py --dataset heldout.jsonl
 ```
 
 Red-team the reward before trusting it. The audit scores scripted attacks —
-blind balanced groups, a community partition, random multistart, and
-minimum-size groups — against both reward versions, giving each attack the true
-effect matrix and the best edge fit it supports. **v2 must beat every attack; if
+blind balanced groups, a community partition, random multistart, minimum-size
+groups, and a coherence-matched partition built from per-feature measurements —
+against both reward versions, giving each attack the true effect matrix and the
+best edge fit it supports. **v2 must beat every attack; if
 it does not, the reward is not measuring circuit discovery.**
 
 ```bash
 uv run python scripts/oracle_audit.py --dataset heldout.jsonl --rows 8 \
     --out /tmp/oracle.json
 
-# Does the minimum-size gate earn its keep?
-uv run python scripts/oracle_audit.py --min-group-size 2 --rows 4
+# Does the minimum-size gate earn its keep? (It does not — see the reward notes.)
+uv run python scripts/oracle_audit.py --min-group-size 6 --rows 10
 ```
 
 For hosted RL, install the Prime CLI separately and run the repository config:
