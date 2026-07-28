@@ -19,6 +19,7 @@ from oracle_audit import (
     attacks,
     best_score,
     blind_balanced,
+    coherence_matched,
     community,
     fit_edges,
     random_partition,
@@ -53,6 +54,33 @@ def test_every_attack_clears_the_membership_gate(build):
     assert all(len(ms) >= MIN_GROUP_SIZE for ms in sns.values())
     parsed, reason = validate_members(as_proposal(sns), GRAPH)
     assert parsed is not None, reason
+
+
+def test_coherence_matched_groups_members_with_matching_effects():
+    # Both halves of any split must look alike, which is what defeats the
+    # geometric mean. Members are contiguous in the measured effect ranking.
+    signatures = {f: i / 21 for i, f in enumerate(sorted(FEATURE_IDS))}
+    sns = coherence_matched(GRAPH, signatures, 3, MIN_GROUP_SIZE)
+    assert len(sns) >= 2
+    for ms in sns.values():
+        spread = max(signatures[m] for m in ms) - min(signatures[m] for m in ms)
+        assert spread < 0.5  # tight in effect space, unlike a blind partition
+    parsed, reason = validate_members(as_proposal(sns), GRAPH)
+    assert parsed is not None, reason
+
+
+def test_coherence_matched_respects_the_minimum_size_gate():
+    signatures = {f: i / 21 for i, f in enumerate(sorted(FEATURE_IDS))}
+    for size in (2, 4, MIN_GROUP_SIZE):
+        sns = coherence_matched(GRAPH, signatures, 8, size)
+        assert all(len(ms) >= size for ms in sns.values())
+
+
+def test_signature_attack_is_opt_in():
+    assert "coherence-matched" not in attacks(GRAPH, 3, MIN_GROUP_SIZE, 2)
+    assert "coherence-matched" in attacks(
+        GRAPH, 3, MIN_GROUP_SIZE, 2, dict.fromkeys(FEATURE_IDS, 0.5)
+    )
 
 
 def test_random_multistart_actually_varies():

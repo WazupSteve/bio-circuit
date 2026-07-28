@@ -118,6 +118,23 @@ def smallest_legal(g: Graph, min_size: int) -> dict[str, list[str]]:
     return _name([feats[i * min_size : (i + 1) * min_size] for i in range(k)])
 
 
+def coherence_matched(
+    g: Graph, signatures: dict[str, float], k: int, min_size: int
+) -> dict[str, list[str]]:
+    """Group features by measured per-feature effect, so members are causally
+    interchangeable and *both halves of any split look alike*.
+
+    This is the attack the minimum-size gate was introduced to stop. Knowing the
+    split only helps an attacker who can also satisfy it, and matching members by
+    effect magnitude is how you satisfy it — which is why the blind
+    ``smallest_legal`` attack does not test the gate at all.
+    """
+    ranked = sorted(signatures, key=lambda f: -signatures[f])
+    size = max(min_size, len(ranked) // k)
+    chunks = [ranked[i * size : (i + 1) * size] for i in range(k)]
+    return _name([c for c in chunks if len(c) >= min_size])
+
+
 def fit_edges(
     measurement: dict, g: Graph, sns: dict, threshold: float
 ) -> list[list[str]]:
@@ -184,9 +201,11 @@ async def best_score(
     return best
 
 
-def attacks(g: Graph, k: int, min_size: int, multistart: int) -> dict[str, list[dict]]:
+def attacks(
+    g: Graph, k: int, min_size: int, multistart: int, signatures: dict | None = None
+) -> dict[str, list[dict]]:
     """Each attack is a list of partitions; the audit reports the best of each."""
-    return {
+    suite = {
         "blind-balanced": [blind_balanced(g, k, min_size)],
         "community": [community(g, k, min_size)],
         "random-multistart": [
@@ -194,6 +213,12 @@ def attacks(g: Graph, k: int, min_size: int, multistart: int) -> dict[str, list[
         ],
         "smallest-legal": [smallest_legal(g, min_size)],
     }
+    if signatures is not None:
+        suite["coherence-matched"] = [
+            coherence_matched(g, signatures, k, min_size),
+            coherence_matched(g, signatures, MAX_GROUPS, min_size),
+        ]
+    return suite
 
 
 async def audit_row(row: dict, args) -> dict:
@@ -203,8 +228,13 @@ async def audit_row(row: dict, args) -> dict:
         scorer = InterventionScoring(
             split_halves=split_halves, min_group_size=args.min_group_size
         )
+        signatures = (
+            None
+            if args.no_signatures
+            else await scorer.measure_features(row["prompt"], g)
+        )
         for attack, partitions in attacks(
-            g, args.groups, args.min_group_size, args.multistart
+            g, args.groups, args.min_group_size, args.multistart, signatures
         ).items():
             results = [
                 await best_score(scorer, row["prompt"], g, sns) for sns in partitions
@@ -223,6 +253,11 @@ async def main() -> None:
     ap.add_argument("--min-group-size", type=int, default=MIN_GROUP_SIZE)
     ap.add_argument("--multistart", type=int, default=16)
     ap.add_argument("--max-features", type=int, default=60)
+    ap.add_argument(
+        "--no-signatures",
+        action="store_true",
+        help="skip the coherence-matched attack (saves one intervention per graph)",
+    )
     ap.add_argument("--out", type=Path, help="write per-row results as JSON")
     args = ap.parse_args()
 

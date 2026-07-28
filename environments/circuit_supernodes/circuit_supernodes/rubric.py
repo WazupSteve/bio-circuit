@@ -440,6 +440,22 @@ class InterventionScoring:
             ],
         }
 
+    async def measure_features(self, prompt: str, g: Graph) -> dict[str, float]:
+        """Per-feature effect on the target token — the finest measurement any
+        attacker could buy, in one intervention. Audit only; the reward never
+        calls it, and no agent can afford it within its experiment budget.
+        """
+        feats = [n.id for n in g.feature_nodes]
+        target_token = g.top_outputs[0][0] if g.top_outputs else ""
+        result = await self._intervene(
+            prompt, [feature_coords([f]) for f in feats], target_token, [], None
+        )
+        base = result["base_prob"]
+        return {
+            f: relative_drop(base, a["target_prob"]) or 0.0
+            for f, a in zip(feats, result["ablations"], strict=True)
+        }
+
     async def score(self, prompt: str, g: Graph, data: dict, nonce: str = "") -> dict:
         def gated(
             reason: str, membership: bool = False, topology: bool = False
