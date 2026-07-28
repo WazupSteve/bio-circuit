@@ -143,6 +143,22 @@ def smallest_legal(g: Graph, min_size: int) -> dict[str, list[str]]:
     return _name([feats[i * min_size : (i + 1) * min_size] for i in range(k)])
 
 
+def budget_feasible(g: Graph, min_size: int) -> dict[str, list[str]]:
+    """The best blind partition a *policy* can actually measure.
+
+    Every other attack here partitions all the displayed features, which stops
+    being executable once the slice exceeds MAX_GROUPS x MAX_ABLATED_FEATURES. A
+    policy would not do that: it would group as many of the top features as its
+    budget and the per-call ablation limit allow, leave the rest ungrouped, and
+    pay the coverage penalty. This measures what that costs, which is the number
+    that decides whether widening the slice is worth its prompt tokens.
+    """
+    feats = _ranked_features(g)
+    k = min(MAX_GROUPS, DEFAULT_BUDGET, max(2, len(feats) // min_size))
+    size = min(MAX_ABLATED_FEATURES, max(min_size, -(-len(feats) // k)))
+    return _name([feats[i * size : (i + 1) * size] for i in range(k)])
+
+
 def coherence_matched(
     g: Graph, signatures: dict[str, float], k: int, min_size: int
 ) -> dict[str, list[str]]:
@@ -254,6 +270,7 @@ def attacks(
             random_partition(g, k, min_size, seed) for seed in range(multistart)
         ],
         "smallest-legal": [smallest_legal(g, min_size)],
+        "budget-feasible": [budget_feasible(g, min_size)],
     }
     if signatures is not None:
         suite["coherence-matched"] = [

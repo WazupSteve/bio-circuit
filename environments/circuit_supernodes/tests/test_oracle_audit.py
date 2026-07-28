@@ -207,13 +207,14 @@ def test_best_score_reports_a_gate_when_an_attack_degenerates():
     assert result["reward"] == 0.0 and "too few groups" in result["gated"]
 
 
-def test_attack_suite_covers_the_four_documented_families():
+def test_attack_suite_covers_every_documented_family():
     suite = attacks(GRAPH, 3, MIN_GROUP_SIZE, multistart=4)
     assert set(suite) == {
         "blind-balanced",
         "community",
         "random-multistart",
         "smallest-legal",
+        "budget-feasible",
     }
     assert len(suite["random-multistart"]) == 4
 
@@ -261,3 +262,20 @@ def test_holding_the_condition_out_widens_the_margin():
         return true - blind
 
     assert asyncio.run(margin(True)) > asyncio.run(margin(False))
+
+
+def test_budget_feasible_attack_respects_the_tool_the_agent_actually_has():
+    """This attack exists to be executable, unlike the others.
+
+    It must never propose a group larger than one ablation call can hold, so
+    that its score says what a policy could really achieve rather than what an
+    unlimited oracle could.
+    """
+    from circuit_supernodes.experiments import DEFAULT_BUDGET, MAX_ABLATED_FEATURES
+    from oracle_audit import budget_feasible
+
+    sns = budget_feasible(GRAPH, MIN_GROUP_SIZE)
+    assert 2 <= len(sns) <= DEFAULT_BUDGET  # one ablation per group, within budget
+    assert all(len(ms) <= MAX_ABLATED_FEATURES for ms in sns.values())
+    parsed, reason = validate_members(as_proposal(sns), GRAPH)
+    assert parsed is not None, reason

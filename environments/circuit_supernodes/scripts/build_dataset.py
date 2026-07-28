@@ -1,12 +1,14 @@
 import argparse
+import hashlib
 import json
+import sys
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 import modal
 from circuit_supernodes.datagen import generate
 from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
-from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS
+from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
 
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
@@ -81,6 +83,53 @@ def is_clean(
     """
     stats = graph_quality(load_graph_json(graph_json), max_features)
     return stats["error"] <= max_error, stats
+
+
+def write_manifest(out: Path, rows: int, args, quality: list[dict]) -> Path:
+    """Pin what a split was built from, next to the split itself.
+
+    Attribution graphs are expensive enough that nobody rebuilds one to check a
+    result, so a split has to carry its own provenance: the subject model and
+    transcoders, the exporter thresholds, the screening that admitted a graph,
+    and a digest of the file itself.
+    """
+    from modal_app.attribution import (
+        EDGE_THRESHOLD,
+        MODEL_NAME,
+        NODE_THRESHOLD,
+        TRANSCODER_SET,
+    )
+
+    manifest = {
+        "dataset": out.name,
+        "rows": rows,
+        "sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
+        "subject_model": MODEL_NAME,
+        "transcoders": TRANSCODER_SET,
+        "node_threshold": NODE_THRESHOLD,
+        "edge_threshold": EDGE_THRESHOLD,
+        "reward_version": REWARD_VERSION,
+        "screening": {
+            "exact_first_token": False,
+            "max_error_share": args.max_error_share,
+        },
+        "generator": {
+            "seed": args.seed,
+            "requested": args.n,
+            "families": sorted(args.families or []),
+        },
+        "graph_quality": {
+            "error_influence": (
+                sum(q["error"] for q in quality) / len(quality) if quality else None
+            ),
+            "displayed_feature_influence": (
+                sum(q["displayed"] for q in quality) / len(quality) if quality else None
+            ),
+        },
+    }
+    path = out.with_suffix(".manifest.json")
+    path.write_text(json.dumps(manifest, indent=2) + "\n")
+    return path
 
 
 def main() -> None:
@@ -165,6 +214,8 @@ def main() -> None:
         raise SystemExit("no faithful graphs generated; existing dataset preserved")
     tmp.replace(out)
     print(f"Wrote {kept} rows -> {out}")
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    print(f"Wrote manifest -> {write_manifest(out, kept, args, quality)}")
 
 
 if __name__ == "__main__":

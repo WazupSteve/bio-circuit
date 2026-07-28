@@ -8,6 +8,18 @@ import re
 
 from .graphs import Graph, feature_coords
 
+REWARD_VERSION = "v2.1"
+"""Bump on any change that moves scores, and record it in dataset manifests.
+
+  v1    whole-group ablation, lenient membership, every group had to reach output
+  v2    hidden split-half ablation, strict gates, shaped training floor
+  v2.1  scoring mean-ablates while the tool zero-clamps; a group may claim no
+        downstream effect; minimum group size is the mechanical floor of 2
+
+Numbers from different versions are not comparable, which matters more here than
+usual: the frontier ranking under v1 was an artefact of terms that v2 removed.
+"""
+
 MODAL_APP = "circuit-supernodes-attribution"
 MODAL_CLS = "Attributor"
 MAX_GROUPS = 8  # bound GPU cost per rollout
