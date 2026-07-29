@@ -21,7 +21,7 @@ max_turns = 8
 # Every rollout spawns its own MCP tool-server subprocess; the archived run that
 # worked used 1. Four keeps memory and process count comfortable and still
 # finishes well within an hour.
-max_concurrent = 4
+max_concurrent = 10
 
 [sampling]
 max_tokens = 32768  # xhigh reasoning; 16k risks truncating a rollout into a zero

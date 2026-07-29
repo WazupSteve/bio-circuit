@@ -120,6 +120,7 @@ Attacks over twenty graphs, models over their fifteen proposals:
 | layer-bands | 0.551 | 0.521 | **0.030** |
 | Claude Opus 5 (xhigh) | 0.515 | 0.467 | **0.048** |
 | GPT-5.6 Sol (xhigh) | 0.509 | 0.476 | **0.033** |
+| Kimi K3 (xhigh) | 0.431 | 0.431 | **0.000** |
 | Claude Fable 5 | 0.389 | 0.359 | **0.030** |
 | GPT-5.6 Sol | 0.459 | 0.455 | **0.004** |
 | Claude Opus 4.8 | 0.456 | 0.475 | **−0.019** |
@@ -132,23 +133,29 @@ the null than any model does.
 
 The layer-bands figure was 0.031 on six graphs and 0.030 on twenty.
 
-Claude Opus 5 and GPT-5.6 Sol were then run at xhigh reasoning on all twenty
-graphs, two rollouts each, at 150 displayed features — the strongest models and
-the most favourable settings tested, under a prompt that states the contract.
-Every one of the eighty rollouts completed and none were rejected by the gates,
-against 9 of 15 rejected for the archived Opus 4.8 under the older prompt.
+Claude Opus 5, GPT-5.6 Sol and Kimi K3 were then run at xhigh reasoning on all
+twenty graphs, two rollouts each, at 150 displayed features — the strongest
+models and the most favourable settings tested, under a prompt that states the
+contract. All 120 rollouts completed (six of Kimi K3's needed one retry after
+provider rate-limiting); one Kimi K3 proposal was rejected by the dominance
+gate, against 9 of 15 rejected for the archived Opus 4.8 under the older
+prompt.
 
-They agree closely and neither escapes the null:
+Kimi K3 was run under identical settings once it became reachable on the
+inference endpoint. None of the three escape the null:
 
   model                 reward   sep    null   over null
   Claude Opus 5          0.296  0.515   0.467      0.048
   GPT-5.6 Sol            0.303  0.509   0.476      0.033
+  Kimi K3                0.356  0.431   0.431      0.000
 
-Both earn the highest separation of any model measured, and roughly **91% of it
-is the layer ordering**. Their margins over the null, 0.048 and 0.033, sit above
-a pure layer-band partition (0.030) and below every blind attack that is not one
-(0.078 to 0.189). Their rewards are indistinguishable from the 0.290 a single
-blind partition scores on the same graphs.
+Kimi K3's separation and layer-null figure are equal to three decimal places:
+every unit of causal credit its proposals earned is accounted for by the layer
+ordering alone, with nothing left over. Opus 5 and Sol are not far from that —
+91% and 93% of their separation is the same free structure. All three sit at or
+below a pure layer-band partition (0.030 over the null) and below every blind
+attack that is not one (0.078 to 0.189). Their rewards are indistinguishable
+from the 0.290 a single blind partition scores on the same graphs.
 
 A stronger model, more reasoning, a wider slice and a corrected prompt therefore
 do not change the conclusion. They raise the separation term and leave the part
