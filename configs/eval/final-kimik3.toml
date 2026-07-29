@@ -4,16 +4,16 @@
 # 0 turns with a HarnessError.
 #
 # Run from environments/circuit_supernodes with PRIME_API_KEY exported:
-#   uv run eval @ ../../configs/eval/final-kimi.toml --no-push
+#   uv run eval @ ../../configs/eval/final-kimik3.toml --no-push
 #
 # All three final configs use the same 20 tasks so the comparison is paired;
 # only the model differs. Two rollouts give a per-task variance estimate without
 # doubling spend — the audit showed graph-to-graph variation dominates, and
 # pairing handles that.
-# kimi-k3 is listed by `prime inference models` but returns 404 on the
-# completions endpoint — listed is not the same as served. k2.6 is the newest
-# Kimi that actually responds, and is cheaper at $0.95/$4 per Mtok.
-model = "moonshotai/kimi-k2.6"
+# kimi-k3 404'd on the completions endpoint earlier in this project even
+# though it was listed by `prime inference models` — confirmed working again
+# with a direct probe before this config was restored to point at it.
+model = "moonshotai/kimi-k3"
 num_tasks = 20
 num_rollouts = 2
 max_turns = 8
