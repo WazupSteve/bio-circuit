@@ -15,12 +15,12 @@ from plot_layer_order import (
     chart3,
     chart4,
     chart5,
-    expected_best_of_k,
     load_data,
     load_gate_pass,
     load_search_curve,
     load_v1_components,
 )
+from reward_components import expected_best_of_k
 
 
 def brute_force_best_of_k(samples: list[float], k: int) -> float:
@@ -60,8 +60,6 @@ def assert_valid_svg(svg: str) -> None:
     root = doc.documentElement
     assert root.tagName == "svg"
     assert root.getAttribute("viewBox")
-    # Every <g><title>...</title></g> must close, every rect/circle/line/text
-    # tag balanced — minidom.parseString already raised if not.
 
 
 def test_every_chart_renders_valid_svg_from_the_real_archive():
@@ -74,10 +72,7 @@ def test_every_chart_renders_valid_svg_from_the_real_archive():
 
 
 def test_load_data_gate_counts_match_reward_components():
-    # scored + gated must equal every rollout in the file, and "sub" must
-    # describe exactly what scored/total say — a chart that quotes a
-    # human-readable caption disagreeing with its own bars is worse than one
-    # with no caption at all.
+    # The "sub" caption must describe exactly what scored/total say.
     models, _ = load_data()
     for stats in models.values():
         assert stats["scored"] <= stats["total"]

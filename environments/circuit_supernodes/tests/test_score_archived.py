@@ -68,10 +68,7 @@ def test_score_run_counts_parse_failures_gates_and_scored_rollouts(tmp_path):
     result = asyncio.run(score_run(scorer, rows, path, max_features=60))
 
     assert result["scored"] == 2  # A and B; C gated, junk never parsed
-    # A parse failure has to count toward the mean like a gate failure does —
-    # every rollout in the file is one of "total", full stop. Silently
-    # dropping it from the denominator would let a model that produces
-    # garbage look better than one that tried and got gated.
+    # A parse failure counts toward the mean like a gate failure does.
     assert result["total"] == 4
     assert result["reward"] == pytest.approx((0.6 + 0.4 + 0.0 + 0.0) / 4)
     assert result["reward_when_valid"] == pytest.approx((0.6 + 0.4) / 2)

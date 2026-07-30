@@ -3,16 +3,13 @@
 Each figure makes one claim from FINDINGS.md concrete: sec.2 (the v1 reward's
 ranking came from two degenerate terms, not the causal one), sec.4-5 (most of
 the causal term is a transformer's forward flow, which needs no experiments to
-predict), and sec.3 (a GRPO group turns a blind partition into a search). This
-keeps them reproducible in the way the *old* media charts were not — pure
-Python, no plotting library, and every number traced to an archived run rather
-than hand-copied into a script.
+predict), and sec.3 (a GRPO group turns a blind partition into a search).
 
     uv run python scripts/plot_layer_order.py
 
-Output is SVG: it renders natively in GitHub-flavoured markdown and any
-browser with no added dependency, and (unlike this repo's other scripts) nothing
-here touches Modal — every input is already on disk under archive/.
+Pure Python, no plotting library, no Modal — every input is already on disk
+under archive/, so every number in media/ traces to an archived run. Output is
+SVG, which GitHub-flavoured markdown renders natively.
 """
 
 import json
@@ -21,7 +18,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from reward_components import COMPONENTS, read_traces  # noqa: E402
+from reward_components import (  # noqa: E402
+    COMPONENTS,
+    expected_best_of_k,
+    read_traces,
+)
 
 ARCHIVE = Path(__file__).parent.parent / "archive"
 MEDIA = Path(__file__).parent.parent.parent.parent / "media"
@@ -41,12 +42,8 @@ ATTACK_KEYS = {
     "Budget-feasible": "v2/budget-feasible",
 }
 
-# Literal light-mode hex, not CSS custom properties: this is a static asset
-# for the repo's media/ folder, consumed by GitHub's markdown renderer and
-# plain image viewers — not a toggleable Artifact page. var() support is
-# inconsistent across SVG rasterizers (confirmed: one resolves it to black),
-# so literal values from the validated light palette are the correct choice
-# here, not a workaround.
+# Literal hex, not var(): SVG rasterizers handle CSS custom properties
+# inconsistently (one resolves them to black).
 STYLE = """
   .viz-root { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
   .bg { fill: #fcfcfb; }
@@ -242,8 +239,7 @@ def chart2(models: dict, attacks: dict) -> str:
     margin_l, margin_b, margin_t, margin_r = 66, 54, 96, 40
     plot_w = plot_h = 460
     x0, y0 = margin_l, margin_t
-    # Wider than the plot needs, so the header text has somewhere to go — a
-    # viewBox sized only to the plot clips any title/subtitle wider than it.
+    # A viewBox sized only to the plot clips the title/subtitle.
     width = max(margin_l + plot_w + margin_r, 860)
     height = margin_t + plot_h + margin_b
 
@@ -278,9 +274,7 @@ def chart2(models: dict, attacks: dict) -> str:
         f'<line class="diag" x1="{sx(0):.1f}" y1="{sy(0):.1f}" '
         f'x2="{sx(domain_max):.1f}" y2="{sy(domain_max):.1f}"/>'
     )
-    # A caption placed ON the diagonal cuts through the point labels near it;
-    # the top-left plot corner (high separation, low layer-order null) has no
-    # data in it, so the explanation goes there instead, horizontal and clear.
+    # The top-left corner (high separation, low null) has no data in it.
     caption_lines = [
         "On the dashed line, separation",
         "equals the layer-order null &#8212;",
@@ -292,11 +286,8 @@ def chart2(models: dict, attacks: dict) -> str:
             f'<text class="footnote" x="{x0 + 14:.1f}" y="{cap_y:.1f}">{line}</text>'
         )
 
-    # Four points (Community, Layer-bands, Opus 5, Sol) sit inside a 50x40px
-    # box, and two more (Layer-spanning, Budget-feasible) sit 8px apart — no
-    # per-point offset avoids collisions there. Those get a callout: a fixed
-    # label position with a thin leader line back to the real dot. Everything
-    # else is far enough apart for a simple inline offset.
+    # Points too close together for inline labels get a callout with a leader
+    # line back to the dot; the rest get a small offset.
     label_offsets = {
         "Kimi K3": (10, 16),
         "Random, best of 2": (10, -10),
@@ -518,16 +509,6 @@ def chart3(models: dict) -> str:
 # ---------------------------------------------------------------------------
 
 
-def expected_best_of_k(samples: list[float], k: int) -> float:
-    """E[max of k draws without replacement] from a finite sample, exactly —
-    not simulated. Same estimator oracle_audit.py's own summary uses."""
-    from math import comb
-
-    n = len(samples)
-    ordered = sorted(samples)
-    return sum(ordered[i] * comb(i, k - 1) for i in range(k - 1, n)) / comb(n, k)
-
-
 def load_search_curve() -> dict:
     audit = json.loads((ARCHIVE / "oracle_bestof8.json").read_text())
     per_graph = [row["scores"]["v2/random-multistart"]["all_rewards"] for row in audit]
@@ -537,15 +518,8 @@ def load_search_curve() -> dict:
 
 
 def declutter(items: list[tuple[str, float]], min_gap: float) -> dict[str, float]:
-    """Push labels apart along one axis, in true-value order, so two nearly
-    equal values (e.g. 0.296 and 0.303) don't render on top of each other.
-
-    A per-item offset keyed only to its own rank (as chart4's first version
-    used) does not do this: two labels a few pixels apart start a few pixels
-    apart no matter how they're each nudged individually. This walks the
-    sorted list and enforces a minimum gap against the *previous* placed
-    label, which is the actual definition of "not overlapping."
-    """
+    """Push labels apart along one axis, in value order, so two nearly equal
+    values (e.g. 0.296 and 0.303) don't render on top of each other."""
     ordered = sorted(items, key=lambda kv: kv[1])
     placed: dict[str, float] = {}
     prev = None
@@ -564,8 +538,8 @@ def chart4(curve: dict, models: dict) -> str:
     height = margin_t + plot_h + margin_b
     y_max = 0.65
 
-    ks = sorted(curve)  # equally spaced by rank, not by raw k — 1,2,4,8 are
-    # not equal steps, and placing them proportionally crowds the low end.
+    # Spaced by rank, not by raw k: proportional spacing crowds the low end.
+    ks = sorted(curve)
 
     def sx(k):
         return x0 + ks.index(k) / (len(ks) - 1) * plot_w
@@ -602,9 +576,7 @@ def chart4(curve: dict, models: dict) -> str:
             f'stroke="#fcfcfb" stroke-width="1.5"/>'
         )
         if k == ks[0]:
-            # Centering above the leftmost point puts the label astride the
-            # y-axis, where it collides with that row's gridline value — pull
-            # it to the right of the point instead.
+            # Centered on the leftmost point, the label straddles the y-axis.
             parts.append(
                 f'<text class="value-label" x="{sx(k) + 10:.1f}" '
                 f'y="{sy(curve[k]) - 8:.1f}" text-anchor="start" '

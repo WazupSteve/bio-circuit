@@ -10,11 +10,19 @@ causal term and how much came from the two degenerate ones.
 
 import argparse
 import json
+from math import comb
 from pathlib import Path
 from statistics import mean
 
 COMPONENTS = ("separation", "coverage", "completeness")
 REWARD = "circuit_faithfulness"
+
+
+def expected_best_of_k(samples: list[float], k: int) -> float:
+    """E[max of k draws without replacement] from a finite sample, exactly."""
+    n = len(samples)
+    ordered = sorted(samples)
+    return sum(ordered[i] * comb(i, k - 1) for i in range(k - 1, n)) / comb(n, k)
 
 
 def reward_value(raw) -> float:

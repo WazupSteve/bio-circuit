@@ -35,10 +35,6 @@ async def score_run(scorer, rows, path: Path, max_features: int) -> dict:
         row = rows[trace["task"]["data"]["idx"]]
         proposal = parse_proposal(completion_text(trace))
         if proposal is None:
-            # A rollout that never produced parseable JSON is a failure, not a
-            # rollout that didn't happen — it must count toward the mean like
-            # a gated one does, or a model that times out mid-thought would
-            # look better than one that tried and got gated.
             gated["no proposal JSON"] = gated.get("no proposal JSON", 0) + 1
             rewards.append(0.0)
             continue

@@ -23,7 +23,6 @@ import asyncio
 import json
 import random
 from collections import Counter, defaultdict
-from math import comb
 from pathlib import Path
 from statistics import mean, pstdev
 
@@ -40,6 +39,7 @@ from circuit_supernodes.rubric import (
     OUTPUT,
     InterventionScoring,
 )
+from reward_components import expected_best_of_k
 
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 THRESHOLD_STEPS = 12  # edge-fit sweep; free after the partition's one intervention
@@ -417,11 +417,7 @@ def _report_blind_baseline(results: list[dict]) -> None:
     for k in (1, 2, 4, 8, 16):
         if k > n:
             break
-        expected = [
-            sum(sorted(s)[i] * comb(i, k - 1) for i in range(k - 1, n)) / comb(n, k)
-            for s in draws
-        ]
-        print(f"{k:>4}{mean(expected):>15.3f}")
+        print(f"{k:>4}{mean(expected_best_of_k(s, k) for s in draws):>15.3f}")
     print(
         f"  single-draw mean {mean(means):.3f}, within-graph sd {mean(sds):.3f}"
         f"\n  a proposal must beat the mean by ~{2 * mean(sds) / 8**0.5:.3f}"
