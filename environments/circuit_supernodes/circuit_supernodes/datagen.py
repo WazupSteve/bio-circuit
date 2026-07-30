@@ -1,5 +1,5 @@
 import random
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 
 
 @dataclass
@@ -7,8 +7,6 @@ class CircuitSample:
     family: str
     prompt: str
     target: str
-    expected_supernodes: list[tuple[str, list[str]]] = field(default_factory=list)
-    expected_edges: list[tuple[str, str]] = field(default_factory=list)
 
     def to_row(self) -> dict:
         return asdict(self)
@@ -153,24 +151,12 @@ def _two_hop(rng: random.Random) -> CircuitSample:
             f"Fact: the capital of the {kind} containing {city} is"
         ),
         target=f" {capital}",
-        expected_supernodes=[
-            ("city", [city]),
-            ("capital-relation", ["capital"]),
-            ("region", [region]),
-            (f"say-{capital}", [capital, "say", "capital"]),
-        ],
-        expected_edges=[
-            ("city", "region"),
-            ("region", f"say-{capital}"),
-            ("capital-relation", f"say-{capital}"),
-        ],
     )
 
 
 def _addition(rng: random.Random) -> CircuitSample:
     a, b = rng.randint(12, 89), rng.randint(12, 89)
     s = a + b
-    ones = s % 10
     # one-shot exemplar: Qwen3-4B answers "?" to a bare "calc:" prompt
     ea, eb = rng.randint(12, 89), rng.randint(12, 89)
     while (ea, eb) == (a, b):
@@ -179,21 +165,6 @@ def _addition(rng: random.Random) -> CircuitSample:
         family="addition",
         prompt=f"calc: {ea}+{eb}={ea + eb}\ncalc: {a}+{b}=",
         target=str(s),
-        expected_supernodes=[
-            ("operand-a", [str(a)]),
-            ("operand-b", [str(b)]),
-            ("ones-digit", [f"_{ones}", f"ends in {ones}", str(ones)]),
-            ("magnitude", ["sum", "~" + str(round(s, -1))]),
-            (f"say-{s}", [str(s), "say"]),
-        ],
-        expected_edges=[
-            ("operand-a", "ones-digit"),
-            ("operand-b", "ones-digit"),
-            ("operand-a", "magnitude"),
-            ("operand-b", "magnitude"),
-            ("ones-digit", f"say-{s}"),
-            ("magnitude", f"say-{s}"),
-        ],
     )
 
 
@@ -206,15 +177,6 @@ def _antonym(rng: random.Random) -> CircuitSample:
         family="antonym",
         prompt=exemplar + ANTONYM_TEMPLATES[lang].format(w=w),
         target=ant,
-        expected_supernodes=[
-            ("operand-word", [w]),
-            ("antonym-relation", ["opposite", "antonym", "contraire", "contrario"]),
-            (f"say-{ant}", [ant, "say"]),
-        ],
-        expected_edges=[
-            ("operand-word", f"say-{ant}"),
-            ("antonym-relation", f"say-{ant}"),
-        ],
     )
 
 
@@ -228,17 +190,6 @@ def _analogy(rng: random.Random) -> CircuitSample:
         family="analogy",
         prompt=f"{ex[0]}:{ex[1]} :: {ex[2]}:{ex[3]}\n{a}:{b} :: {c}:",
         target=d,
-        expected_supernodes=[
-            ("exemplar-pair", [a, b]),
-            ("relation", [rel]),
-            ("query", [c]),
-            (f"say-{d}", [d, "say"]),
-        ],
-        expected_edges=[
-            ("exemplar-pair", "relation"),
-            ("relation", f"say-{d}"),
-            ("query", f"say-{d}"),
-        ],
     )
 
 
@@ -252,15 +203,6 @@ def _acronym(rng: random.Random) -> CircuitSample:
         family="acronym",
         prompt=f"The {w1} {w2} {w3} {suf} ({acronym[0]}",
         target=acronym[1:],
-        expected_supernodes=[
-            ("word-initials", [w1, w2, w3, suf, "first letter", "initial"]),
-            ("acronym-mode", ["acronym", "abbreviation", "caps"]),
-            (f"say-{acronym[1:]}", [acronym[1:], "say"]),
-        ],
-        expected_edges=[
-            ("word-initials", f"say-{acronym[1:]}"),
-            ("acronym-mode", f"say-{acronym[1:]}"),
-        ],
     )
 
 
@@ -275,15 +217,6 @@ def _sequence(rng: random.Random) -> CircuitSample:
         # the top predicted token is always the bare space and faithfulness fails
         prompt=" ".join(str(t) for t in terms) + " ",
         target=str(nxt),
-        expected_supernodes=[
-            ("sequence-terms", [str(t) for t in terms]),
-            ("step-pattern", [f"+{step}", "multiples", str(step)]),
-            (f"say-{nxt}", [str(nxt), "say"]),
-        ],
-        expected_edges=[
-            ("sequence-terms", "step-pattern"),
-            ("step-pattern", f"say-{nxt}"),
-        ],
     )
 
 
@@ -302,12 +235,6 @@ def _factual(rng: random.Random) -> CircuitSample:
         family="factual",
         prompt=rng.choice(FACTUAL_FRAMES).format(person=person),
         target=f" {sport}",
-        expected_supernodes=[
-            ("entity", person.split()),
-            ("sport-relation", ["sport", "plays"]),
-            (f"say-{sport}", [sport, "say"]),
-        ],
-        expected_edges=[("entity", f"say-{sport}"), ("sport-relation", f"say-{sport}")],
     )
 
 
@@ -319,12 +246,6 @@ def _incontext(rng: random.Random) -> CircuitSample:
         family="incontext",
         prompt=prompt,
         target=f" {qv}",
-        expected_supernodes=[
-            ("pattern", ["colon", "pair", "pattern", "color"]),
-            ("query-item", [qk]),
-            (f"say-{qv}", [qv, "say"]),
-        ],
-        expected_edges=[("pattern", f"say-{qv}"), ("query-item", f"say-{qv}")],
     )
 
 
@@ -396,15 +317,6 @@ def _agreement(rng: random.Random) -> CircuitSample:
         family="agreement",
         prompt=f"The {subject} {phrase} {attractor}",
         target=f" {verb}",
-        expected_supernodes=[
-            ("subject-number", [subject, "plural" if subject_plural else "singular"]),
-            ("attractor", [attractor]),
-            (f"say-{verb}", [verb, "say"]),
-        ],
-        expected_edges=[
-            ("subject-number", f"say-{verb}"),
-            ("attractor", f"say-{verb}"),
-        ],
     )
 
 
@@ -431,17 +343,6 @@ def _comparison(rng: random.Random) -> CircuitSample:
             f"Q: Is {first} {relation} than {second}? A:"
         ),
         target=f" {answer}",
-        expected_supernodes=[
-            ("left-operand", [str(first)]),
-            ("right-operand", [str(second)]),
-            ("comparison-relation", [relation, "compare", "than"]),
-            (f"say-{answer}", [answer, "say"]),
-        ],
-        expected_edges=[
-            ("left-operand", f"say-{answer}"),
-            ("right-operand", f"say-{answer}"),
-            ("comparison-relation", f"say-{answer}"),
-        ],
     )
 
 
@@ -460,12 +361,6 @@ def _weekday(rng: random.Random) -> CircuitSample:
             f"{offset} days after {WEEKDAYS[start]} is"
         ),
         target=f" {answer}",
-        expected_supernodes=[
-            ("start-day", [WEEKDAYS[start]]),
-            ("offset", [str(offset), "days after"]),
-            (f"say-{answer}", [answer, "say"]),
-        ],
-        expected_edges=[("start-day", f"say-{answer}"), ("offset", f"say-{answer}")],
     )
 
 

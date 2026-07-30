@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 import verifiers.v1 as vf
 from circuit_supernodes.datagen import generate
-from circuit_supernodes.graphs import embed_supernodes
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 from build_dataset import add_neuronpedia_labels, is_faithful  # noqa: E402
@@ -16,7 +15,6 @@ CONFIGS = Path(__file__).parents[3] / "configs"
 
 RAW_GRAPH = {
     "metadata": {"slug": "g", "prompt": "p", "prompt_tokens": ["p"]},
-    "qParams": {"linkType": "both", "pinnedIds": [], "supernodes": []},
     "nodes": [
         {"node_id": "1_10_0", "feature_type": "cross layer transcoder"},
         {"node_id": "L_1", "feature_type": "logit", "token_prob": 0.85},
@@ -53,15 +51,6 @@ def test_generate_supports_documented_train_recipe():
     samples = generate(48, seed=0, families=fams)
     assert len(samples) == 48
     assert all(sum(s.family == f for s in samples) == 8 for f in fams)
-
-
-def test_embed_supernodes_builds_qparams():
-    out = embed_supernodes(RAW_GRAPH, {"A": ["1_10_0"]}, slug="my-circuit")
-    assert out["qParams"]["supernodes"] == [["A", "1_10_0"]]
-    assert out["qParams"]["pinnedIds"] == ["1_10_0", "L_1"]
-    assert out["qParams"]["linkType"] == "both"
-    assert out["metadata"]["slug"] == "my-circuit"
-    assert RAW_GRAPH["qParams"]["supernodes"] == []
 
 
 def test_faithfulness_is_prefix_only():

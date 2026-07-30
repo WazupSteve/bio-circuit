@@ -10,6 +10,8 @@ from circuit_supernodes.datagen import generate
 from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
 
+sys.path.insert(0, str(Path(__file__).parent.parent))  # for modal_app.attribution
+
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
 
@@ -179,14 +181,15 @@ def main() -> None:
                     f"model says {top_tok!r}, wanted {s.target!r} — skipping"
                 )
                 continue
-            clean, stats = is_clean(graph, args.max_error_share, 60)
+            clean, graph_stats = is_clean(graph, args.max_error_share, 60)
             if not clean:
                 print(
                     f"  ! low-quality graph [{s.family}] {s.prompt!r}: "
-                    f"error nodes carry {stats['error']:.0%} of influence — skipping"
+                    f"error nodes carry {graph_stats['error']:.0%} of influence "
+                    "— skipping"
                 )
                 continue
-            quality.append(stats)
+            quality.append(graph_stats)
             if args.neuronpedia_labels:
                 try:
                     labeled = add_neuronpedia_labels(graph)
@@ -214,7 +217,6 @@ def main() -> None:
         raise SystemExit("no faithful graphs generated; existing dataset preserved")
     tmp.replace(out)
     print(f"Wrote {kept} rows -> {out}")
-    sys.path.insert(0, str(Path(__file__).parent.parent))
     print(f"Wrote manifest -> {write_manifest(out, kept, args, quality)}")
 
 

@@ -175,25 +175,6 @@ def feature_coords(ids: list[str]) -> list[tuple[int, int, int]]:
     return [tuple(map(int, node_id.split("_"))) for node_id in ids]
 
 
-def embed_supernodes(
-    raw: dict, supernodes: dict[str, list[str]], slug: str = ""
-) -> dict:
-    pinned = [m for ms in supernodes.values() for m in ms]
-    logits = [n for n in raw.get("nodes", []) if _node_kind(n) == "logit"]
-    if logits:
-        top = max(logits, key=lambda n: float(n.get("token_prob", 0.0) or 0.0))
-        pinned.append(str(top.get("node_id", top.get("id"))))
-    out = dict(raw)
-    out["qParams"] = {
-        **raw.get("qParams", {}),
-        "supernodes": [[name, *ms] for name, ms in supernodes.items()],
-        "pinnedIds": pinned,
-    }
-    if slug:
-        out["metadata"] = {**raw.get("metadata", {}), "slug": slug}
-    return out
-
-
 def render_graph(g: Graph, max_edges_per_node: int = 5) -> str:
     lines = [f"PROMPT TOKENS: {' | '.join(g.tokens)}"]
     if g.top_outputs:

@@ -48,28 +48,6 @@ def relative_drop(base: float, changed: float) -> float | None:
     return max(0.0, (base - changed) / base) if base > 1e-6 else None
 
 
-def completion_text(state) -> str:
-    # Historical traces stored an OpenAI-style ``completion`` list. Verifiers
-    # v1 traces store messages in graph ``nodes`` and identify model
-    # responses with ``sampled=true``. Accept both representations.
-    messages = state.get("completion") or []
-    if not messages:
-        messages = [
-            node.get("message", {})
-            for node in state.get("nodes", [])
-            if isinstance(node, dict) and node.get("sampled")
-        ]
-    for m in reversed(messages):
-        role = m.get("role") if isinstance(m, dict) else getattr(m, "role", "")
-        if role == "assistant":
-            content = (
-                m.get("content") if isinstance(m, dict) else getattr(m, "content", "")
-            )
-            if isinstance(content, str):
-                return content
-    return ""
-
-
 def parse_proposal(text: str) -> dict | None:
     """Read the *last* well-formed proposal: agents routinely show drafts first."""
     blobs = [
@@ -89,41 +67,9 @@ def parse_proposal(text: str) -> dict | None:
     return None
 
 
-def valid_supernodes(data: dict, g: Graph) -> dict[str, list[str]]:
-    """Lenient membership for *display* (Neuronpedia export): keep whatever renders.
-
-    Scoring uses ``validate_members`` instead, which rejects rather than repairs.
-    """
-    out: dict[str, list[str]] = {}
-    used: set[str] = set()
-    for sn in data.get("supernodes", []):
-        if not isinstance(sn, dict):
-            continue
-        name = str(sn.get("name", "")).strip()
-        if name.lower() == OUTPUT:
-            continue  # reserved terminal node
-        members = [
-            str(x)
-            for x in sn.get("nodes", [])
-            if str(x) in g.nodes
-            and g.nodes[str(x)].kind == "feature"
-            and str(x) not in used
-        ]
-        if name and members:
-            out[name] = members
-            used.update(members)
-    return out
-
-
-def validate_members(
-    data: dict, g: Graph, min_group_size: int = MIN_GROUP_SIZE
-) -> tuple[dict[str, list[str]] | None, str]:
+def validate_members(data: dict, g: Graph) -> tuple[dict[str, list[str]] | None, str]:
     """Strict membership gate. Silently repairing a malformed proposal teaches the
-    policy that malformed proposals are fine, so every violation is a rejection.
-
-    ``min_group_size`` is a parameter so the oracle audit can measure how far the
-    gate has to sit before small groups stop defeating the hidden split.
-    """
+    policy that malformed proposals are fine, so every violation is a rejection."""
     sns: dict[str, list[str]] = {}
     seen: set[str] = set()
     used: set[str] = set()
@@ -152,10 +98,10 @@ def validate_members(
             return None, f"{name!r} repeats a member"
         if clash := sorted(set(members) & used):
             return None, f"{name!r} overlaps another supernode: {clash[:4]}"
-        if len(members) < min_group_size:
+        if len(members) < MIN_GROUP_SIZE:
             return None, (
                 f"{name!r} has {len(members)} members; "
-                f"supernodes need at least {min_group_size}"
+                f"supernodes need at least {MIN_GROUP_SIZE}"
             )
         used.update(members)
         sns[name] = members
@@ -234,14 +180,8 @@ def split_members(members: list[str], seed: bytes) -> tuple[list[str], list[str]
     """Halve a supernode under the hidden seed.
 
     ``MIN_GROUP_SIZE`` is 2 because that is the mechanical floor — a singleton has
-    no halves — and *not* to make the split hard to guess. A group admits only
-    ``C(m, m//2)/2`` halvings (1 at m=2, 10 at m=6), so a larger floor looks like
-    it should buy unguessability, but the oracle audit measured otherwise: raising
-    the floor from 2 to 6 left the adaptive coherence-matched attack no worse off
-    (the split cost it 10.0% of separation at 2, 7.3% at 6) and *weakened* the
-    penalty on blind small groups (40.5% down to 28.2%). Knowing the split only
-    helps an attacker that can also satisfy it, which takes per-feature
-    measurement, not small groups. See ``scripts/oracle_audit.py``.
+    no halves — and *not* to make the split hard to guess: the audit measured that
+    raising the floor does not buy unguessability (FINDINGS.md §8).
     """
     order = sorted(
         members, key=lambda m: hmac.new(seed, m.encode(), hashlib.sha256).digest()
@@ -277,29 +217,19 @@ class InterventionScoring:
     ``split_halves`` selects the reward version: v1 ablates each supernode whole
     (which lets an agent pre-measure the entire scored matrix and transcribe it),
     v2 ablates two hidden halves and credits an edge only when both reproduce the
-    effect. The oracle audit runs the same attacks through both.
+    effect.
 
-    ``ablation`` is what makes the interventions genuinely *held out*. The agent's
-    tool zero-clamps; scoring mean-ablates, removing only each feature's deviation
-    from its own average activation. That reweights a group's members unequally,
-    so a circuit fitted to the measurements the agent can buy has to generalise to
-    be credited — which fitting alone does not. Uniformly scaling the ablation
-    would not do this: it attenuates every feature identically and the fitted
-    edges transfer unchanged.
+    The ablation operator is what makes the interventions genuinely *held out*.
+    The agent's tool zero-clamps; scoring mean-ablates, removing only each
+    feature's deviation from its own average activation. That reweights a group's
+    members unequally, so a circuit fitted to the measurements the agent can buy
+    has to generalise to be credited — which fitting alone does not. Uniformly
+    scaling the ablation would not do this: it attenuates every feature
+    identically and the fitted edges transfer unchanged.
     """
 
-    def __init__(
-        self,
-        *,
-        split_halves: bool = True,
-        salt: str | None = None,
-        min_group_size: int = MIN_GROUP_SIZE,
-        ablation: str = SCORING_ABLATION,
-    ):
+    def __init__(self, *, split_halves: bool = True):
         self.split_halves = split_halves
-        self.salt = salt
-        self.min_group_size = min_group_size
-        self.ablation = ablation
         self._attributor = None
         self._cache: dict[str, asyncio.Future] = {}
         self._lock = asyncio.Lock()
@@ -311,10 +241,8 @@ class InterventionScoring:
         target_token: str,
         complement: list,
         indices=None,
-        ablation: str | None = None,
     ) -> dict:
-        ablation = ablation or self.ablation
-        key = json.dumps([prompt, target_token, groups, complement, indices, ablation])
+        key = json.dumps([prompt, target_token, groups, complement, indices])
         async with self._lock:
             if self._attributor is None:
                 import modal
@@ -332,7 +260,7 @@ class InterventionScoring:
                         target_token,
                         complement or None,
                         indices,
-                        ablation,
+                        SCORING_ABLATION,
                     )
                 )
                 self._cache[key] = fut
@@ -468,58 +396,6 @@ class InterventionScoring:
         depth = {n: sum(g.nodes[m].layer for m in sns[n]) / len(sns[n]) for n in names}
         return {n: {m for m in names if depth[m] > depth[n]} | {OUTPUT} for n in names}
 
-    async def measure(self, prompt: str, g: Graph, sns: dict) -> dict:
-        """Whole-group effect matrix for a partition — what an attacker with
-        unlimited measurement learns. Used only by the oracle audit to upper-bound
-        measure-then-copy; the reward never calls it.
-
-        Measured with the *tool's* operator, not the scorer's: an attacker can
-        only buy what the agent's tool sells. Handing it the held-out operator
-        would defeat the point of holding one out.
-        """
-        names = list(sns)
-        groups = [feature_coords(sns[n]) for n in names]
-        target_token = g.top_outputs[0][0] if g.top_outputs else ""
-        result = await self._intervene(
-            prompt, groups, target_token, [], None, TOOL_ABLATION
-        )
-        base_prob, base_acts = result["base_prob"], result["base_group_acts"]
-        return {
-            "names": names,
-            "target": [
-                relative_drop(base_prob, a["target_prob"]) or 0.0
-                for a in result["ablations"]
-            ],
-            "groups": [
-                [
-                    relative_drop(base_acts[j], a["group_acts"][j]) or 0.0
-                    for j in range(len(names))
-                ]
-                for a in result["ablations"]
-            ],
-        }
-
-    async def measure_features(self, prompt: str, g: Graph) -> dict[str, float]:
-        """Per-feature effect on the target token — the finest measurement any
-        attacker could buy, in one intervention. Audit only; the reward never
-        calls it, and no agent can afford it within its experiment budget.
-        """
-        feats = [n.id for n in g.feature_nodes]
-        target_token = g.top_outputs[0][0] if g.top_outputs else ""
-        result = await self._intervene(
-            prompt,
-            [feature_coords([f]) for f in feats],
-            target_token,
-            [],
-            None,
-            TOOL_ABLATION,
-        )
-        base = result["base_prob"]
-        return {
-            f: relative_drop(base, a["target_prob"]) or 0.0
-            for f, a in zip(feats, result["ablations"], strict=True)
-        }
-
     async def score(self, prompt: str, g: Graph, data: dict, nonce: str = "") -> dict:
         def gated(
             reason: str, membership: bool = False, topology: bool = False
@@ -532,7 +408,7 @@ class InterventionScoring:
                 "topology": topology,
             }
 
-        sns, reason = validate_members(data, g, self.min_group_size)
+        sns, reason = validate_members(data, g)
         if sns is None:
             return gated(reason)
         names = list(sns)
@@ -548,9 +424,7 @@ class InterventionScoring:
         complement = feature_coords(
             [n.id for n in g.feature_nodes if n.id not in member_ids]
         )
-        groups, indices, sources = self._plan(
-            sns, names, split_seed(prompt, nonce, self.salt)
-        )
+        groups, indices, sources = self._plan(sns, names, split_seed(prompt, nonce))
         result = await self._intervene(
             prompt, groups, target_token, complement, indices
         )

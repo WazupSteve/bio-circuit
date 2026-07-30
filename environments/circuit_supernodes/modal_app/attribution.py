@@ -78,9 +78,7 @@ class Attributor:
         """
         if ablation == "zero":
             return [0.0] * len(members)
-        return [
-            base_acts[layer, :, feat].mean().item() for layer, feat, _ in members
-        ]
+        return [base_acts[layer, :, feat].mean().item() for layer, feat, _ in members]
 
     @modal.method()
     def intervene(

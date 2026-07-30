@@ -22,12 +22,10 @@ from circuit_supernodes.rubric import (
     SCORING_ABLATION,
     TOOL_ABLATION,
     InterventionScoring,
-    completion_text,
     parse_proposal,
     shaped_reward,
     split_members,
     split_seed,
-    valid_supernodes,
     validate_members,
     validate_topology,
 )
@@ -98,12 +96,7 @@ def score(proposal=PROPOSAL, *, split_halves=True, graph=GRAPH, **kwargs) -> dic
 
 def test_parse_fenced_and_bare():
     data = {"supernodes": [{"name": "A", "nodes": ["1_10_1"]}]}
-    fenced = {
-        "completion": [
-            {"role": "assistant", "content": f"x\n```json\n{json.dumps(data)}\n```"}
-        ]
-    }
-    assert parse_proposal(completion_text(fenced)) == data
+    assert parse_proposal(f"x\n```json\n{json.dumps(data)}\n```") == data
     assert parse_proposal(f"analysis {json.dumps(data)} done") == data
     assert parse_proposal("no json") is None
 
@@ -122,25 +115,6 @@ def test_parse_skips_trailing_block_that_is_not_a_proposal():
     good = {"supernodes": [{"name": "A", "nodes": ["1_10_1"]}]}
     text = f'```json\n{json.dumps(good)}\n```\n```json\n{{"note": 1}}\n```'
     assert parse_proposal(text) == good
-
-
-def test_completion_text_reads_verifiers_v1_trace_nodes():
-    data = {"supernodes": [{"name": "A", "nodes": ["1_10_1"]}]}
-    trace = {
-        "nodes": [
-            {"sampled": False, "message": {"role": "user", "content": "find it"}},
-            {"sampled": True, "message": {"role": "assistant", "content": "draft"}},
-            {"sampled": False, "message": {"role": "tool", "content": "ablation"}},
-            {
-                "sampled": True,
-                "message": {
-                    "role": "assistant",
-                    "content": f"final\n```json\n{json.dumps(data)}\n```",
-                },
-            },
-        ]
-    }
-    assert parse_proposal(completion_text(trace)) == data
 
 
 # --- strict membership and topology gates ----------------------------------
@@ -249,18 +223,6 @@ def test_topology_gate_returns_transitive_closure_and_is_case_insensitive():
     assert reason == ""
     assert closure["A"] == {"B", "C", "output"}
     assert closure["C"] == {"output"}
-
-
-def test_export_path_stays_lenient():
-    # The Neuronpedia gallery must render imperfect proposals the reward rejects.
-    data = {
-        "supernodes": [
-            {"name": "output", "nodes": ["1_10_1"]},
-            {"name": "A", "nodes": ["1_10_1", "E_0_0", "bogus"]},
-            {"name": "B", "nodes": ["1_10_1", "2_20_2"]},
-        ]
-    }
-    assert valid_supernodes(data, GRAPH) == {"A": ["1_10_1"], "B": ["2_20_2"]}
 
 
 # --- the hidden split ------------------------------------------------------
@@ -499,7 +461,6 @@ def test_scoring_and_the_tool_use_different_ablation_operators():
     # and fitting would be enough. Holding the operator out is what forces the
     # circuit to generalise.
     assert TOOL_ABLATION != SCORING_ABLATION
-    assert InterventionScoring().ablation == SCORING_ABLATION
 
 
 def test_intervene_cache_dedups_identical_proposals():

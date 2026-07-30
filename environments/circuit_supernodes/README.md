@@ -188,9 +188,7 @@ prime eval run ../../configs/eval/circuit-supernodes.toml --hosted --follow
 Override the policy model with `--model`. Completed runs are written beneath
 `outputs/`.
 
-## Inspect and export a proposal
-
-Inspect a trace:
+## Inspect a trace
 
 ```bash
 jq -c '{

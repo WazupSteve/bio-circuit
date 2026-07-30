@@ -5,12 +5,7 @@ still leave room for the dominance gate to fire (15 of 21 equal shares is over
 the 0.7 ceiling).
 """
 
-import sys
-from pathlib import Path
-
 from circuit_supernodes.graphs import load_graph_json
-
-sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 GROUPS = {
     "A": [f"1_{10 + i}_1" for i in range(7)],
