@@ -54,7 +54,7 @@
 <rect class="seg-null" x="250.0" y="184.0" width="284.8" height="16" rx="2"/>
 </g>
 <text class="row-label" x="238" y="190.0" text-anchor="end">Kimi K3</text>
-<text class="row-sub" x="238" y="202.0" text-anchor="end">40/40 rollouts, 1 gated</text>
+<text class="row-sub" x="238" y="202.0" text-anchor="end">39/40 rollouts, 1 gated</text>
 <text class="value-label" x="542.9" y="196.0">0.431</text>
 <text class="panel-title" x="24" y="228">Scripted attacks &amp; heuristics &#8212; zero experiments run</text>
 <g><title>Community partition: separation 0.563 (layer-order 0.456, beyond it 0.108)</title>

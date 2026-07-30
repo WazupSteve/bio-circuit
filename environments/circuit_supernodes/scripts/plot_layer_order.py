@@ -27,9 +27,9 @@ ARCHIVE = Path(__file__).parent.parent / "archive"
 MEDIA = Path(__file__).parent.parent.parent.parent / "media"
 
 MODEL_RUNS = {
-    "Claude Opus 5": ("opus5", "40/40 rollouts, 0 gated"),
-    "GPT-5.6 Sol": ("sol56", "40/40 rollouts, 0 gated"),
-    "Kimi K3": ("kimik3", "40/40 rollouts, 1 gated"),
+    "Claude Opus 5": "opus5",
+    "GPT-5.6 Sol": "sol56",
+    "Kimi K3": "kimik3",
 }
 ATTACK_KEYS = {
     "Community partition": "v2/community",
@@ -75,19 +75,20 @@ def esc(s: str) -> str:
 
 def load_data() -> tuple[dict, dict]:
     models = {}
-    for name, (slug, sub) in MODEL_RUNS.items():
+    for name, slug in MODEL_RUNS.items():
         text = (ARCHIVE / "final" / slug / "traces.jsonl").read_text()
         rows = [json.loads(line) for line in text.splitlines() if line.strip()]
-        comps = [
-            c
-            for c in ((t.get("info") or {}).get("reward_components") for t in rows)
-            if c and "separation" in c
-        ]
+        all_comps = [(t.get("info") or {}).get("reward_components") for t in rows]
+        comps = [c for c in all_comps if c and "separation" in c]
+        gated = sum(1 for c in all_comps if c and "gated" in c)
         models[name] = {
             "separation": st.mean(c["separation"] for c in comps),
             "null": st.mean(c["separation_layer_null"] for c in comps),
             "over": st.mean(c["separation_over_null"] for c in comps),
-            "sub": sub,
+            "reward": st.mean(sum(t["rewards"].values()) for t in rows),
+            "scored": len(rows) - gated,
+            "total": len(rows),
+            "sub": f"{len(rows) - gated}/{len(rows)} rollouts, {gated} gated",
         }
 
     audit = json.loads((ARCHIVE / "oracle_layers_full.json").read_text())
@@ -512,16 +513,298 @@ def chart3(models: dict) -> str:
     )
 
 
+# ---------------------------------------------------------------------------
+# Chart 4 — best-of-k: a GRPO group turns a blind partition into a search
+# ---------------------------------------------------------------------------
+
+
+def expected_best_of_k(samples: list[float], k: int) -> float:
+    """E[max of k draws without replacement] from a finite sample, exactly —
+    not simulated. Same estimator oracle_audit.py's own summary uses."""
+    from math import comb
+
+    n = len(samples)
+    ordered = sorted(samples)
+    return sum(ordered[i] * comb(i, k - 1) for i in range(k - 1, n)) / comb(n, k)
+
+
+def load_search_curve() -> dict:
+    audit = json.loads((ARCHIVE / "oracle_bestof8.json").read_text())
+    per_graph = [row["scores"]["v2/random-multistart"]["all_rewards"] for row in audit]
+    n = len(per_graph[0])
+    ks = [k for k in (1, 2, 4, 8) if k <= n]
+    return {k: st.mean(expected_best_of_k(s, k) for s in per_graph) for k in ks}
+
+
+def declutter(items: list[tuple[str, float]], min_gap: float) -> dict[str, float]:
+    """Push labels apart along one axis, in true-value order, so two nearly
+    equal values (e.g. 0.296 and 0.303) don't render on top of each other.
+
+    A per-item offset keyed only to its own rank (as chart4's first version
+    used) does not do this: two labels a few pixels apart start a few pixels
+    apart no matter how they're each nudged individually. This walks the
+    sorted list and enforces a minimum gap against the *previous* placed
+    label, which is the actual definition of "not overlapping."
+    """
+    ordered = sorted(items, key=lambda kv: kv[1])
+    placed: dict[str, float] = {}
+    prev = None
+    for name, y in ordered:
+        y = max(y, prev + min_gap) if prev is not None else y
+        placed[name] = y
+        prev = y
+    return placed
+
+
+def chart4(curve: dict, models: dict) -> str:
+    margin_l, margin_b, margin_t, margin_r = 60, 70, 96, 210
+    plot_w, plot_h = 420, 380
+    x0, y0 = margin_l, margin_t
+    width = max(margin_l + plot_w + margin_r, 860)
+    height = margin_t + plot_h + margin_b
+    y_max = 0.65
+
+    ks = sorted(curve)  # equally spaced by rank, not by raw k — 1,2,4,8 are
+    # not equal steps, and placing them proportionally crowds the low end.
+
+    def sx(k):
+        return x0 + ks.index(k) / (len(ks) - 1) * plot_w
+
+    def sy(v):
+        return y0 + plot_h - v / y_max * plot_h
+
+    parts: list[str] = []
+    for t in (0.0, 0.15, 0.30, 0.45, 0.60):
+        gy = sy(t)
+        parts.append(
+            f'<line class="grid-line" x1="{x0:.1f}" y1="{gy:.1f}" '
+            f'x2="{x0 + plot_w:.1f}" y2="{gy:.1f}"/>'
+        )
+        parts.append(
+            f'<text class="axis-label" x="{x0 - 8:.1f}" y="{gy + 3:.1f}" '
+            f'text-anchor="end">{t:.2f}</text>'
+        )
+    for k in ks:
+        gx = sx(k)
+        parts.append(
+            f'<text class="axis-label" x="{gx:.1f}" y="{y0 + plot_h + 18:.1f}" '
+            f'text-anchor="middle">{k}</text>'
+        )
+
+    points = " ".join(f"{sx(k):.1f},{sy(curve[k]):.1f}" for k in ks)
+    parts.append(
+        f'<polyline points="{points}" fill="none" class="seg-null" '
+        'style="stroke-width:2.5"/>'
+    )
+    for k in ks:
+        parts.append(
+            f'<circle cx="{sx(k):.1f}" cy="{sy(curve[k]):.1f}" r="5" class="seg-null" '
+            f'stroke="#fcfcfb" stroke-width="1.5"/>'
+        )
+        if k == ks[0]:
+            # Centering above the leftmost point puts the label astride the
+            # y-axis, where it collides with that row's gridline value — pull
+            # it to the right of the point instead.
+            parts.append(
+                f'<text class="value-label" x="{sx(k) + 10:.1f}" '
+                f'y="{sy(curve[k]) - 8:.1f}" text-anchor="start" '
+                f'style="font-size:11px">{curve[k]:.3f}</text>'
+            )
+        else:
+            parts.append(
+                f'<text class="value-label" x="{sx(k):.1f}" '
+                f'y="{sy(curve[k]) - 12:.1f}" text-anchor="middle" '
+                f'style="font-size:11px">{curve[k]:.3f}</text>'
+            )
+
+    g8_x = sx(8) if 8 in curve else None
+    if g8_x is not None:
+        parts.append(
+            f'<line x1="{g8_x:.1f}" y1="{y0:.1f}" x2="{g8_x:.1f}" '
+            f'y2="{y0 + plot_h:.1f}" class="leader" stroke-dasharray="3 3"/>'
+        )
+        parts.append(
+            f'<text class="row-sub" x="{g8_x:.1f}" y="{y0 - 8:.1f}" '
+            'text-anchor="middle">planned GRPO group size</text>'
+        )
+
+    model_lines = []
+    true_y = {name: sy(stats["reward"]) for name, stats in models.items()}
+    label_y = declutter(list(true_y.items()), min_gap=16)
+    for name, y in true_y.items():
+        model_lines.append(
+            f'<line x1="{x0:.1f}" y1="{y:.1f}" x2="{x0 + plot_w:.1f}" y2="{y:.1f}" '
+            'class="baseline" stroke-dasharray="2 4"/>'
+        )
+        ly = label_y[name]
+        model_lines.append(
+            f'<line class="leader" x1="{x0 + plot_w:.1f}" y1="{y:.1f}" '
+            f'x2="{x0 + plot_w + 10:.1f}" y2="{ly:.1f}"/>'
+        )
+        model_lines.append(
+            f'<text class="row-sub" x="{x0 + plot_w + 14:.1f}" y="{ly + 3:.1f}">'
+            f"{esc(name)} {models[name]['reward']:.3f}</text>"
+        )
+
+    legend_y = 66
+    body = "\n".join(
+        [
+            f'<rect class="bg" x="0" y="0" width="{width}" height="{height}"/>',
+            '<text class="title" x="24" y="30">'
+            "A GRPO group turns a blind partition into a search</text>",
+            '<text class="subtitle" x="24" y="50">expected reward of the best '
+            "of k random partitions &#8212; dashed lines are what each model "
+            "actually scored, on the same twenty graphs</text>",
+            f'<circle cx="30" cy="{legend_y}" r="5" class="seg-null"/>',
+            f'<text class="legend-text" x="42" y="{legend_y + 4}">'
+            "E[best of k blind partitions]</text>",
+            *model_lines,
+            *parts,
+            f'<line class="baseline" x1="{x0}" y1="{y0:.1f}" x2="{x0}" '
+            f'y2="{y0 + plot_h:.1f}"/>',
+            f'<text class="axis-label" x="{x0 + plot_w / 2:.1f}" '
+            f'y="{y0 + plot_h + 40:.1f}" text-anchor="middle" style="font-size:11px">'
+            "k (rollouts sampled per graph)</text>",
+            f'<text class="footnote" x="24" y="{height - 12}">'
+            "circuit-supernodes reward v2.1 &#8212; scripts/plot_layer_order.py "
+            "from archive/oracle_bestof8.json, archive/final/*</text>",
+        ]
+    )
+    return (
+        f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
+        'class="viz-root" role="img" '
+        'aria-label="Line chart of expected best-of-k reward for blind '
+        "partitions against each rollout budget, with model rewards as "
+        'reference lines">'
+        f"<style>{STYLE}</style>{body}</svg>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chart 5 — gate pass rate, old prompt vs. corrected prompt + strict gates
+# ---------------------------------------------------------------------------
+
+GATE_LABEL = {
+    "fable": "Claude Fable 5",
+    "sol": "GPT-5.6 Sol",
+    "opus": "Claude Opus 4.8",
+}
+
+
+def load_gate_pass(models: dict) -> dict:
+    before = json.loads((ARCHIVE / "gate_pass_v21.json").read_text())
+    return {
+        "before": {
+            GATE_LABEL[r["run"]]: (r["scored"], r["total"])
+            for r in before
+            if r["run"] in GATE_LABEL
+        },
+        "after": {
+            name: (stats["scored"], stats["total"]) for name, stats in models.items()
+        },
+    }
+
+
+def chart5(gates: dict) -> str:
+    plot_x0, plot_w = 250, 400
+    row_h, bar_h = 30, 16
+    domain_max = 100
+
+    def sx(pct):
+        return plot_x0 + pct / domain_max * plot_w
+
+    parts: list[str] = []
+    y = 132
+    grid_top = 108
+
+    def panel(title: str, rows: dict) -> None:
+        nonlocal y
+        parts.append(
+            f'<text class="panel-title" x="24" y="{y - 20}">{esc(title)}</text>'
+        )
+        for name, (scored, total) in rows.items():
+            pct = 100 * scored / total
+            by = y - bar_h / 2
+            parts.append(
+                f'<rect class="seg-null" x="{plot_x0}" y="{by:.1f}" '
+                f'width="{sx(pct) - plot_x0:.1f}" height="{bar_h}" rx="2"/>'
+            )
+            parts.append(
+                f'<text class="row-label" x="{plot_x0 - 12}" y="{y - 2:.1f}" '
+                f'text-anchor="end">{esc(name)}</text>'
+            )
+            parts.append(
+                f'<text class="row-sub" x="{plot_x0 - 12}" y="{y + 10:.1f}" '
+                f'text-anchor="end">{scored}/{total} passed the gates</text>'
+            )
+            parts.append(
+                f'<text class="value-label" x="{sx(pct) + 8:.1f}" y="{y + 4:.1f}">'
+                f"{pct:.0f}%</text>"
+            )
+            y += row_h
+        y += 26
+
+    panel(
+        "Old prompt, lenient gates (archive/eval15, rescored under v2.1)",
+        gates["before"],
+    )
+    panel(
+        "Corrected prompt, strict gates (this project's final xhigh runs)",
+        gates["after"],
+    )
+
+    grid_bottom = y - row_h - 4
+    ticks = [0, 25, 50, 75, 100]
+    grid = []
+    for t in ticks:
+        x = sx(t)
+        grid.append(
+            f'<line class="grid-line" x1="{x:.1f}" y1="{grid_top:.1f}" '
+            f'x2="{x:.1f}" y2="{grid_bottom:.1f}"/>'
+        )
+        grid.append(
+            f'<text class="axis-label" x="{x:.1f}" y="{grid_top - 8:.1f}" '
+            f'text-anchor="middle">{t}%</text>'
+        )
+
+    svg_h = grid_bottom + 46
+    body = "\n".join(
+        [
+            f'<rect class="bg" x="0" y="0" width="820" height="{svg_h:.0f}"/>',
+            '<text class="title" x="24" y="30">'
+            "Strict gates plus a stated contract, and models clear it</text>",
+            '<text class="subtitle" x="24" y="50">share of rollouts whose '
+            "proposal was not rejected by the reward's membership, topology "
+            "or dominance gates</text>",
+            *grid,
+            *parts,
+            f'<line class="baseline" x1="{plot_x0}" y1="{grid_top:.1f}" '
+            f'x2="{plot_x0}" y2="{grid_bottom:.1f}"/>',
+            f'<text class="footnote" x="24" y="{svg_h - 14:.0f}">'
+            "circuit-supernodes reward v2.1 &#8212; scripts/plot_layer_order.py "
+            "from archive/gate_pass_v21.json, archive/final/*</text>",
+        ]
+    )
+    return (
+        f'<svg viewBox="0 0 820 {svg_h:.0f}" xmlns="http://www.w3.org/2000/svg" '
+        'class="viz-root" role="img" '
+        'aria-label="Bar chart of gate pass rate before and after the '
+        'topology-gate fix and corrected prompt">'
+        f"<style>{STYLE}</style>{body}</svg>"
+    )
+
+
 def main() -> None:
     models, attacks = load_data()
-    (MEDIA / "03_layer_order_composition.svg").write_text(chart1(models, attacks))
-    (MEDIA / "04_separation_vs_layer_null.svg").write_text(chart2(models, attacks))
-    (MEDIA / "05_v1_reward_was_not_causal.svg").write_text(chart3(load_v1_components()))
-    for name in (
-        "03_layer_order_composition.svg",
-        "04_separation_vs_layer_null.svg",
-        "05_v1_reward_was_not_causal.svg",
-    ):
+    charts = {
+        "03_layer_order_composition.svg": chart1(models, attacks),
+        "04_separation_vs_layer_null.svg": chart2(models, attacks),
+        "05_v1_reward_was_not_causal.svg": chart3(load_v1_components()),
+        "06_best_of_k_search.svg": chart4(load_search_curve(), models),
+        "07_gate_pass_rate.svg": chart5(load_gate_pass(models)),
+    }
+    for name, svg in charts.items():
+        (MEDIA / name).write_text(svg)
         print(f"wrote {MEDIA / name}")
 
 

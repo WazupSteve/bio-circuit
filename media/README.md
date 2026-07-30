@@ -1,7 +1,7 @@
 # Figure provenance
 
-**`03_layer_order_composition.svg` and `04_separation_vs_layer_null.svg` are the
-current figures.** Both regenerate from archived data with no manual step:
+**`03` through `07` are the current figures.** All five regenerate from
+archived data with no manual step:
 
 ```bash
 cd environments/circuit_supernodes
@@ -9,10 +9,11 @@ uv run python scripts/plot_layer_order.py
 ```
 
 They are pure Python (no plotting library, no Node), and every number in them
-traces to `archive/final/{opus5,sol56,kimik3}/traces.jsonl` and
-`archive/oracle_layers_full.json` — the same data `FINDINGS.md` §4–5 quotes.
-`scripts/plot_layer_order.py` reads those files directly; nothing here is
-hand-copied.
+traces to `archive/final/{opus5,sol56,kimik3}/traces.jsonl`,
+`archive/eval15/*/traces.jsonl`, `archive/oracle_layers_full.json`,
+`archive/oracle_bestof8.json` and `archive/gate_pass_v21.json` — the same data
+`FINDINGS.md` §2–5 quotes. `scripts/plot_layer_order.py` reads those files
+directly; nothing here is hand-copied.
 
 ## `03_layer_order_composition.svg` — where the reward's causal credit comes from
 
@@ -31,6 +32,37 @@ with a y = x reference line. On that line, separation equals what the layer
 ordering already predicts — zero credit for anything else. All three models
 sit close to it, indistinguishable in these terms from a partition built by
 sorting features on layer number.
+
+## `05_v1_reward_was_not_causal.svg` — the v1 ranking was two decorative terms, not circuit quality
+
+The component table from `FINDINGS.md` §2, as grouped bars: separation,
+coverage and completeness for the three models the old frontier comparison
+ranked. Separation — the only causal term — is flat. The 2.4x spread in
+reward, and the ranking, come entirely from coverage and completeness, both
+of which score 1.0 by construction once a proposal groups every displayed
+feature. The model with the worst separation (Claude Fable 5, 0.580) has the
+best reward (0.663); the model with the best separation (GPT-5.6 Sol, 0.662)
+does not win.
+
+## `06_best_of_k_search.svg` — a GRPO group turns a blind partition into a search
+
+`E[best of k]` for k ∈ {1, 2, 4, 8} random partitions, computed exactly (not
+simulated) from the twenty-graph, eight-restart oracle audit, against dashed
+reference lines for what Claude Opus 5, GPT-5.6 Sol and Kimi K3 actually
+scored on the same graphs. At the planned GRPO group size of eight, the best
+of eight blind draws (0.547) already clears all three models. This is the
+`E[best of k]` row from `FINDINGS.md` §3, extended to the group size that
+matters and to all three final models rather than one single-draw comparison.
+
+## `07_gate_pass_rate.svg` — strict gates plus a stated contract, and models clear it
+
+Share of rollouts whose proposal survived the reward's membership, topology
+and dominance gates, before (the old prompt, rescored under v2.1) and after
+(the corrected prompt, this project's final xhigh runs). The old prompt left
+Claude Opus 4.8 failing 9 of 15 proposals outright; under the corrected
+prompt all three final models pass nearly every rollout. The gates were never
+the bottleneck this project's finding rests on — §5's null-correction result
+holds on proposals that cleared them cleanly.
 
 ## What used to be here
 
@@ -73,3 +105,10 @@ figure update, so it is left undone rather than faked.
 - `environments/circuit_supernodes/archive/oracle_layers_full.json` — the
   twenty-graph layer-bands vs. layer-spanning audit, and every other scripted
   attack's `separation_over_null`.
+- `environments/circuit_supernodes/archive/oracle_bestof8.json` — the same
+  twenty graphs, eight random-partition restarts each, at 150 displayed
+  features. Basis of `06`'s `E[best of k]` curve.
+- `environments/circuit_supernodes/archive/gate_pass_v21.json` — `eval15`
+  rescored under the current reward with `scripts/score_archived.py --out`,
+  giving scored/total per run. Basis of `07`'s "before" panel; the "after"
+  panel comes from the same `archive/final/` traces as `03` and `04`.
