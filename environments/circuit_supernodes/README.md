@@ -202,40 +202,7 @@ jq -c '{
 }' outputs/.../traces.jsonl
 ```
 
-Export one proposal for Neuronpedia:
-
-```bash
-sed -n '1p' outputs/.../traces.jsonl > /tmp/rollout.json
-uv run python scripts/export_neuronpedia.py \
-    --dataset heldout.jsonl --index 0 --proposal /tmp/rollout.json \
-    --slug heldout-0 --out /tmp/heldout-0.json
-```
-
-Upload the output at <https://www.neuronpedia.org/graph/validator>. The dataset
-index must match `task.data.idx` when evaluation is not shuffled.
-
-## Calibrate and train
-
-Reference scores for the keyword-matched circuit and a matched-random control:
-
-```bash
-uv run python scripts/calibrate.py --dataset heldout.jsonl
-```
-
-Red-team the reward before trusting it. The audit scores scripted attacks —
-blind balanced groups, a community partition, random multistart, minimum-size
-groups, and a coherence-matched partition built from per-feature measurements —
-against both reward versions, giving each attack the true effect matrix and the
-best edge fit it supports. **v2 must beat every attack; if
-it does not, the reward is not measuring circuit discovery.**
-
-```bash
-uv run python scripts/oracle_audit.py --dataset heldout.jsonl --rows 8 \
-    --out /tmp/oracle.json
-
-# Does the minimum-size gate earn its keep? (It does not — see the reward notes.)
-uv run python scripts/oracle_audit.py --min-group-size 6 --rows 10
-```
+## Train
 
 For hosted RL, install the Prime CLI separately and run the repository config:
 
@@ -279,7 +246,3 @@ every group are ablated.
 - `circuit_supernodes/datagen.py`: prompt generation
 - `modal_app/attribution.py`: Modal attribution and intervention service
 - `scripts/build_dataset.py`: dataset construction
-- `scripts/calibrate.py`: reference scores for expected and random proposals
-- `scripts/oracle_audit.py`: adversarial audit of the reward (v1 vs v2)
-- `scripts/reward_components.py`: per-component means from archived traces
-- `scripts/export_neuronpedia.py`: proposal export

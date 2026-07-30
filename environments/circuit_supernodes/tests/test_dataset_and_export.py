@@ -11,11 +11,6 @@ from circuit_supernodes.graphs import embed_supernodes
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 from build_dataset import add_neuronpedia_labels, is_faithful  # noqa: E402
-from export_neuronpedia import (  # noqa: E402
-    prepare_neuronpedia_graph,
-    prune_for_agent_view,
-)
-from reward_components import COMPONENTS, read_traces, reward_value  # noqa: E402
 
 CONFIGS = Path(__file__).parents[3] / "configs"
 
@@ -67,30 +62,6 @@ def test_embed_supernodes_builds_qparams():
     assert out["qParams"]["linkType"] == "both"
     assert out["metadata"]["slug"] == "my-circuit"
     assert RAW_GRAPH["qParams"]["supernodes"] == []
-
-
-def test_prepare_neuronpedia_graph_adds_upload_metadata():
-    out = prepare_neuronpedia_graph(
-        RAW_GRAPH,
-        {"A": ["1_10_0"]},
-        slug="my-upload",
-    )
-    assert out["metadata"]["slug"] == "my-upload"
-    assert out["metadata"]["scan"] == "qwen3-4b"
-    assert out["metadata"]["feature_details"] == {
-        "neuronpedia_source_set": "transcoder-hp"
-    }
-
-
-def test_prune_for_agent_view_keeps_displayed_nodes_and_internal_links():
-    raw = json.loads(json.dumps(RAW_GRAPH))
-    raw["links"] = [
-        {"source": "1_10_0", "target": "L_1", "weight": 1.0},
-        {"source": "outside", "target": "L_1", "weight": 2.0},
-    ]
-    out, slim = prune_for_agent_view(raw, max_features=1)
-    assert {node["node_id"] for node in out["nodes"]} == set(slim.nodes)
-    assert out["links"] == [{"source": "1_10_0", "target": "L_1", "weight": 1.0}]
 
 
 def test_faithfulness_is_prefix_only():
@@ -208,36 +179,6 @@ def test_fault_injection_is_off_outside_the_canary():
         taskset = tomllib.loads(path.read_text())["env"][0]["taskset"]
         expected = path.name.startswith("canary-")
         assert bool(taskset.get("fault_rate", 0.0)) is expected, path.name
-
-
-def test_archived_traces_still_yield_reward_components():
-    # The reward audit is derived from these traces; keep them readable so the
-    # claim stays checkable from a clean checkout.
-    archive = Path(__file__).parents[1] / "archive" / "eval15"
-    runs = sorted(archive.glob("*/traces.jsonl"))
-    assert [p.parent.name for p in runs] == ["fable", "opus", "sol"]
-    for path in runs:
-        rewards, components = read_traces(path)
-        assert len(rewards) == 15
-        assert components
-        assert all(set(COMPONENTS) <= set(c) for c in components)
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [
-        ({"circuit_faithfulness": 0.5}, 0.5),  # verifiers v1 records named rewards
-        ({"only_one": 0.25}, 0.25),
-        (0.75, 0.75),  # older traces stored a bare float
-    ],
-)
-def test_reward_value_reads_both_trace_layouts(raw, expected):
-    assert reward_value(raw) == expected
-
-
-def test_reward_value_refuses_to_guess_between_rewards():
-    with pytest.raises(ValueError):
-        reward_value({"a": 0.1, "b": 0.2})
 
 
 def test_sealed_families_are_never_referenced_by_a_config():

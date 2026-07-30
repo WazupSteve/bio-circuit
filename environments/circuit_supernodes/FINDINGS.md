@@ -1,8 +1,9 @@
 # What the intervention reward actually measures
 
 An audit of the `circuit-supernodes` reward, run before training anything on it.
-Every number below is reproducible from this checkout; the commands are given
-with each claim and the raw results are in `archive/`.
+The audit scripts and archived run data behind these numbers were removed in a
+repo cleanup (2026-07-30); both remain in git history at commit `99e1334`, from
+which every command quoted below still reproduces every number.
 
 The short version: **the reward's causal signal is dominated by the layer
 ordering of the transformer, which requires no experiments to predict.** Once
@@ -45,8 +46,7 @@ uv run python scripts/reward_components.py archive/eval15/*/traces.jsonl
 The causal term is flat across all three. The entire 2.4x spread comes from the
 two degenerate terms, and the model with the *worst* separation has the best
 reward. The v1 frontier chart this table replaces measured "did you group
-every feature you were shown", not circuit quality — see `media/README.md`
-for what was removed and why.
+every feature you were shown", not circuit quality.
 
 ## 3. Blind partitions score well, and a policy can afford them
 
@@ -233,8 +233,12 @@ Recorded because two of them nearly became changes to the environment.
 
 ## 9. Reproducing all of it
 
+The audit scripts and archived data live in git history, not this checkout:
+
 ```bash
-uv sync --group dev && uv run pytest          # 101 tests, no Modal needed
+git checkout 99e1334 -- environments/circuit_supernodes/scripts \
+    environments/circuit_supernodes/archive
+cd environments/circuit_supernodes && uv sync --group dev && uv run pytest
 uv run python scripts/partition_discrimination.py          # no Modal, seconds
 uv run python scripts/reward_components.py archive/eval15/*/traces.jsonl
 uv run python scripts/oracle_audit.py --rows 10 --multistart 16   # needs Modal

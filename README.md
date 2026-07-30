@@ -26,9 +26,6 @@ uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
 
 # PRIME_API_KEY is required for policy-model evaluation.
 uv run eval @ ../../configs/eval/circuit-supernodes.toml --no-push
-
-# Red-team the reward before trusting any number it produces.
-uv run python scripts/oracle_audit.py --dataset heldout.jsonl --rows 8
 ```
 
 Dataset generation, interactive experiments, and final reward scoring use the
@@ -45,8 +42,9 @@ before any real run — see the environment documentation.
 reward was audited before training anything on it, and the audit is currently the
 main result: its causal signal turns out to be dominated by the transformer's
 layer ordering, which a partition can exploit with zero experiments. Three
-frontier models add approximately nothing over that baseline. Every claim there
-is reproducible from this checkout.
+frontier models add approximately nothing over that baseline. (The audit
+scripts and archived run data behind it were removed in a repo cleanup; they
+remain in git history.)
 
 See the [environment documentation](environments/circuit_supernodes/README.md)
-for the task contract, reward, validation, export, and training workflows.
+for the task contract, reward, validation, and training workflows.
