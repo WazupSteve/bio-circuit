@@ -1,10 +1,12 @@
-"""Regenerate the two layer-order charts in media/ directly from archived data.
+"""Regenerate the FINDINGS.md charts in media/ directly from archived data.
 
-Both figures make the same point as FINDINGS.md sec.4-5: most of the reward's
-causal signal is a transformer's forward flow, which needs no experiments to
-predict. This keeps them reproducible in the way the *old* media charts were
-not — pure Python, no plotting library, and every number traced to an archived
-run rather than hand-copied into a script.
+Each figure makes one claim from FINDINGS.md concrete: sec.2 (the v1 reward's
+ranking came from two degenerate terms, not the causal one), sec.4-5 (most of
+the causal term is a transformer's forward flow, which needs no experiments to
+predict), and sec.3 (a GRPO group turns a blind partition into a search). This
+keeps them reproducible in the way the *old* media charts were not — pure
+Python, no plotting library, and every number traced to an archived run rather
+than hand-copied into a script.
 
     uv run python scripts/plot_layer_order.py
 
@@ -15,7 +17,11 @@ here touches Modal — every input is already on disk under archive/.
 
 import json
 import statistics as st
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from reward_components import COMPONENTS, read_traces  # noqa: E402
 
 ARCHIVE = Path(__file__).parent.parent / "archive"
 MEDIA = Path(__file__).parent.parent.parent.parent / "media"
@@ -58,6 +64,7 @@ STYLE = """
   .leader { stroke: #c3c2b7; stroke-width: 1; }
   .seg-null { fill: #2a78d6; }
   .seg-over { fill: #eb6834; }
+  .seg-third { fill: #1baf7a; }
   .footnote { fill: #898781; font-size: 10px; }
 """
 
@@ -218,7 +225,7 @@ def chart1(models: dict, attacks: dict) -> str:
         f'<svg viewBox="0 0 900 {svg_h:.0f}" xmlns="http://www.w3.org/2000/svg" '
         'class="viz-root" role="img" '
         'aria-label="Bar chart splitting causal separation into a layer-order '
-        'null and the residual beyond it, for three frontier models and seven '
+        "null and the residual beyond it, for three frontier models and seven "
         'scripted attacks">'
         f"<style>{STYLE}</style>{body}</svg>"
     )
@@ -251,18 +258,18 @@ def chart2(models: dict, attacks: dict) -> str:
         gx, gy = sx(t), sy(t)
         parts.append(
             f'<line class="grid-line" x1="{gx:.1f}" y1="{y0:.1f}" '
-            f'x2="{gx:.1f}" y2="{y0+plot_h:.1f}"/>'
+            f'x2="{gx:.1f}" y2="{y0 + plot_h:.1f}"/>'
         )
         parts.append(
             f'<line class="grid-line" x1="{x0:.1f}" y1="{gy:.1f}" '
-            f'x2="{x0+plot_w:.1f}" y2="{gy:.1f}"/>'
+            f'x2="{x0 + plot_w:.1f}" y2="{gy:.1f}"/>'
         )
         parts.append(
-            f'<text class="axis-label" x="{gx:.1f}" y="{y0+plot_h+18:.1f}" '
+            f'<text class="axis-label" x="{gx:.1f}" y="{y0 + plot_h + 18:.1f}" '
             f'text-anchor="middle">{t:.2f}</text>'
         )
         parts.append(
-            f'<text class="axis-label" x="{x0-8:.1f}" y="{gy+3:.1f}" '
+            f'<text class="axis-label" x="{x0 - 8:.1f}" y="{gy + 3:.1f}" '
             f'text-anchor="end">{t:.2f}</text>'
         )
 
@@ -281,7 +288,7 @@ def chart2(models: dict, attacks: dict) -> str:
     for i, line in enumerate(caption_lines):
         cap_y = y0 + 22 + 14 * i
         parts.append(
-            f'<text class="footnote" x="{x0+14:.1f}" y="{cap_y:.1f}">{line}</text>'
+            f'<text class="footnote" x="{x0 + 14:.1f}" y="{cap_y:.1f}">{line}</text>'
         )
 
     # Four points (Community, Layer-bands, Opus 5, Sol) sit inside a 50x40px
@@ -324,7 +331,7 @@ def chart2(models: dict, attacks: dict) -> str:
             lx, ly = callouts[name]
             parts.append(
                 f'<line class="leader" x1="{cx:.1f}" y1="{cy:.1f}" '
-                f'x2="{lx-6:.1f}" y2="{ly-3:.1f}"/>'
+                f'x2="{lx - 6:.1f}" y2="{ly - 3:.1f}"/>'
             )
             parts.append(
                 f'<text class="row-label" x="{lx:.1f}" y="{ly:.1f}">{esc(name)}</text>'
@@ -332,7 +339,7 @@ def chart2(models: dict, attacks: dict) -> str:
             continue
         dx, dy = label_offsets.get(name, (10, -8))
         parts.append(
-            f'<text class="row-label" x="{cx+dx:.1f}" y="{cy+dy:.1f}" '
+            f'<text class="row-label" x="{cx + dx:.1f}" y="{cy + dy:.1f}" '
             f'text-anchor="start">{esc(name)}</text>'
         )
 
@@ -346,18 +353,18 @@ def chart2(models: dict, attacks: dict) -> str:
             "ordering predicts with zero experiments &#8212; height above the "
             "line is the real signal</text>",
             f'<circle cx="30" cy="{legend_y}" r="6" class="seg-over"/>',
-            f'<text class="legend-text" x="42" y="{legend_y+4}">'
+            f'<text class="legend-text" x="42" y="{legend_y + 4}">'
             "Frontier model, xhigh</text>",
             f'<circle cx="220" cy="{legend_y}" r="6" class="seg-null"/>',
-            f'<text class="legend-text" x="232" y="{legend_y+4}">'
+            f'<text class="legend-text" x="232" y="{legend_y + 4}">'
             "Scripted attack / heuristic</text>",
             *parts,
-            f'<text class="axis-label" x="{x0+plot_w/2:.1f}" y="{height-14}" '
+            f'<text class="axis-label" x="{x0 + plot_w / 2:.1f}" y="{height - 14}" '
             'text-anchor="middle" style="font-size:11px">'
             "layer-order null (predictable with 0 experiments)</text>",
-            f'<text class="axis-label" x="16" y="{y0+plot_h/2:.1f}" '
+            f'<text class="axis-label" x="16" y="{y0 + plot_h / 2:.1f}" '
             'text-anchor="middle" '
-            f'transform="rotate(-90 16 {y0+plot_h/2:.1f})" '
+            f'transform="rotate(-90 16 {y0 + plot_h / 2:.1f})" '
             'style="font-size:11px">measured separation</text>',
         ]
     )
@@ -365,8 +372,142 @@ def chart2(models: dict, attacks: dict) -> str:
         f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
         'class="viz-root" role="img" '
         'aria-label="Scatter plot of separation against the layer-order null '
-        'for three frontier models and seven scripted attacks, with a y=x '
+        "for three frontier models and seven scripted attacks, with a y=x "
         'reference line">'
+        f"<style>{STYLE}</style>{body}</svg>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chart 3 — the v1 reward's three terms, one archived rollout per model
+# ---------------------------------------------------------------------------
+
+V1_RUNS = {
+    "Claude Fable 5": "fable",
+    "GPT-5.6 Sol": "sol",
+    "Claude Opus 4.8": "opus",
+}
+COMPONENT_CLASS = {
+    "separation": "seg-null",
+    "coverage": "seg-over",
+    "completeness": "seg-third",
+}
+COMPONENT_LABEL = {
+    "separation": "separation (the only causal term)",
+    "coverage": "coverage",
+    "completeness": "completeness",
+}
+
+
+def load_v1_components() -> dict:
+    out = {}
+    for name, slug in V1_RUNS.items():
+        rewards, comps = read_traces(ARCHIVE / "eval15" / slug / "traces.jsonl")
+        out[name] = {
+            "reward": st.mean(rewards),
+            **{k: st.mean(c[k] for c in comps) for k in COMPONENTS},
+        }
+    return out
+
+
+def chart3(models: dict) -> str:
+    rows = sorted(models.items(), key=lambda kv: -kv[1]["reward"])
+
+    plot_x0, plot_w = 190, 480
+    bar_h, bar_gap, group_gap = 15, 3, 22
+
+    def sx(v):
+        return plot_x0 + v * plot_w
+
+    parts: list[str] = []
+    y = 118
+    group_top = {}
+    for name, stats in rows:
+        group_top[name] = y
+        for comp in COMPONENTS:
+            w = stats[comp] * plot_w
+            parts.append(
+                f'<rect class="{COMPONENT_CLASS[comp]}" x="{plot_x0}" y="{y:.1f}" '
+                f'width="{w:.1f}" height="{bar_h}" rx="2"/>'
+            )
+            parts.append(
+                f'<text class="value-label" x="{plot_x0 + w + 8:.1f}" '
+                f'y="{y + bar_h - 3:.1f}" style="font-size:10.5px;font-weight:400">'
+                f"{stats[comp]:.3f}</text>"
+            )
+            y += bar_h + bar_gap
+        y += group_gap
+
+    labels = []
+    for name, stats in rows:
+        top = group_top[name]
+        mid = top + 1.5 * (bar_h + bar_gap)
+        labels.append(
+            f'<text class="row-label" x="{plot_x0 - 12}" y="{mid + 4:.1f}" '
+            f'text-anchor="end" style="font-weight:600">{esc(name)}</text>'
+        )
+        labels.append(
+            f'<text class="row-sub" x="{plot_x0 - 12}" y="{mid + 18:.1f}" '
+            f'text-anchor="end">reward {stats["reward"]:.3f}</text>'
+        )
+
+    grid_top, grid_bottom = 108, y - group_gap + 10
+    ticks = [0.0, 0.25, 0.50, 0.75, 1.00]
+    grid = []
+    for t in ticks:
+        x = sx(t)
+        grid.append(
+            f'<line class="grid-line" x1="{x:.1f}" y1="{grid_top:.1f}" '
+            f'x2="{x:.1f}" y2="{grid_bottom:.1f}"/>'
+        )
+        grid.append(
+            f'<text class="axis-label" x="{x:.1f}" y="{grid_top - 8:.1f}" '
+            f'text-anchor="middle">{t:.2f}</text>'
+        )
+
+    svg_h = grid_bottom + 46
+    legend_y = 66
+    legend = []
+    lx = 24
+    for comp in COMPONENTS:
+        legend.append(
+            f'<rect x="{lx}" y="{legend_y - 11}" width="14" height="14" rx="2" '
+            f'class="{COMPONENT_CLASS[comp]}"/>'
+        )
+        label = COMPONENT_LABEL[comp]
+        legend.append(
+            f'<text class="legend-text" x="{lx + 20}" y="{legend_y}">{label}</text>'
+        )
+        lx += 26 + 7.2 * len(label)
+
+    body = "\n".join(
+        [
+            f'<rect class="bg" x="0" y="0" width="820" height="{svg_h:.0f}"/>',
+            '<text class="title" x="24" y="30">'
+            "The old reward's ranking was not about circuit quality</text>",
+            '<text class="subtitle" x="24" y="50">'
+            "separation barely moves between models; coverage and completeness "
+            "did the ranking, and both hit 1.0 by grouping everything shown"
+            "</text>",
+            *legend,
+            *grid,
+            *parts,
+            *labels,
+            f'<line class="baseline" x1="{plot_x0}" y1="{grid_top:.1f}" '
+            f'x2="{plot_x0}" y2="{grid_bottom:.1f}"/>',
+            f'<text class="footnote" x="24" y="{svg_h - 14:.0f}">'
+            "circuit-supernodes reward v1, archive/eval15 (one rollout per "
+            "model) &#8212; scripts/plot_layer_order.py from "
+            "scripts/reward_components.py</text>",
+        ]
+    )
+    return (
+        f'<svg viewBox="0 0 820 {svg_h:.0f}" xmlns="http://www.w3.org/2000/svg" '
+        'class="viz-root" role="img" '
+        'aria-label="Bar chart of the v1 reward'
+        "'"
+        "s three terms per model, showing separation nearly flat while "
+        'coverage and completeness vary and drive the ranking">'
         f"<style>{STYLE}</style>{body}</svg>"
     )
 
@@ -375,8 +516,13 @@ def main() -> None:
     models, attacks = load_data()
     (MEDIA / "03_layer_order_composition.svg").write_text(chart1(models, attacks))
     (MEDIA / "04_separation_vs_layer_null.svg").write_text(chart2(models, attacks))
-    print(f"wrote {MEDIA / '03_layer_order_composition.svg'}")
-    print(f"wrote {MEDIA / '04_separation_vs_layer_null.svg'}")
+    (MEDIA / "05_v1_reward_was_not_causal.svg").write_text(chart3(load_v1_components()))
+    for name in (
+        "03_layer_order_composition.svg",
+        "04_separation_vs_layer_null.svg",
+        "05_v1_reward_was_not_causal.svg",
+    ):
+        print(f"wrote {MEDIA / name}")
 
 
 if __name__ == "__main__":

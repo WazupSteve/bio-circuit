@@ -35,7 +35,12 @@ async def score_run(scorer, rows, path: Path, max_features: int) -> dict:
         row = rows[trace["task"]["data"]["idx"]]
         proposal = parse_proposal(completion_text(trace))
         if proposal is None:
+            # A rollout that never produced parseable JSON is a failure, not a
+            # rollout that didn't happen — it must count toward the mean like
+            # a gated one does, or a model that times out mid-thought would
+            # look better than one that tried and got gated.
             gated["no proposal JSON"] = gated.get("no proposal JSON", 0) + 1
+            rewards.append(0.0)
             continue
         graph = slim_graph(load_graph_json(row["graph"]), max_features)
         result = await scorer.score(row["prompt"], graph, proposal)
@@ -69,6 +74,7 @@ async def main() -> None:
     ap.add_argument("--dataset", default="heldout.jsonl")
     ap.add_argument("--max-features", type=int, default=60)
     ap.add_argument("--v1", action="store_true", help="score without the hidden split")
+    ap.add_argument("--out", type=Path, help="write per-run results as JSON")
     args = ap.parse_args()
 
     rows = [
@@ -100,6 +106,10 @@ async def main() -> None:
     for r in results:
         if r["gated"]:
             print(f"\n{r['run']} rejections: {r['gated']}")
+
+    if args.out:
+        args.out.write_text(json.dumps(results, indent=1))
+        print(f"\nwrote {args.out}")
 
 
 if __name__ == "__main__":

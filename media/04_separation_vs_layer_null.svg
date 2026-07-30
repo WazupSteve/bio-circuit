@@ -15,6 +15,7 @@
   .leader { stroke: #c3c2b7; stroke-width: 1; }
   .seg-null { fill: #2a78d6; }
   .seg-over { fill: #eb6834; }
+  .seg-third { fill: #1baf7a; }
   .footnote { fill: #898781; font-size: 10px; }
 </style><rect class="bg" x="0" y="0" width="860" height="610"/>
 <text class="title" x="24" y="30">Frontier models land on the same line as the attacks</text>
