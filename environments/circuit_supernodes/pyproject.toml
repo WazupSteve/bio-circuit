@@ -12,7 +12,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest>=8",
     "ruff>=0.15",
 ]
 
@@ -21,6 +20,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-# Ship the tests and scripts too: the suite imports from scripts/, and the
-# oracle audit is the evidence a reviewer needs to trust the reward.
-include = ["circuit_supernodes/**", "tests/**", "scripts/**", "pyproject.toml"]
+include = ["circuit_supernodes/**", "scripts/**", "pyproject.toml"]

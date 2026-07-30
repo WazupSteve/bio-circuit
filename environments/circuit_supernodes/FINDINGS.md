@@ -233,12 +233,13 @@ Recorded because two of them nearly became changes to the environment.
 
 ## 9. Reproducing all of it
 
-The audit scripts and archived data live in git history, not this checkout:
+The audit scripts, archived data and test suite live in git history, not this
+checkout:
 
 ```bash
 git checkout 99e1334 -- environments/circuit_supernodes/scripts \
-    environments/circuit_supernodes/archive
-cd environments/circuit_supernodes && uv sync --group dev && uv run pytest
+    environments/circuit_supernodes/archive environments/circuit_supernodes/tests
+cd environments/circuit_supernodes && uv sync && uv run --with pytest pytest
 uv run python scripts/partition_discrimination.py          # no Modal, seconds
 uv run python scripts/reward_components.py archive/eval15/*/traces.jsonl
 uv run python scripts/oracle_audit.py --rows 10 --multistart 16   # needs Modal

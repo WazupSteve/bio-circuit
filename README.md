@@ -11,8 +11,7 @@ RL configurations live in `configs/`.
 
 ```bash
 cd environments/circuit_supernodes
-uv sync --group dev
-uv run pytest            # the environment's contract, runnable from a clean clone
+uv sync
 uv run modal setup
 uv run modal deploy modal_app/attribution.py
 
