@@ -1,0 +1,98 @@
+<svg viewBox="0 0 860 610" xmlns="http://www.w3.org/2000/svg" class="viz-root" role="img" aria-label="Scatter plot of separation against the layer-order null for three frontier models and seven scripted attacks, with a y=x reference line"><style>
+  .viz-root { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .bg { fill: #fcfcfb; }
+  .title { fill: #0b0b0b; font-size: 17px; font-weight: 600; }
+  .subtitle { fill: #52514e; font-size: 12.5px; }
+  .panel-title { fill: #0b0b0b; font-size: 12.5px; font-weight: 600; }
+  .axis-label { fill: #898781; font-size: 10.5px; }
+  .row-label { fill: #0b0b0b; font-size: 12px; }
+  .row-sub { fill: #898781; font-size: 9.5px; }
+  .value-label { fill: #0b0b0b; font-size: 11.5px; font-weight: 600; }
+  .legend-text { fill: #52514e; font-size: 11px; }
+  .grid-line { stroke: #e1e0d9; stroke-width: 1; }
+  .baseline { stroke: #c3c2b7; stroke-width: 1; }
+  .diag { stroke: #898781; stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .leader { stroke: #c3c2b7; stroke-width: 1; }
+  .seg-null { fill: #2a78d6; }
+  .seg-over { fill: #eb6834; }
+  .footnote { fill: #898781; font-size: 10px; }
+</style><rect class="bg" x="0" y="0" width="860" height="610"/>
+<text class="title" x="24" y="30">Frontier models land on the same line as the attacks</text>
+<text class="subtitle" x="24" y="50">separation vs. what a layer ordering predicts with zero experiments &#8212; height above the line is the real signal</text>
+<circle cx="30" cy="66" r="6" class="seg-over"/>
+<text class="legend-text" x="42" y="70">Frontier model, xhigh</text>
+<circle cx="220" cy="66" r="6" class="seg-null"/>
+<text class="legend-text" x="232" y="70">Scripted attack / heuristic</text>
+<line class="grid-line" x1="66.0" y1="96.0" x2="66.0" y2="556.0"/>
+<line class="grid-line" x1="66.0" y1="556.0" x2="526.0" y2="556.0"/>
+<text class="axis-label" x="66.0" y="574.0" text-anchor="middle">0.00</text>
+<text class="axis-label" x="58.0" y="559.0" text-anchor="end">0.00</text>
+<line class="grid-line" x1="172.2" y1="96.0" x2="172.2" y2="556.0"/>
+<line class="grid-line" x1="66.0" y1="449.8" x2="526.0" y2="449.8"/>
+<text class="axis-label" x="172.2" y="574.0" text-anchor="middle">0.15</text>
+<text class="axis-label" x="58.0" y="452.8" text-anchor="end">0.15</text>
+<line class="grid-line" x1="278.3" y1="96.0" x2="278.3" y2="556.0"/>
+<line class="grid-line" x1="66.0" y1="343.7" x2="526.0" y2="343.7"/>
+<text class="axis-label" x="278.3" y="574.0" text-anchor="middle">0.30</text>
+<text class="axis-label" x="58.0" y="346.7" text-anchor="end">0.30</text>
+<line class="grid-line" x1="384.5" y1="96.0" x2="384.5" y2="556.0"/>
+<line class="grid-line" x1="66.0" y1="237.5" x2="526.0" y2="237.5"/>
+<text class="axis-label" x="384.5" y="574.0" text-anchor="middle">0.45</text>
+<text class="axis-label" x="58.0" y="240.5" text-anchor="end">0.45</text>
+<line class="grid-line" x1="490.6" y1="96.0" x2="490.6" y2="556.0"/>
+<line class="grid-line" x1="66.0" y1="131.4" x2="526.0" y2="131.4"/>
+<text class="axis-label" x="490.6" y="574.0" text-anchor="middle">0.60</text>
+<text class="axis-label" x="58.0" y="134.4" text-anchor="end">0.60</text>
+<line class="diag" x1="66.0" y1="556.0" x2="526.0" y2="96.0"/>
+<text class="footnote" x="80.0" y="118.0">On the dashed line, separation</text>
+<text class="footnote" x="80.0" y="132.0">equals the layer-order null &#8212;</text>
+<text class="footnote" x="80.0" y="146.0">zero credit for anything else.</text>
+<g><title>Claude Opus 5: separation 0.515, layer-order null 0.467, beyond it 0.048</title>
+<circle class="seg-over" cx="396.5" cy="191.4" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="396.5" y1="191.4" x2="556.0" y2="189.0"/>
+<text class="row-label" x="562.0" y="192.0">Claude Opus 5</text>
+<g><title>GPT-5.6 Sol: separation 0.509, layer-order null 0.476, beyond it 0.033</title>
+<circle class="seg-over" cx="403.1" cy="195.5" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="403.1" y1="195.5" x2="556.0" y2="211.0"/>
+<text class="row-label" x="562.0" y="214.0">GPT-5.6 Sol</text>
+<g><title>Kimi K3: separation 0.431, layer-order null 0.431, beyond it 0.000</title>
+<circle class="seg-over" cx="370.7" cy="251.2" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text class="row-label" x="380.7" y="267.2" text-anchor="start">Kimi K3</text>
+<g><title>Community partition: separation 0.563, layer-order null 0.456, beyond it 0.108</title>
+<circle class="seg-null" cx="388.7" cy="157.2" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="388.7" y1="157.2" x2="556.0" y2="145.0"/>
+<text class="row-label" x="562.0" y="148.0">Community partition</text>
+<g><title>Layer-bands heuristic: separation 0.551, layer-order null 0.521, beyond it 0.030</title>
+<circle class="seg-null" cx="435.0" cy="165.7" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="435.0" y1="165.7" x2="556.0" y2="167.0"/>
+<text class="row-label" x="562.0" y="170.0">Layer-bands heuristic</text>
+<g><title>Random, best of 2: separation 0.255, layer-order null 0.155, beyond it 0.099</title>
+<circle class="seg-null" cx="176.0" cy="375.7" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text class="row-label" x="186.0" y="365.7" text-anchor="start">Random, best of 2</text>
+<g><title>Coherence-matched: separation 0.206, layer-order null 0.017, beyond it 0.189</title>
+<circle class="seg-null" cx="77.9" cy="410.2" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text class="row-label" x="85.9" y="394.2" text-anchor="start">Coherence-matched</text>
+<g><title>Blind-balanced: separation 0.162, layer-order null 0.084, beyond it 0.078</title>
+<circle class="seg-null" cx="125.4" cy="441.2" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="125.4" y1="441.2" x2="144.0" y2="431.0"/>
+<text class="row-label" x="150.0" y="434.0">Blind-balanced</text>
+<g><title>Layer-spanning (control): separation 0.127, layer-order null 0.023, beyond it 0.104</title>
+<circle class="seg-null" cx="82.6" cy="465.8" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="82.6" y1="465.8" x2="144.0" y2="453.0"/>
+<text class="row-label" x="150.0" y="456.0">Layer-spanning (control)</text>
+<g><title>Budget-feasible: separation 0.116, layer-order null 0.016, beyond it 0.100</title>
+<circle class="seg-null" cx="77.4" cy="474.0" r="6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line class="leader" x1="77.4" y1="474.0" x2="144.0" y2="475.0"/>
+<text class="row-label" x="150.0" y="478.0">Budget-feasible</text>
+<text class="axis-label" x="296.0" y="596" text-anchor="middle" style="font-size:11px">layer-order null (predictable with 0 experiments)</text>
+<text class="axis-label" x="16" y="326.0" text-anchor="middle" transform="rotate(-90 16 326.0)" style="font-size:11px">measured separation</text></svg>

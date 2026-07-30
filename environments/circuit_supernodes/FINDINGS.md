@@ -44,8 +44,9 @@ uv run python scripts/reward_components.py archive/eval15/*/traces.jsonl
 
 The causal term is flat across all three. The entire 2.4x spread comes from the
 two degenerate terms, and the model with the *worst* separation has the best
-reward. The chart in `media/` measures "did you group every feature you were
-shown", not circuit quality.
+reward. The v1 frontier chart this table replaces measured "did you group
+every feature you were shown", not circuit quality — see `media/README.md`
+for what was removed and why.
 
 ## 3. Blind partitions score well, and a policy can afford them
 

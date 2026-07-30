@@ -1,0 +1,102 @@
+<svg viewBox="0 0 900 513" xmlns="http://www.w3.org/2000/svg" class="viz-root" role="img" aria-label="Bar chart splitting causal separation into a layer-order null and the residual beyond it, for three frontier models and seven scripted attacks"><style>
+  .viz-root { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .bg { fill: #fcfcfb; }
+  .title { fill: #0b0b0b; font-size: 17px; font-weight: 600; }
+  .subtitle { fill: #52514e; font-size: 12.5px; }
+  .panel-title { fill: #0b0b0b; font-size: 12.5px; font-weight: 600; }
+  .axis-label { fill: #898781; font-size: 10.5px; }
+  .row-label { fill: #0b0b0b; font-size: 12px; }
+  .row-sub { fill: #898781; font-size: 9.5px; }
+  .value-label { fill: #0b0b0b; font-size: 11.5px; font-weight: 600; }
+  .legend-text { fill: #52514e; font-size: 11px; }
+  .grid-line { stroke: #e1e0d9; stroke-width: 1; }
+  .baseline { stroke: #c3c2b7; stroke-width: 1; }
+  .diag { stroke: #898781; stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .leader { stroke: #c3c2b7; stroke-width: 1; }
+  .seg-null { fill: #2a78d6; }
+  .seg-over { fill: #eb6834; }
+  .footnote { fill: #898781; font-size: 10px; }
+</style><rect class="bg" x="0" y="0" width="900" height="513"/>
+<text class="title" x="24" y="30">Almost all of the reward's causal credit is free</text>
+<text class="subtitle" x="24" y="50">separation, split into what a layer-ordering already predicts and what is left over &#8212; twenty held-out graphs</text>
+<rect x="24" y="55" width="14" height="14" rx="2" class="seg-null"/>
+<text class="legend-text" x="44" y="66">layer-order null (0 experiments needed)</text>
+<rect x="330" y="55" width="14" height="14" rx="2" class="seg-over"/>
+<text class="legend-text" x="350" y="66">beyond the layer order (the real signal)</text>
+<line class="grid-line" x1="250.0" y1="108.0" x2="250.0" y2="457.0"/>
+<text class="axis-label" x="250.0" y="100.0" text-anchor="middle">0.00</text>
+<line class="grid-line" x1="349.2" y1="108.0" x2="349.2" y2="457.0"/>
+<text class="axis-label" x="349.2" y="100.0" text-anchor="middle">0.15</text>
+<line class="grid-line" x1="448.5" y1="108.0" x2="448.5" y2="457.0"/>
+<text class="axis-label" x="448.5" y="100.0" text-anchor="middle">0.30</text>
+<line class="grid-line" x1="547.7" y1="108.0" x2="547.7" y2="457.0"/>
+<text class="axis-label" x="547.7" y="100.0" text-anchor="middle">0.45</text>
+<line class="grid-line" x1="646.9" y1="108.0" x2="646.9" y2="457.0"/>
+<text class="axis-label" x="646.9" y="100.0" text-anchor="middle">0.60</text>
+<text class="axis-label" x="465.0" y="84.0" text-anchor="middle" style="font-size:11px">separation (causal term of the reward)</text>
+<text class="panel-title" x="24" y="112">Frontier models (xhigh reasoning, 150 features)</text>
+<g><title>Claude Opus 5: separation 0.515 (layer-order 0.467, beyond it 0.048)</title>
+<rect class="seg-null" x="250.0" y="124.0" width="308.9" height="16" rx="2"/>
+<rect class="seg-over" x="558.9" y="124.0" width="31.9" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="130.0" text-anchor="end">Claude Opus 5</text>
+<text class="row-sub" x="238" y="142.0" text-anchor="end">40/40 rollouts, 0 gated</text>
+<text class="value-label" x="598.8" y="136.0">0.515</text>
+<g><title>GPT-5.6 Sol: separation 0.509 (layer-order 0.476, beyond it 0.033)</title>
+<rect class="seg-null" x="250.0" y="154.0" width="315.1" height="16" rx="2"/>
+<rect class="seg-over" x="565.1" y="154.0" width="21.9" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="160.0" text-anchor="end">GPT-5.6 Sol</text>
+<text class="row-sub" x="238" y="172.0" text-anchor="end">40/40 rollouts, 0 gated</text>
+<text class="value-label" x="595.0" y="166.0">0.509</text>
+<g><title>Kimi K3: separation 0.431 (layer-order 0.431, beyond it 0.000)</title>
+<rect class="seg-null" x="250.0" y="184.0" width="284.8" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="190.0" text-anchor="end">Kimi K3</text>
+<text class="row-sub" x="238" y="202.0" text-anchor="end">40/40 rollouts, 1 gated</text>
+<text class="value-label" x="542.9" y="196.0">0.431</text>
+<text class="panel-title" x="24" y="228">Scripted attacks &amp; heuristics &#8212; zero experiments run</text>
+<g><title>Community partition: separation 0.563 (layer-order 0.456, beyond it 0.108)</title>
+<rect class="seg-null" x="250.0" y="240.0" width="301.6" height="16" rx="2"/>
+<rect class="seg-over" x="551.6" y="240.0" width="71.1" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="246.0" text-anchor="end">Community partition</text>
+<text class="value-label" x="630.8" y="252.0">0.563</text>
+<g><title>Layer-bands heuristic: separation 0.551 (layer-order 0.521, beyond it 0.030)</title>
+<rect class="seg-null" x="250.0" y="270.0" width="345.0" height="16" rx="2"/>
+<rect class="seg-over" x="595.0" y="270.0" width="19.9" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="276.0" text-anchor="end">Layer-bands heuristic</text>
+<text class="value-label" x="622.8" y="282.0">0.551</text>
+<g><title>Random, best of 2: separation 0.255 (layer-order 0.155, beyond it 0.099)</title>
+<rect class="seg-null" x="250.0" y="300.0" width="102.8" height="16" rx="2"/>
+<rect class="seg-over" x="352.8" y="300.0" width="65.8" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="306.0" text-anchor="end">Random, best of 2</text>
+<text class="value-label" x="426.6" y="312.0">0.255</text>
+<g><title>Coherence-matched: separation 0.206 (layer-order 0.017, beyond it 0.189)</title>
+<rect class="seg-null" x="250.0" y="330.0" width="11.2" height="16" rx="2"/>
+<rect class="seg-over" x="261.2" y="330.0" width="125.1" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="336.0" text-anchor="end">Coherence-matched</text>
+<text class="value-label" x="394.3" y="342.0">0.206</text>
+<g><title>Blind-balanced: separation 0.162 (layer-order 0.084, beyond it 0.078)</title>
+<rect class="seg-null" x="250.0" y="360.0" width="55.6" height="16" rx="2"/>
+<rect class="seg-over" x="305.6" y="360.0" width="51.8" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="366.0" text-anchor="end">Blind-balanced</text>
+<text class="value-label" x="365.3" y="372.0">0.162</text>
+<g><title>Layer-spanning (control): separation 0.127 (layer-order 0.023, beyond it 0.104)</title>
+<rect class="seg-null" x="250.0" y="390.0" width="15.5" height="16" rx="2"/>
+<rect class="seg-over" x="265.5" y="390.0" width="68.8" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="396.0" text-anchor="end">Layer-spanning (control)</text>
+<text class="value-label" x="342.3" y="402.0">0.127</text>
+<g><title>Budget-feasible: separation 0.116 (layer-order 0.016, beyond it 0.100)</title>
+<rect class="seg-null" x="250.0" y="420.0" width="10.6" height="16" rx="2"/>
+<rect class="seg-over" x="260.6" y="420.0" width="66.0" height="16" rx="2"/>
+</g>
+<text class="row-label" x="238" y="426.0" text-anchor="end">Budget-feasible</text>
+<text class="value-label" x="334.6" y="432.0">0.116</text>
+<line class="baseline" x1="250" y1="108.0" x2="250" y2="457.0"/>
+<text class="footnote" x="24" y="499">circuit-supernodes reward v2.1 &#183; scripts/plot_layer_order.py from archive/final/*, archive/oracle_layers_full.json</text></svg>

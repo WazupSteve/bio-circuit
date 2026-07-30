@@ -1,0 +1,383 @@
+"""Regenerate the two layer-order charts in media/ directly from archived data.
+
+Both figures make the same point as FINDINGS.md sec.4-5: most of the reward's
+causal signal is a transformer's forward flow, which needs no experiments to
+predict. This keeps them reproducible in the way the *old* media charts were
+not — pure Python, no plotting library, and every number traced to an archived
+run rather than hand-copied into a script.
+
+    uv run python scripts/plot_layer_order.py
+
+Output is SVG: it renders natively in GitHub-flavoured markdown and any
+browser with no added dependency, and (unlike this repo's other scripts) nothing
+here touches Modal — every input is already on disk under archive/.
+"""
+
+import json
+import statistics as st
+from pathlib import Path
+
+ARCHIVE = Path(__file__).parent.parent / "archive"
+MEDIA = Path(__file__).parent.parent.parent.parent / "media"
+
+MODEL_RUNS = {
+    "Claude Opus 5": ("opus5", "40/40 rollouts, 0 gated"),
+    "GPT-5.6 Sol": ("sol56", "40/40 rollouts, 0 gated"),
+    "Kimi K3": ("kimik3", "40/40 rollouts, 1 gated"),
+}
+ATTACK_KEYS = {
+    "Community partition": "v2/community",
+    "Layer-bands heuristic": "v2/layer-bands",
+    "Random, best of 2": "v2/random-multistart",
+    "Coherence-matched": "v2/coherence-matched",
+    "Blind-balanced": "v2/blind-balanced",
+    "Layer-spanning (control)": "v2/layer-spanning",
+    "Budget-feasible": "v2/budget-feasible",
+}
+
+# Literal light-mode hex, not CSS custom properties: this is a static asset
+# for the repo's media/ folder, consumed by GitHub's markdown renderer and
+# plain image viewers — not a toggleable Artifact page. var() support is
+# inconsistent across SVG rasterizers (confirmed: one resolves it to black),
+# so literal values from the validated light palette are the correct choice
+# here, not a workaround.
+STYLE = """
+  .viz-root { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .bg { fill: #fcfcfb; }
+  .title { fill: #0b0b0b; font-size: 17px; font-weight: 600; }
+  .subtitle { fill: #52514e; font-size: 12.5px; }
+  .panel-title { fill: #0b0b0b; font-size: 12.5px; font-weight: 600; }
+  .axis-label { fill: #898781; font-size: 10.5px; }
+  .row-label { fill: #0b0b0b; font-size: 12px; }
+  .row-sub { fill: #898781; font-size: 9.5px; }
+  .value-label { fill: #0b0b0b; font-size: 11.5px; font-weight: 600; }
+  .legend-text { fill: #52514e; font-size: 11px; }
+  .grid-line { stroke: #e1e0d9; stroke-width: 1; }
+  .baseline { stroke: #c3c2b7; stroke-width: 1; }
+  .diag { stroke: #898781; stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .leader { stroke: #c3c2b7; stroke-width: 1; }
+  .seg-null { fill: #2a78d6; }
+  .seg-over { fill: #eb6834; }
+  .footnote { fill: #898781; font-size: 10px; }
+"""
+
+
+def esc(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;")
+
+
+def load_data() -> tuple[dict, dict]:
+    models = {}
+    for name, (slug, sub) in MODEL_RUNS.items():
+        text = (ARCHIVE / "final" / slug / "traces.jsonl").read_text()
+        rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+        comps = [
+            c
+            for c in ((t.get("info") or {}).get("reward_components") for t in rows)
+            if c and "separation" in c
+        ]
+        models[name] = {
+            "separation": st.mean(c["separation"] for c in comps),
+            "null": st.mean(c["separation_layer_null"] for c in comps),
+            "over": st.mean(c["separation_over_null"] for c in comps),
+            "sub": sub,
+        }
+
+    audit = json.loads((ARCHIVE / "oracle_layers_full.json").read_text())
+    attacks = {}
+    for name, key in ATTACK_KEYS.items():
+        scored = [
+            row["scores"][key] for row in audit if "separation" in row["scores"][key]
+        ]
+        attacks[name] = {
+            "separation": st.mean(s["separation"] for s in scored),
+            "null": st.mean(s["separation_layer_null"] for s in scored),
+            "over": st.mean(s["separation_over_null"] for s in scored),
+        }
+    return models, attacks
+
+
+# ---------------------------------------------------------------------------
+# Chart 1 — stacked composition: layer-order null vs. the residual over it
+# ---------------------------------------------------------------------------
+
+
+def chart1(models: dict, attacks: dict) -> str:
+    model_rows = sorted(models.items(), key=lambda kv: -kv[1]["separation"])
+    attack_rows = sorted(attacks.items(), key=lambda kv: -kv[1]["separation"])
+
+    domain_max = 0.65
+    plot_x0, plot_w = 250, 430
+    row_h, bar_h = 30, 16
+
+    def sx(v):
+        return plot_x0 + v / domain_max * plot_w
+
+    ticks = [0.0, 0.15, 0.30, 0.45, 0.60]
+    parts: list[str] = []
+
+    def row(y: float, name: str, sub: str | None, stats: dict) -> None:
+        w1 = stats["null"] / domain_max * plot_w
+        w2 = stats["over"] / domain_max * plot_w
+        by = y - bar_h / 2
+        title = (
+            f"{esc(name)}: separation {stats['separation']:.3f} "
+            f"(layer-order {stats['null']:.3f}, beyond it {stats['over']:.3f})"
+        )
+        parts.append(f"<g><title>{title}</title>")
+        parts.append(
+            f'<rect class="seg-null" x="{plot_x0:.1f}" y="{by:.1f}" '
+            f'width="{w1:.1f}" height="{bar_h}" rx="2"/>'
+        )
+        if w2 > 0.5:
+            parts.append(
+                f'<rect class="seg-over" x="{plot_x0 + w1:.1f}" y="{by:.1f}" '
+                f'width="{w2:.1f}" height="{bar_h}" rx="2"/>'
+            )
+        parts.append("</g>")
+        parts.append(
+            f'<text class="row-label" x="{plot_x0 - 12}" y="{y - 2:.1f}" '
+            f'text-anchor="end">{esc(name)}</text>'
+        )
+        if sub:
+            parts.append(
+                f'<text class="row-sub" x="{plot_x0 - 12}" y="{y + 10:.1f}" '
+                f'text-anchor="end">{esc(sub)}</text>'
+            )
+        parts.append(
+            f'<text class="value-label" x="{plot_x0 + w1 + w2 + 8:.1f}" '
+            f'y="{y + 4:.1f}">{stats["separation"]:.3f}</text>'
+        )
+
+    y = 132
+    grid_top = 108
+    parts.append(
+        f'<text class="panel-title" x="24" y="{y - 20}">'
+        "Frontier models (xhigh reasoning, 150 features)</text>"
+    )
+    for name, stats in model_rows:
+        row(y, name, stats["sub"], stats)
+        y += row_h
+    y += 26
+
+    parts.append(
+        f'<text class="panel-title" x="24" y="{y - 20}">'
+        "Scripted attacks &amp; heuristics &#8212; zero experiments run</text>"
+    )
+    for name, stats in attack_rows:
+        row(y, name, None, stats)
+        y += row_h
+
+    grid_bottom = y - row_h / 2 + 14
+    grid_lines = []
+    for t in ticks:
+        x = sx(t)
+        grid_lines.append(
+            f'<line class="grid-line" x1="{x:.1f}" y1="{grid_top:.1f}" '
+            f'x2="{x:.1f}" y2="{grid_bottom:.1f}"/>'
+        )
+        grid_lines.append(
+            f'<text class="axis-label" x="{x:.1f}" y="{grid_top - 8:.1f}" '
+            f'text-anchor="middle">{t:.2f}</text>'
+        )
+    axis_label = (
+        f'<text class="axis-label" x="{plot_x0 + plot_w / 2:.1f}" '
+        f'y="{grid_top - 24:.1f}" text-anchor="middle" style="font-size:11px">'
+        "separation (causal term of the reward)</text>"
+    )
+
+    svg_h = grid_bottom + 56
+    legend_y = 66
+    body = "\n".join(
+        [
+            f'<rect class="bg" x="0" y="0" width="900" height="{svg_h:.0f}"/>',
+            '<text class="title" x="24" y="30">'
+            "Almost all of the reward's causal credit is free</text>",
+            '<text class="subtitle" x="24" y="50">separation, split into what a '
+            "layer-ordering already predicts and what is left over &#8212; twenty "
+            "held-out graphs</text>",
+            f'<rect x="24" y="{legend_y - 11}" width="14" height="14" '
+            'rx="2" class="seg-null"/>',
+            f'<text class="legend-text" x="44" y="{legend_y}">'
+            "layer-order null (0 experiments needed)</text>",
+            f'<rect x="330" y="{legend_y - 11}" width="14" height="14" '
+            'rx="2" class="seg-over"/>',
+            f'<text class="legend-text" x="350" y="{legend_y}">'
+            "beyond the layer order (the real signal)</text>",
+            *grid_lines,
+            axis_label,
+            *parts,
+            f'<line class="baseline" x1="{plot_x0}" y1="{grid_top:.1f}" '
+            f'x2="{plot_x0}" y2="{grid_bottom:.1f}"/>',
+            f'<text class="footnote" x="24" y="{svg_h - 14:.0f}">'
+            "circuit-supernodes reward v2.1 &#183; scripts/plot_layer_order.py "
+            "from archive/final/*, archive/oracle_layers_full.json</text>",
+        ]
+    )
+    return (
+        f'<svg viewBox="0 0 900 {svg_h:.0f}" xmlns="http://www.w3.org/2000/svg" '
+        'class="viz-root" role="img" '
+        'aria-label="Bar chart splitting causal separation into a layer-order '
+        'null and the residual beyond it, for three frontier models and seven '
+        'scripted attacks">'
+        f"<style>{STYLE}</style>{body}</svg>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chart 2 — separation vs. the layer-order null, with the y=x reference
+# ---------------------------------------------------------------------------
+
+
+def chart2(models: dict, attacks: dict) -> str:
+    domain_max = 0.65
+    margin_l, margin_b, margin_t, margin_r = 66, 54, 96, 40
+    plot_w = plot_h = 460
+    x0, y0 = margin_l, margin_t
+    # Wider than the plot needs, so the header text has somewhere to go — a
+    # viewBox sized only to the plot clips any title/subtitle wider than it.
+    width = max(margin_l + plot_w + margin_r, 860)
+    height = margin_t + plot_h + margin_b
+
+    def sx(v):
+        return x0 + v / domain_max * plot_w
+
+    def sy(v):
+        return y0 + plot_h - v / domain_max * plot_h
+
+    ticks = [0.0, 0.15, 0.30, 0.45, 0.60]
+    parts: list[str] = []
+    for t in ticks:
+        gx, gy = sx(t), sy(t)
+        parts.append(
+            f'<line class="grid-line" x1="{gx:.1f}" y1="{y0:.1f}" '
+            f'x2="{gx:.1f}" y2="{y0+plot_h:.1f}"/>'
+        )
+        parts.append(
+            f'<line class="grid-line" x1="{x0:.1f}" y1="{gy:.1f}" '
+            f'x2="{x0+plot_w:.1f}" y2="{gy:.1f}"/>'
+        )
+        parts.append(
+            f'<text class="axis-label" x="{gx:.1f}" y="{y0+plot_h+18:.1f}" '
+            f'text-anchor="middle">{t:.2f}</text>'
+        )
+        parts.append(
+            f'<text class="axis-label" x="{x0-8:.1f}" y="{gy+3:.1f}" '
+            f'text-anchor="end">{t:.2f}</text>'
+        )
+
+    parts.append(
+        f'<line class="diag" x1="{sx(0):.1f}" y1="{sy(0):.1f}" '
+        f'x2="{sx(domain_max):.1f}" y2="{sy(domain_max):.1f}"/>'
+    )
+    # A caption placed ON the diagonal cuts through the point labels near it;
+    # the top-left plot corner (high separation, low layer-order null) has no
+    # data in it, so the explanation goes there instead, horizontal and clear.
+    caption_lines = [
+        "On the dashed line, separation",
+        "equals the layer-order null &#8212;",
+        "zero credit for anything else.",
+    ]
+    for i, line in enumerate(caption_lines):
+        cap_y = y0 + 22 + 14 * i
+        parts.append(
+            f'<text class="footnote" x="{x0+14:.1f}" y="{cap_y:.1f}">{line}</text>'
+        )
+
+    # Four points (Community, Layer-bands, Opus 5, Sol) sit inside a 50x40px
+    # box, and two more (Layer-spanning, Budget-feasible) sit 8px apart — no
+    # per-point offset avoids collisions there. Those get a callout: a fixed
+    # label position with a thin leader line back to the real dot. Everything
+    # else is far enough apart for a simple inline offset.
+    label_offsets = {
+        "Kimi K3": (10, 16),
+        "Random, best of 2": (10, -10),
+        "Coherence-matched": (8, -16),
+    }
+    callouts = {
+        "Community partition": (562, 148),
+        "Layer-bands heuristic": (562, 170),
+        "Claude Opus 5": (562, 192),
+        "GPT-5.6 Sol": (562, 214),
+        "Blind-balanced": (150, 434),
+        "Layer-spanning (control)": (150, 456),
+        "Budget-feasible": (150, 478),
+    }
+
+    points = [(name, stats, "model") for name, stats in models.items()]
+    points += [(name, stats, "attack") for name, stats in attacks.items()]
+
+    for name, stats, kind in points:
+        cx, cy = sx(stats["null"]), sy(stats["separation"])
+        cls = "seg-over" if kind == "model" else "seg-null"
+        title = (
+            f"{esc(name)}: separation {stats['separation']:.3f}, layer-order null "
+            f"{stats['null']:.3f}, beyond it {stats['over']:.3f}"
+        )
+        parts.append(f"<g><title>{title}</title>")
+        parts.append(
+            f'<circle class="{cls}" cx="{cx:.1f}" cy="{cy:.1f}" r="6" '
+            'stroke="#fcfcfb" stroke-width="1.5"/>'
+        )
+        parts.append("</g>")
+        if name in callouts:
+            lx, ly = callouts[name]
+            parts.append(
+                f'<line class="leader" x1="{cx:.1f}" y1="{cy:.1f}" '
+                f'x2="{lx-6:.1f}" y2="{ly-3:.1f}"/>'
+            )
+            parts.append(
+                f'<text class="row-label" x="{lx:.1f}" y="{ly:.1f}">{esc(name)}</text>'
+            )
+            continue
+        dx, dy = label_offsets.get(name, (10, -8))
+        parts.append(
+            f'<text class="row-label" x="{cx+dx:.1f}" y="{cy+dy:.1f}" '
+            f'text-anchor="start">{esc(name)}</text>'
+        )
+
+    legend_y = 66
+    body = "\n".join(
+        [
+            f'<rect class="bg" x="0" y="0" width="{width}" height="{height}"/>',
+            '<text class="title" x="24" y="30">'
+            "Frontier models land on the same line as the attacks</text>",
+            '<text class="subtitle" x="24" y="50">separation vs. what a layer '
+            "ordering predicts with zero experiments &#8212; height above the "
+            "line is the real signal</text>",
+            f'<circle cx="30" cy="{legend_y}" r="6" class="seg-over"/>',
+            f'<text class="legend-text" x="42" y="{legend_y+4}">'
+            "Frontier model, xhigh</text>",
+            f'<circle cx="220" cy="{legend_y}" r="6" class="seg-null"/>',
+            f'<text class="legend-text" x="232" y="{legend_y+4}">'
+            "Scripted attack / heuristic</text>",
+            *parts,
+            f'<text class="axis-label" x="{x0+plot_w/2:.1f}" y="{height-14}" '
+            'text-anchor="middle" style="font-size:11px">'
+            "layer-order null (predictable with 0 experiments)</text>",
+            f'<text class="axis-label" x="16" y="{y0+plot_h/2:.1f}" '
+            'text-anchor="middle" '
+            f'transform="rotate(-90 16 {y0+plot_h/2:.1f})" '
+            'style="font-size:11px">measured separation</text>',
+        ]
+    )
+    return (
+        f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
+        'class="viz-root" role="img" '
+        'aria-label="Scatter plot of separation against the layer-order null '
+        'for three frontier models and seven scripted attacks, with a y=x '
+        'reference line">'
+        f"<style>{STYLE}</style>{body}</svg>"
+    )
+
+
+def main() -> None:
+    models, attacks = load_data()
+    (MEDIA / "03_layer_order_composition.svg").write_text(chart1(models, attacks))
+    (MEDIA / "04_separation_vs_layer_null.svg").write_text(chart2(models, attacks))
+    print(f"wrote {MEDIA / '03_layer_order_composition.svg'}")
+    print(f"wrote {MEDIA / '04_separation_vs_layer_null.svg'}")
+
+
+if __name__ == "__main__":
+    main()

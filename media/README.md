@@ -1,57 +1,75 @@
 # Figure provenance
 
-**Status: both charts in this directory are preliminary and must not be reused as
-capability results.** They are kept as exhibits for the reward audit, not as
-findings.
+**`03_layer_order_composition.svg` and `04_separation_vs_layer_null.svg` are the
+current figures.** Both regenerate from archived data with no manual step:
 
-## `01_model_comparison.png` — "Off-the-shelf models separate sharply"
+```bash
+cd environments/circuit_supernodes
+uv run python scripts/plot_layer_order.py
+```
 
-GPT-5.6-sol 0.68 > Opus 4.8 0.64 > Fable 5 0.54 >> Qwen3.5-9B 0.14, against random
-grouping 0.24 and hack 0.00; 16 eval examples × 48 rollouts per model.
+They are pure Python (no plotting library, no Node), and every number in them
+traces to `archive/final/{opus5,sol56,kimik3}/traces.jsonl` and
+`archive/oracle_layers_full.json` — the same data `FINDINGS.md` §4–5 quotes.
+`scripts/plot_layer_order.py` reads those files directly; nothing here is
+hand-copied.
 
-Two problems, in order of severity:
+## `03_layer_order_composition.svg` — where the reward's causal credit comes from
 
-1. **The v1 reward it plots is mostly not causal.** `reward = separation^0.6 ×
-   coverage^0.2 × completeness^0.2`, and grouping every displayed feature makes
-   coverage and completeness exactly 1.0 by construction (`rubric.py:204-205`,
-   `rubric.py:249`). On the one archived run whose traces survive, the causal term is
-   flat across models and the entire ranking comes from the two degenerate terms:
+Twenty held-out graphs. Separation, split into what a layer ordering already
+predicts with zero experiments (`separation_layer_null`) and what is left over
+(`separation_over_null`), for the three frontier models run at xhigh reasoning
+and for the seven scripted attacks from the oracle audit. Sorted by total
+separation — the point is visible in the color split, not the ranking: the
+tallest bars (models, layer-bands, community) are almost entirely the free
+segment; the shortest (coherence-matched) is almost entirely the real one.
 
-   ```
-   $ uv run python scripts/reward_components.py archive/eval15/*/traces.jsonl
-   run          n  scored  separation  coverage  completeness  reward
-   fable       15      14       0.580     1.000         1.000   0.663
-   opus        15      11       0.558     0.701         0.321   0.276
-   sol         15      15       0.662     0.659         0.289   0.481
-   ```
+## `04_separation_vs_layer_null.svg` — models land on the same line as the attacks
 
-   The model with the *worst* separation has the *best* reward.
+The same twenty points plotted as separation against the layer-order null,
+with a y = x reference line. On that line, separation equals what the layer
+ordering already predicts — zero credit for anything else. All three models
+sit close to it, indistinguishable in these terms from a partition built by
+sorting features on layer number.
 
-2. **It is not reproducible.** Only the PNG was ever committed — the 48-rollout
-   traces, the eval config, and the rendering script were never tracked. Nothing in
-   this repository can regenerate it or check its numbers.
+## What used to be here
 
-Note that `archive/eval15` (15 tasks × 1 rollout, traces tracked) puts Fable *first*,
-reversing this chart's ordering. Sample size differs, so this is not a contradiction
-on its own — but combined with (1) there is no reason to trust either ordering as a
-statement about circuit-finding ability.
+`01_model_comparison.png` and `02_pass_at_k.png` are removed, not merely
+flagged. Both were built from the v1 reward, whose only causal term
+(`separation`) was flat across models — `reward = separation^0.6 ×
+coverage^0.2 × completeness^0.2`, and grouping every displayed feature pins
+`coverage` and `completeness` at 1.0 by construction — so the ranking they
+showed came entirely from which model happened to group everything it was
+shown, not from circuit quality:
 
-The replacement is a frontier baseline measured under the v2 (split-half) reward.
-Until then, any use of this figure must carry the component table above.
+```
+$ uv run python scripts/reward_components.py archive/eval15/*/traces.jsonl
+run          n  scored  separation  coverage  completeness  reward
+fable       15      14       0.580     1.000         1.000   0.663
+opus        15      11       0.558     0.701         0.321   0.276
+sol         15      15       0.662     0.659         0.289   0.481
+```
 
-## `02_pass_at_k.png` — "Sampling more rollouts helps only models that can already
-find circuits"
+The model with the *worst* separation had the *best* reward. Neither PNG's
+source data (48 rollouts for `01`, the pass@k sweep for `02`) was ever
+committed, so neither could be regenerated or checked — the opposite of `03`
+and `04`.
 
-pass@k over 16 eval examples, 3 rollouts each, thresholded at reward ≥ 0.50. Inherits
-problem (1) above in full — the threshold is applied to the same compromised reward,
-so "can already find circuits" reads "already groups every feature". Also inherits
-problem (2): source traces were never committed. k ≤ 3 is too small to say much
-regardless.
+`02`'s claim ("sampling more rollouts helps only models that can already find
+circuits") has no replacement here: it needs pass@k at k ≥ 3, and the archived
+final runs are two rollouts per task, built to measure the layer-order
+question, not resampling depth. That would be new data collection, not a
+figure update, so it is left undone rather than faked.
 
-## What *is* reproducible
+## What is reproducible
 
-`environments/circuit_supernodes/archive/eval15/` has tracked `traces.jsonl`,
-`config.toml`, and `eval.log` for all three models. That run is the basis of the
-component table above. Its own summary chart
-(`eval15_all_results.png`) was produced by a script that was never committed; the
-numbers behind it are recoverable from the traces via `scripts/reward_components.py`.
+- `environments/circuit_supernodes/archive/eval15/` — tracked `traces.jsonl`,
+  `config.toml`, `eval.log` for the three models quoted above. Basis of the
+  component table in this file and in `FINDINGS.md` §2.
+  `scripts/reward_components.py` recovers the numbers from the traces.
+- `environments/circuit_supernodes/archive/final/{opus5,sol56,kimik3}/` —
+  trimmed traces (scores and metadata only) for the three xhigh runs behind
+  `03` and `04`, and behind `FINDINGS.md` §5's headline table.
+- `environments/circuit_supernodes/archive/oracle_layers_full.json` — the
+  twenty-graph layer-bands vs. layer-spanning audit, and every other scripted
+  attack's `separation_over_null`.
