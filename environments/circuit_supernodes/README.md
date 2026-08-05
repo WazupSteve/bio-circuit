@@ -207,6 +207,35 @@ jq -c '{
 }' outputs/.../traces.jsonl
 ```
 
+## Discover suppressed features in a provided model
+
+Suppression is measured against a compatible reference model, using the same
+transcoder coordinates and identical tokenization. For every prompt-position
+feature, the profiler clamps its activation to that feature's across-position
+mean. A feature is reported as suppressed when this intervention removes
+materially less target log-odds in the provided model than in the reference,
+consistently across prompts. The report also says whether the causal reduction is
+backed by a smaller activation deviation.
+
+The two models must share architecture, tokenizer, and transcoder feature space;
+the analyzer rejects mismatched transcoders or token fingerprints.
+
+```bash
+uv run modal deploy modal_app/suppression.py
+uv run python scripts/profile_model_pair.py \
+    --dataset circuit_supernodes/data/heldout-mdl.jsonl \
+    --reference-model Qwen/Qwen3-4B \
+    --provided-model org/my-finetuned-qwen3-4b \
+    --transcoders mwhanna/qwen3-4b-transcoders \
+    --out analysis/model-pair-profiles.json
+uv run python scripts/discover_suppressed_features.py \
+    --profiles analysis/model-pair-profiles.json \
+    --out analysis/suppressed-features.json
+```
+
+Model profiling requires the `huggingface-secret` Modal secret for private model
+ids. The final comparison is local, deterministic, and makes no model calls.
+
 ## Train
 
 For hosted RL, install the Prime CLI separately and run the repository config:
@@ -252,8 +281,12 @@ banks are constructed lazily and cached as a compatibility fallback.
 - `circuit_supernodes/graphs.py`: graph normalization, pruning, and rendering
 - `circuit_supernodes/mdl.py`: pure response-bank decoder and proved MDL formula
 - `circuit_supernodes/rubric.py`: proposal validation and bank integration
+- `circuit_supernodes/suppression.py`: aligned suppressed-feature analysis
 - `circuit_supernodes/datagen.py`: prompt generation
 - `modal_app/attribution.py`: Modal attribution, intervention, and bank service
+- `modal_app/suppression.py`: generic reference/provided-model feature profiler
 - `scripts/build_dataset.py`: dataset construction
 - `scripts/precompute_response_banks.py`: hidden-bank precomputation
+- `scripts/profile_model_pair.py`: collect aligned profiles from a model pair
+- `scripts/discover_suppressed_features.py`: rank suppressed features locally
 - `tests/test_mdl_reward.py`: planted-world and adversarial validation
