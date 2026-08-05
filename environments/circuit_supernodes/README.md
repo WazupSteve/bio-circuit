@@ -144,18 +144,21 @@ transcoder set.
 
 ## Datasets
 
-The generator supports two-hop recall, addition, antonyms, analogies, acronyms,
-sequences, factual recall, and in-context mappings. Attribution graphs are
-precomputed on Modal and stored with each retained prompt.
+The generator has six training families and a disjoint sealed evaluation split.
+The evaluation split replaces one-shot addition with path traversal, modular
+arithmetic, chained rules, spatial-vector composition, and Boolean circuits,
+alongside two-hop recall, agreement with attractors, balanced comparison, and
+weekday arithmetic. Attribution graphs are precomputed on Modal and stored with
+each retained prompt.
 
 Build the standard family split:
 
 ```bash
 uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
-    --families antonym analogy acronym sequence factual incontext \
+    --split train \
     --out circuit_supernodes/data/train.jsonl
-uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
-    --families two_hop addition \
+uv run python scripts/build_dataset.py --n 72 --seed 1 --neuronpedia-labels \
+    --split eval \
     --out circuit_supernodes/data/heldout.jsonl
 
 # Freeze the proposal-independent banks used by the MDL scorer.

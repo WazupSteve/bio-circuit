@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 import modal
-from circuit_supernodes.datagen import generate
+from circuit_supernodes.datagen import EVAL_FAMILIES, TRAIN_FAMILIES, generate
 from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
 
@@ -148,6 +148,11 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--families", nargs="*", help="restrict to these prompt families")
+    ap.add_argument(
+        "--split",
+        choices=("train", "eval"),
+        help="use the explicit training or sealed evaluation family set",
+    )
     ap.add_argument("--out", default=str(DATA_DIR / "dataset.jsonl"))
     ap.add_argument(
         "--max-error-share",
@@ -161,6 +166,15 @@ def main() -> None:
         help="label the 60 displayed features using one Neuronpedia batch request",
     )
     args = ap.parse_args()
+
+    if args.split and args.families is not None:
+        ap.error("--split and --families are mutually exclusive")
+    if args.split == "train":
+        args.families = list(TRAIN_FAMILIES)
+    elif args.split == "eval":
+        args.families = list(EVAL_FAMILIES)
+    elif args.families is None:
+        args.families = list(TRAIN_FAMILIES)
 
     samples = generate(args.n, seed=args.seed, families=args.families)
     print(

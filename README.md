@@ -15,12 +15,12 @@ uv sync
 uv run modal setup
 uv run modal deploy modal_app/attribution.py
 
-# Build six training families and two held-out evaluation families.
+# Build six training families and nine held-out evaluation families.
 uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
-    --families antonym analogy acronym sequence factual incontext \
+    --split train \
     --out circuit_supernodes/data/train.jsonl
-uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
-    --families two_hop addition \
+uv run python scripts/build_dataset.py --n 72 --seed 1 --neuronpedia-labels \
+    --split eval \
     --out circuit_supernodes/data/heldout.jsonl
 
 # PRIME_API_KEY is required for policy-model evaluation.

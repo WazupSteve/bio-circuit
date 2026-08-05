@@ -17,17 +17,8 @@ from build_dataset import (
     is_faithful,
     write_manifest,
 )
-from circuit_supernodes.datagen import generate
+from circuit_supernodes.datagen import TRAIN_FAMILIES, generate
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS
-
-TRAIN_FAMILIES = (
-    "antonym",
-    "analogy",
-    "acronym",
-    "sequence",
-    "factual",
-    "incontext",
-)
 
 
 def parse_args() -> argparse.Namespace:
