@@ -16,6 +16,15 @@ DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
 
 
+def file_sha256(path: Path, chunk_size: int = 1024 * 1024) -> str:
+    """Hash a dataset without loading its multi-gigabyte contents into memory."""
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        while chunk := f.read(chunk_size):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def is_faithful(graph_json: dict, target: str) -> tuple[bool, str]:
     g = load_graph_json(graph_json)
     if not g.top_outputs:
@@ -105,7 +114,7 @@ def write_manifest(out: Path, rows: int, args, quality: list[dict]) -> Path:
     manifest = {
         "dataset": out.name,
         "rows": rows,
-        "sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
+        "sha256": file_sha256(out),
         "subject_model": MODEL_NAME,
         "transcoders": TRANSCODER_SET,
         "node_threshold": NODE_THRESHOLD,

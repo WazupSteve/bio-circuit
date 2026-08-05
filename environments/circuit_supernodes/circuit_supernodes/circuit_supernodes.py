@@ -17,9 +17,9 @@ from .graphs import (
 )
 from .rubric import (
     MIN_GROUP_SIZE,
+    REWARD_VERSION,
     InterventionScoring,
     parse_proposal,
-    shaped_reward,
 )
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -33,17 +33,18 @@ You may call circuit_run_ablation before answering. It clamps selected FEATURE
 nodes to zero and reports changes in output probability and requested probe-group
 activations. Use it to test uncertain causal links.
 
-Your final proposal is scored by independent ablations for causal separation,
-feature coverage, and completeness. Scoring splits every supernode into two halves
-under a hidden seed and ablates each half separately, so a group earns credit only
-when its causal role is shared across its members rather than carried by one or two
-of them.
+Your final proposal is scored against a fixed hidden causal-response bank. Members
+of one supernode must predict one another's held-out intervention responses, and
+the DAG must predict which destination groups and output change. Omitted responses
+are predicted as zero. Every submitted member and edge also costs literal
+description bits, so include structure only when it improves held-out prediction.
 
 Rules — violations are rejected, not repaired:
-- 2-8 disjoint supernodes, at least {MIN_GROUP_SIZE} FEATURE ids each, FEATURE ids only.
-- Edges form a DAG in which every supernode reaches "output", the reserved terminal.
-- Edges mean reachability: A -> B -> output predicts that ablating A reduces B
-  and the output.
+- 1-8 disjoint supernodes, at least {MIN_GROUP_SIZE} FEATURE ids each, FEATURE ids only.
+- Edges form a duplicate-free DAG; "output" is the reserved terminal.
+- Edges mean reachability: A -> B -> output predicts that intervening on A
+  changes B and the output with a shared signed response pattern.
+- Names are annotations; causal membership and topology determine the score.
 
 Finish with a short analysis and exactly one JSON code block:
 ```json
@@ -61,6 +62,7 @@ class CircuitTaskData(vf.TaskData):
     experiment_budget: int = DEFAULT_BUDGET
     reward_mode: Literal["train", "eval"] = "eval"
     fault_rate: float = 0.0
+    response_bank: dict | None = None
 
 
 _SCORER = InterventionScoring()
@@ -80,20 +82,6 @@ def fails_injected_fault(rollout_id: str, rate: float) -> bool:
     return int.from_bytes(draw, "big") / 2**32 < rate
 
 
-def split_nonce(trace: vf.Trace) -> str:
-    """Nonce for the hidden split, taken from the run the rollout belongs to.
-
-    Every rollout of a GRPO group shares a (run, step), so siblings are scored
-    under the same split with no extra plumbing, and the split rotates between
-    steps so no fixed per-task split can be memorized. Eval uses a constant so
-    model comparisons stay reproducible.
-    """
-    run = getattr(trace, "run", None)
-    if run is None or getattr(run, "type", "eval") != "train":
-        return "eval"
-    return f"{run.id}:{run.step}"
-
-
 class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
     tools = (AblationTools,)
 
@@ -109,17 +97,24 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
             raise RuntimeError("injected scoring failure (fault_rate canary)")
         proposal = parse_proposal(trace.last_reply)
         if proposal is None:
-            result = {"reward": 0.0, "gated": "missing proposal JSON", "parse": False}
+            result = {
+                "reward": 0.0,
+                "net_reward": 0.0,
+                "gated": "missing proposal JSON",
+                "parse": False,
+                "reward_version": REWARD_VERSION,
+            }
         else:
             result = await _SCORER.score(
                 self.data.subject_prompt,
                 load_graph_json(self.data.graph),
                 proposal,
-                nonce=split_nonce(trace),
+                response_bank=self.data.response_bank,
             )
         trace.info["reward_components"] = result
-        if self.data.reward_mode == "train":
-            return shaped_reward(result)
+        # V4 deliberately has no parse/membership/topology side reward.  Train
+        # and eval retain separate configuration names for compatibility, but
+        # both return the same exponential transform of the MDL objective.
         return result["reward"]
 
 
@@ -181,5 +176,6 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
             experiment_budget=budget,
             reward_mode=self.config.reward_mode,
             fault_rate=self.config.fault_rate,
+            response_bank=row.get("response_bank"),
         )
         return CircuitTask(data, self.config.task)
