@@ -1,36 +1,36 @@
-# circuit-supernodes
+# zero-shot supernode rediscovery
 
-`circuit-supernodes` is a multi-turn Verifiers 0.2.1 environment for circuit
-discovery in Qwen3-4B. A policy model receives a pruned attribution graph,
-groups feature nodes into conceptual supernodes, and predicts causal edges
-between those groups.
+This worktree exports a single-turn Verifiers 0.2.1 benchmark for independently
+rediscovering a pre-identified semantic supernode. A policy model receives an
+unlabeled attribution graph and a concept name, with no demonstration, tools,
+feedback, or visible reference membership; hidden set membership is the grade.
+
+The causal-circuit implementation inherited from the shared baseline remains in
+the tree for comparison, but it is not the exported task in this worktree.
 
 ## Task contract
 
 - Harness: `null`
-- Maximum turns: 8
-- Experiment budget: 7 calls to `circuit_run_ablation` by default, overridable
-  per dataset row (`experiment_budget`) for budget-curve variants
-- Displayed graph: up to 60 feature nodes, plus embedding and logit nodes
-- Allowed proposal size: 1–8 disjoint supernodes, at least 2 features each
-- Reserved terminal node: `output`
+- Maximum turns: 1
+- Tools or evaluator feedback: none
+- Displayed graph: up to 150 feature nodes by default, always including every
+  hidden reference member
+- Feature labels: stripped before prompting
+- Reward: membership F1 against the hidden curated node set
+- Metrics: precision, recall, and exact-set match
 
-Each experiment clamps selected feature nodes to zero and reports the change in
-the target-token probability and optional probe-group activations. Experiments
-provide evidence but do not directly contribute reward.
+The final response contains one JSON node list. Unknown nodes count as false
+positives and omitted reference members count as false negatives.
 
 The final response must contain one JSON code block:
 
 ```json
 {
-  "supernodes": [
-    {"name": "<concept>", "nodes": ["<feature_id>"]}
-  ],
-  "edges": [["<source>", "<target-or-output>"]]
+  "nodes": ["<feature_id>", "<feature_id>"]
 }
 ```
 
-## Reward
+## Inherited causal-circuit reward (not used by rediscovery)
 
 `circuit_faithfulness` is an exponential transform of normalized
 minimum-description-length saving. First compute the signed value:
@@ -195,25 +195,29 @@ prime eval run ../../configs/eval/circuit-supernodes.toml --hosted --follow
 Override the policy model with `--model`. Completed runs are written beneath
 `outputs/`.
 
-## Prompt-free discovery
+## Zero-shot supernode rediscovery
 
-A deterministic baseline can discover supernodes directly from any precomputed
-causal response bank. It uses no subject prompt, feature labels, policy model,
-or network call. Incoming and outgoing calibration-response signatures are
-agglomerated, a sparse causal DAG is induced, and feature/group counts are
-selected with leave-one-calibration-condition-out MDL. Pass `--partition-all`
-to disable the default low-energy feature pruning. Held-out validation responses
-are touched only after selection to report the final score.
+In this worktree, the exported environment is a single-turn rediscovery
+benchmark. A curator identifies a reference supernode beforehand (for example,
+`capital cities / say a capital city`) and stores its members as hidden grading
+data. The LLM is told only the requested concept (`city`) and receives an
+unlabeled attribution graph: no demonstration from the model under test, no
+feature labels, no experiment tool, and no correctness feedback.
+
+Build a row from a curated graph, then evaluate normally:
 
 ```bash
-uv run python scripts/discover_supernodes.py \
-    --bank analysis/neuronpedia_qwen_name_bank.json \
-    --out analysis/promptless_qwen_name.json
+uv run python scripts/build_rediscovery_dataset.py \
+    --source https://neuronpedia-attrib.s3.us-east-1.amazonaws.com/user-graphs/cmao6p1xd0000ypedw0qhlhob/gemma-fact-dallas-austin.json \
+    --target 'capital cities / say a capital city=city' \
+    --out circuit_supernodes/data/rediscovery.jsonl
+uv run eval @ ../../configs/eval/circuit-supernodes.toml --no-push
 ```
 
-The output contains the final proposal, calibration-only selection diagnostics,
-and held-out validation score. Generated names such as `supernode_01` are stable
-identifiers, not semantic interpretations.
+The LLM returns one node set. Reward is hidden membership F1 against the curated
+reference; precision, recall, and exact-set match are recorded as metrics. The
+causal MDL rubric is intentionally not used here because the question is whether
+the model independently rediscovers a particular known semantic group.
 
 ## Inspect a trace
 
@@ -271,11 +275,12 @@ banks are constructed lazily and cached as a compatibility fallback.
 - `circuit_supernodes/experiments.py`: interactive ablation tool
 - `circuit_supernodes/graphs.py`: graph normalization, pruning, and rendering
 - `circuit_supernodes/mdl.py`: pure response-bank decoder and proved MDL formula
-- `circuit_supernodes/discovery.py`: prompt-free grouping and DAG induction
+- `circuit_supernodes/rediscovery.py`: zero-shot task and hidden membership grade
 - `circuit_supernodes/rubric.py`: proposal validation and bank integration
 - `circuit_supernodes/datagen.py`: prompt generation
 - `modal_app/attribution.py`: Modal attribution, intervention, and bank service
 - `scripts/build_dataset.py`: dataset construction
 - `scripts/precompute_response_banks.py`: hidden-bank precomputation
-- `scripts/discover_supernodes.py`: prompt-free discovery CLI
+- `scripts/build_rediscovery_dataset.py`: curate hidden-reference benchmark rows
 - `tests/test_mdl_reward.py`: planted-world and adversarial validation
+- `tests/test_rediscovery.py`: prompt-isolation and hidden-grade validation

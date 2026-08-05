@@ -3,16 +3,16 @@
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 16
 num_rollouts = 1
-max_turns = 8
+max_turns = 1
 
 [sampling]
-max_tokens = 16384
-enable_thinking = false  # must match the RL config; never compare across modes
+max_tokens = 4096
+enable_thinking = false
 
 [taskset]
 id = "circuit-supernodes"
-dataset_file = "heldout-mdl.jsonl"
-reward_mode = "eval"
+dataset_file = "rediscovery.jsonl"
+max_features = 150
 
 [harness]
 id = "null"
