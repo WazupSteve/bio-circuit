@@ -195,6 +195,26 @@ prime eval run ../../configs/eval/circuit-supernodes.toml --hosted --follow
 Override the policy model with `--model`. Completed runs are written beneath
 `outputs/`.
 
+## Prompt-free discovery
+
+A deterministic baseline can discover supernodes directly from any precomputed
+causal response bank. It uses no subject prompt, feature labels, policy model,
+or network call. Incoming and outgoing calibration-response signatures are
+agglomerated, a sparse causal DAG is induced, and feature/group counts are
+selected with leave-one-calibration-condition-out MDL. Pass `--partition-all`
+to disable the default low-energy feature pruning. Held-out validation responses
+are touched only after selection to report the final score.
+
+```bash
+uv run python scripts/discover_supernodes.py \
+    --bank analysis/neuronpedia_qwen_name_bank.json \
+    --out analysis/promptless_qwen_name.json
+```
+
+The output contains the final proposal, calibration-only selection diagnostics,
+and held-out validation score. Generated names such as `supernode_01` are stable
+identifiers, not semantic interpretations.
+
 ## Inspect a trace
 
 ```bash
@@ -251,9 +271,11 @@ banks are constructed lazily and cached as a compatibility fallback.
 - `circuit_supernodes/experiments.py`: interactive ablation tool
 - `circuit_supernodes/graphs.py`: graph normalization, pruning, and rendering
 - `circuit_supernodes/mdl.py`: pure response-bank decoder and proved MDL formula
+- `circuit_supernodes/discovery.py`: prompt-free grouping and DAG induction
 - `circuit_supernodes/rubric.py`: proposal validation and bank integration
 - `circuit_supernodes/datagen.py`: prompt generation
 - `modal_app/attribution.py`: Modal attribution, intervention, and bank service
 - `scripts/build_dataset.py`: dataset construction
 - `scripts/precompute_response_banks.py`: hidden-bank precomputation
+- `scripts/discover_supernodes.py`: prompt-free discovery CLI
 - `tests/test_mdl_reward.py`: planted-world and adversarial validation
