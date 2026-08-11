@@ -1,5 +1,6 @@
 import random
 from dataclasses import asdict, dataclass
+from itertools import product
 
 
 @dataclass
@@ -7,6 +8,8 @@ class CircuitSample:
     family: str
     prompt: str
     target: str
+    possible_answers: tuple[str, ...]
+    source_family: str | None = None
 
     def to_row(self) -> dict:
         return asdict(self)
@@ -35,6 +38,7 @@ TWO_HOP = [
     ("Portland", "Oregon", "Salem", "state"),
     ("Tucson", "Arizona", "Phoenix", "state"),
 ]
+TWO_HOP_ANSWERS = tuple(dict.fromkeys(row[2] for row in TWO_HOP))
 
 ANTONYMS = {
     "en": [
@@ -138,6 +142,28 @@ INCONTEXT_ATTRS = [
     ("chocolate", "brown"),
     ("pearl", "white"),
 ]
+ANTONYM_ANSWERS = {
+    language: tuple(dict.fromkeys(answer for _, answer in pairs))
+    for language, pairs in ANTONYMS.items()
+}
+ANALOGY_ANSWERS = tuple(dict.fromkeys(row[3] for row in ANALOGIES))
+ACRONYM_ANSWERS = tuple(
+    "".join(initials)
+    for initials in product(
+        sorted({word[0] for word in ACRONYM_WORDS["adj2"]}),
+        sorted({word[0] for word in ACRONYM_WORDS["noun"]}),
+        sorted({word[0] for word in ACRONYM_WORDS["suffix"]}),
+    )
+)
+SEQUENCE_ANSWERS = tuple(
+    dict.fromkeys(
+        str(step * factor)
+        for step in (3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17)
+        for factor in range(5, 16)
+    )
+)
+FACTUAL_ANSWERS = tuple(dict.fromkeys(sport for _, sport in FACTUAL_SPORTS))
+INCONTEXT_ANSWERS = tuple(dict.fromkeys(value for _, value in INCONTEXT_ATTRS))
 
 
 def _two_hop(rng: random.Random) -> CircuitSample:
@@ -151,6 +177,7 @@ def _two_hop(rng: random.Random) -> CircuitSample:
             f"Fact: the capital of the {kind} containing {city} is"
         ),
         target=f" {capital}",
+        possible_answers=TWO_HOP_ANSWERS,
     )
 
 
@@ -163,6 +190,7 @@ def _antonym(rng: random.Random) -> CircuitSample:
         family="antonym",
         prompt=exemplar + ANTONYM_TEMPLATES[lang].format(w=w),
         target=ant,
+        possible_answers=ANTONYM_ANSWERS[lang],
     )
 
 
@@ -176,6 +204,7 @@ def _analogy(rng: random.Random) -> CircuitSample:
         family="analogy",
         prompt=f"{ex[0]}:{ex[1]} :: {ex[2]}:{ex[3]}\n{a}:{b} :: {c}:",
         target=d,
+        possible_answers=ANALOGY_ANSWERS,
     )
 
 
@@ -189,6 +218,7 @@ def _acronym(rng: random.Random) -> CircuitSample:
         family="acronym",
         prompt=f"The {w1} {w2} {w3} {suf} ({acronym[0]}",
         target=acronym[1:],
+        possible_answers=ACRONYM_ANSWERS,
     )
 
 
@@ -203,6 +233,7 @@ def _sequence(rng: random.Random) -> CircuitSample:
         # the top predicted token is always the bare space and faithfulness fails
         prompt=" ".join(str(t) for t in terms) + " ",
         target=str(nxt),
+        possible_answers=SEQUENCE_ANSWERS,
     )
 
 
@@ -221,6 +252,7 @@ def _factual(rng: random.Random) -> CircuitSample:
         family="factual",
         prompt=rng.choice(FACTUAL_FRAMES).format(person=person),
         target=f" {sport}",
+        possible_answers=FACTUAL_ANSWERS,
     )
 
 
@@ -232,6 +264,7 @@ def _incontext(rng: random.Random) -> CircuitSample:
         family="incontext",
         prompt=prompt,
         target=f" {qv}",
+        possible_answers=INCONTEXT_ANSWERS,
     )
 
 
@@ -303,6 +336,7 @@ def _agreement(rng: random.Random) -> CircuitSample:
         family="agreement",
         prompt=f"The {subject} {phrase} {attractor}",
         target=f" {verb}",
+        possible_answers=("is", "are"),
     )
 
 
@@ -329,6 +363,7 @@ def _comparison(rng: random.Random) -> CircuitSample:
             f"Q: Is {first} {relation} than {second}? A:"
         ),
         target=f" {answer}",
+        possible_answers=("Yes", "No"),
     )
 
 
@@ -347,6 +382,7 @@ def _weekday(rng: random.Random) -> CircuitSample:
             f"{offset} days after {WEEKDAYS[start]} is"
         ),
         target=f" {answer}",
+        possible_answers=tuple(WEEKDAYS),
     )
 
 
@@ -408,6 +444,7 @@ def _path_composition(rng: random.Random) -> CircuitSample:
             + f"\nStarting at {start} and following exactly three arrows reaches"
         ),
         target=f" {answer}",
+        possible_answers=SYMBOLS,
     )
 
 
@@ -431,14 +468,13 @@ def _modular_arithmetic(rng: random.Random) -> CircuitSample:
         start, multiplier, delta, modulus, answer = values
         signed_delta = f"+ {delta}" if delta > 0 else f"- {abs(delta)}"
         suffix = str(answer) if include_answer else ""
-        return (
-            f"(({start} * {multiplier}) {signed_delta}) mod {modulus} = {suffix}"
-        )
+        return f"(({start} * {multiplier}) {signed_delta}) mod {modulus} = {suffix}"
 
     return CircuitSample(
         family="modular_arithmetic",
         prompt=render(exemplar, True) + "\n" + render(query, False),
         target=str(query[-1]),
+        possible_answers=tuple(str(value) for value in range(17)),
     )
 
 
@@ -456,11 +492,9 @@ def _rule_composition(rng: random.Random) -> CircuitSample:
     rng.shuffle(rules)
     return CircuitSample(
         family="rule_composition",
-        prompt=(
-            " ".join(rules)
-            + f" {entity} is {p0}. Therefore, {entity} is"
-        ),
+        prompt=(" ".join(rules) + f" {entity} is {p0}. Therefore, {entity} is"),
         target=f" {answer}",
+        possible_answers=PROPERTIES,
     )
 
 
@@ -484,9 +518,7 @@ def _spatial_composition(rng: random.Random) -> CircuitSample:
     vertical = "north" if y > 0 else "south" if y < 0 else ""
     horizontal = "east" if x > 0 else "west" if x < 0 else ""
     answer = vertical + horizontal
-    steps = ", then ".join(
-        f"{direction} {distance}" for direction, distance in moves
-    )
+    steps = ", then ".join(f"{direction} {distance}" for direction, distance in moves)
     traveler = rng.choice(SYMBOLS)
     return CircuitSample(
         family="spatial_composition",
@@ -497,6 +529,16 @@ def _spatial_composition(rng: random.Random) -> CircuitSample:
             f"{traveler} is"
         ),
         target=f" {answer}",
+        possible_answers=(
+            "north",
+            "south",
+            "east",
+            "west",
+            "northeast",
+            "northwest",
+            "southeast",
+            "southwest",
+        ),
     )
 
 
@@ -523,6 +565,7 @@ def _boolean_composition(rng: random.Random) -> CircuitSample:
             f"Z = {final}. Z is"
         ),
         target=f" {truth(answer)}",
+        possible_answers=("true", "false"),
     )
 
 

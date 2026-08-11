@@ -2,6 +2,8 @@ import pytest
 from circuit_supernodes.datagen import (
     EVAL_FAMILIES,
     FAMILIES,
+    PROPERTIES,
+    SYMBOLS,
     TRAIN_FAMILIES,
     generate,
 )
@@ -39,3 +41,26 @@ def test_generation_is_seed_deterministic() -> None:
     first = generate(18, seed=123, families=list(EVAL_FAMILIES))
     second = generate(18, seed=123, families=list(EVAL_FAMILIES))
     assert first == second
+
+
+@pytest.mark.parametrize("family", FAMILIES)
+def test_every_family_declares_its_answer_vocabulary(family: str) -> None:
+    sample = generate(1, seed=31, families=[family])[0]
+    answers = [answer.strip().casefold() for answer in sample.possible_answers]
+    assert answers
+    assert len(answers) == len(set(answers))
+    assert sample.target.strip().casefold() in answers
+
+
+@pytest.mark.parametrize(
+    ("family", "expected_answers"),
+    [
+        ("path_composition", SYMBOLS),
+        ("rule_composition", PROPERTIES),
+    ],
+)
+def test_symbolic_families_declare_the_complete_keyword_domain(
+    family: str, expected_answers: tuple[str, ...]
+) -> None:
+    sample = generate(1, seed=31, families=[family])[0]
+    assert sample.possible_answers == expected_answers

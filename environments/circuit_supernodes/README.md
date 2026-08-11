@@ -151,13 +151,22 @@ alongside two-hop recall, agreement with attractors, balanced comparison, and
 weekday arithmetic. Attribution graphs are precomputed on Modal and stored with
 each retained prompt.
 
+Before attribution, Qwen is explicitly instructed to return exactly one label
+from the prompt family's finite answer vocabulary without explanation. It then
+greedily samples up to 50 tokens and stops at the first answer. If the answer is correct,
+any narration before it is appended to the subject prompt so the attribution
+target is the answer token itself. If the answer is wrong, the builder records it
+as `keep_incorrect` in the triage counts but rejects the candidate without a retry.
+Candidates that never emit an answer are also rejected. Manifests record the
+triage counts, and retained dataset rows record their sampled text.
+
 Build the standard family split:
 
 ```bash
 uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
     --split train \
     --out circuit_supernodes/data/train.jsonl
-uv run python scripts/build_dataset.py --n 72 --seed 1 --neuronpedia-labels \
+uv run python scripts/build_dataset.py --n 90 --seed 101 --neuronpedia-labels \
     --split eval \
     --out circuit_supernodes/data/heldout.jsonl
 
