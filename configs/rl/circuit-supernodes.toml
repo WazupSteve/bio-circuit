@@ -1,8 +1,7 @@
 # prime train run configs/rl/circuit-supernodes.toml
 #
-# Train on 6 prompt families, evaluate on held-out ones. Each rollout may spend
-# its experiment budget on two-pass ablations. Final MDL scoring reads a frozen
-# response bank precomputed once per task and requires no proposal-time GPU pass.
+# Each rollout asks the agent to design prompts for a separately deployed Gemma
+# subject model, inspect circuit-tracer graphs, and recover a hidden supernode.
 model = "Qwen/Qwen3.5-4B"
 
 max_steps = 40
@@ -27,16 +26,19 @@ enforce = false
 max_turns = 8
 
 [env.taskset]
-id = "circuit-supernodes"
-dataset_file = "train-mdl.jsonl"
-reward_mode = "train"  # same single MDL objective used during evaluation
+id = "supernode-rediscovery"
+dataset_file = "rediscovery.jsonl"
+prompt_budget = 5
+max_features = 150
+replacement_max_tv = 0.05
+replacement_reward_half_life = 0.05
 
 [env.harness]
 id = "null"
 
 [eval]
 interval = 10
-num_examples = 16
+num_examples = 5
 rollouts_per_example = 1
 eval_base_model = true
 
@@ -44,9 +46,12 @@ eval_base_model = true
 max_turns = 8
 
 [eval.env.taskset]
-id = "circuit-supernodes"
-dataset_file = "heldout-mdl.jsonl"
-reward_mode = "eval"
+id = "supernode-rediscovery"
+dataset_file = "rediscovery.jsonl"
+prompt_budget = 5
+max_features = 150
+replacement_max_tv = 0.05
+replacement_reward_half_life = 0.05
 
 [eval.env.harness]
 id = "null"

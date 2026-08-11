@@ -1,7 +1,7 @@
 [project]
 name = "circuit-supernodes"
-description = "Identify supernodes and circuits in Qwen3-4B attribution graphs built from per-layer transcoders"
-tags = ["multi-turn", "interpretability", "train", "eval"]
+description = "Circuit discovery and active semantic-supernode rediscovery tasksets"
+tags = ["multi-turn", "interpretability", "tool-use", "train", "eval"]
 version = "0.1.0"
 requires-python = ">=3.11,<3.14"
 dependencies = [
@@ -21,4 +21,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-include = ["circuit_supernodes/**", "scripts/**", "pyproject.toml"]
+include = [
+    "circuit_supernodes/**",
+    "supernode_rediscovery/**",
+    "scripts/**",
+    "pyproject.toml",
+]

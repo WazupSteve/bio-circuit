@@ -1,18 +1,23 @@
 # prime eval run configs/eval/circuit-supernodes.toml [--hosted]
-# Override --model to evaluate another policy model with the same task settings.
-model = "Qwen/Qwen3.5-4B"
-num_tasks = 16
-num_rollouts = 1
-max_turns = 1
+# The policy is the agent; Gemma-2-2B is the separately deployed subject model.
+# Override --model to evaluate another agent with the same subject and task.
+model = "moonshotai/kimi-k3"
+num_tasks = 5  # one task for each curated supernode in the shipped Gemma circuit
+num_rollouts = 3
+max_turns = 8
+max_concurrent = 5
 
 [sampling]
-max_tokens = 4096
+max_tokens = 16384
 enable_thinking = false
 
 [taskset]
-id = "circuit-supernodes"
+id = "supernode-rediscovery"
 dataset_file = "rediscovery.jsonl"
 max_features = 150
+prompt_budget = 5
+replacement_max_tv = 0.05
+replacement_reward_half_life = 0.05
 
 [harness]
 id = "null"

@@ -1,16 +1,16 @@
-"""Gemma-2-2B backend for the fixed causal-response-bank audit."""
+"""Gemma-2-2B circuit tracing and functional-replacement grading."""
 
-import hashlib
 import json
-import math
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import modal
 
 MODEL_NAME = "unsloth/gemma-2-2b"
 TRANSCODER_SET = "mntss/gemma-scope-transcoders"
-RESPONSE_BANK_VERSION = "v1-local-derivative"
-CALIBRATION_FRACTIONS = (0.25, 0.5)
-VALIDATION_FRACTIONS = (0.75, 1.0)
+NODE_THRESHOLD = 0.8
+EDGE_THRESHOLD = 0.98
+MAX_FEATURE_NODES = 4096
 
 app = modal.App("circuit-supernodes-gemma-attribution")
 
@@ -39,7 +39,7 @@ hf_cache = modal.Volume.from_name("circuit-supernodes-hf-cache", create_if_missi
 )
 class GemmaAttributor:
     @modal.enter()
-    def load(self):
+    def load(self) -> None:
         import torch
         from circuit_tracer import ReplacementModel
 
@@ -52,194 +52,179 @@ class GemmaAttributor:
 
     def _tokens_and_target(self, prompt: str, target_token: str):
         token_ids = self.model.tokenizer.encode(target_token, add_special_tokens=False)
-        if not token_ids:
-            raise ValueError(f"target token {target_token!r} encodes to nothing")
+        if len(token_ids) != 1:
+            raise ValueError(
+                f"target token {target_token!r} must encode to exactly one token; "
+                f"got {len(token_ids)}"
+            )
         return self.model.ensure_tokenized(prompt), token_ids[0]
 
     @staticmethod
-    def _target_log_odds(logits, target_id: int) -> float:
-        import torch
-
-        final_logits = logits.reshape(-1, logits.shape[-1])[-1].float()
-        other_logits = torch.cat(
-            (final_logits[:target_id], final_logits[target_id + 1 :])
-        )
-        return (final_logits[target_id] - torch.logsumexp(other_logits, dim=0)).item()
+    def _normalize_acts(activations):
+        normalized = activations[:, 0] if activations.dim() == 4 else activations
+        if normalized.dim() != 3:
+            raise ValueError(
+                "expected activation shape [layers, positions, features], "
+                f"got {tuple(normalized.shape)}"
+            )
+        return normalized
 
     @staticmethod
-    def _normalize_acts(acts):
-        return acts[:, 0] if acts.dim() == 4 else acts
+    def _canonical_coordinates(
+        name: str, coordinates: list[tuple[int, int, int]]
+    ) -> list[tuple[int, int, int]]:
+        malformed = [
+            coordinate
+            for coordinate in coordinates
+            if len(coordinate) != 3
+            or any(type(value) is not int for value in coordinate)
+        ]
+        if malformed:
+            raise ValueError(f"malformed {name} coordinates: {malformed[:4]}")
+        return sorted(set(map(tuple, coordinates)))
 
     @modal.method()
-    def target_probability(self, prompt: str, target_token: str) -> float:
-        """Return the unperturbed next-token probability for source validation."""
+    def attribute_prompt(self, prompt: str) -> dict:
+        """Run the subject model and export one fresh attribution graph."""
 
         import torch
+        from circuit_tracer import attribute
+        from circuit_tracer.utils.create_graph_files import create_graph_files
 
-        tokens, target_id = self._tokens_and_target(prompt, target_token)
-        with torch.no_grad():
-            logits, _ = self.model.get_activations(tokens)
-            final_logits = logits.reshape(-1, logits.shape[-1])[-1].float()
-            return torch.softmax(final_logits, dim=-1)[target_id].item()
+        graph = attribute(
+            prompt=prompt,
+            model=self.model,
+            max_n_logits=5,
+            desired_logit_prob=0.95,
+            max_feature_nodes=MAX_FEATURE_NODES,
+            batch_size=64,
+            offload=None,
+            verbose=True,
+        )
+        try:
+            with TemporaryDirectory(prefix="gemma-graph-") as directory:
+                output = Path(directory)
+                slug = "graph"
+                create_graph_files(
+                    graph_or_path=graph,
+                    slug=slug,
+                    output_path=str(output),
+                    node_threshold=NODE_THRESHOLD,
+                    edge_threshold=EDGE_THRESHOLD,
+                )
+                return json.loads((output / f"{slug}.json").read_text())
+        finally:
+            del graph
+            torch.cuda.empty_cache()
 
     @modal.method()
-    def causal_response_bank(
+    def compare_feature_ablations(
         self,
         prompt: str,
-        features: list[tuple[int, int, int]],
+        reference_features: list[tuple[int, int, int]],
+        replacement_features: list[tuple[int, int, int]],
         target_token: str,
-        calibration_fractions: list[float] | None = None,
-        validation_fractions: list[float] | None = None,
     ) -> dict:
-        """Measure the same response tensor as the Qwen scorer on Gemma."""
+        """Compare next-token distributions after ablating two feature sets."""
 
         import torch
 
-        calibration_fractions = list(
-            CALIBRATION_FRACTIONS
-            if calibration_fractions is None
-            else calibration_fractions
+        reference_features = self._canonical_coordinates(
+            "reference", reference_features
         )
-        validation_fractions = list(
-            VALIDATION_FRACTIONS
-            if validation_fractions is None
-            else validation_fractions
+        replacement_features = self._canonical_coordinates(
+            "replacement", replacement_features
         )
-        if not features or len(set(features)) != len(features):
-            raise ValueError("features must be a non-empty unique list")
-        all_fractions = calibration_fractions + validation_fractions
-        if (
-            not calibration_fractions
-            or not validation_fractions
-            or any(not 0.0 < float(fraction) <= 1.0 for fraction in all_fractions)
-            or set(calibration_fractions) & set(validation_fractions)
-        ):
-            raise ValueError(
-                "calibration and validation fractions must be disjoint values in (0, 1]"
-            )
+        if not reference_features or not replacement_features:
+            return {"valid": False, "error": "feature sets must be non-empty"}
 
         tokens, target_id = self._tokens_and_target(prompt, target_token)
-        # nnsight's intervention hook mutates a traced activation tensor in
-        # place; inference_mode forbids that operation, while no_grad retains
-        # the same non-training numerics without marking tensors immutable.
         with torch.no_grad():
             base_logits, base_acts = self.model.get_activations(tokens)
             base_acts = self._normalize_acts(base_acts)
-            base_output = self._target_log_odds(base_logits, target_id)
-            base_values = [
-                base_acts[layer, position, feature].float().item()
-                for layer, feature, position in features
-            ]
-            directions = []
-            for (layer, feature, _), base_value in zip(
-                features, base_values, strict=True
-            ):
-                reference = base_acts[layer, :, feature].float().mean().item()
-                directions.append(reference - base_value)
+            layers, positions, features = base_acts.shape
 
-            def response_matrix(fraction: float) -> list[list[float]]:
-                matrix: list[list[float]] = []
-                for source, (
-                    (layer, feature, position),
-                    base_value,
-                    direction,
-                ) in enumerate(zip(features, base_values, directions, strict=True)):
-                    delta = float(fraction) * direction
-                    if abs(delta) <= 1e-12:
-                        matrix.append([0.0] * (len(features) + 1))
-                        continue
-                    logits, acts = self.model.feature_intervention(
-                        tokens,
-                        [(layer, position, feature, base_value + delta)],
-                    )
-                    acts = self._normalize_acts(acts)
-                    row = [
-                        (
-                            acts[dst_layer, dst_position, dst_feature].float().item()
-                            - baseline
-                        )
-                        / delta
-                        for (
-                            dst_layer,
-                            dst_feature,
-                            dst_position,
-                        ), baseline in zip(features, base_values, strict=True)
-                    ]
-                    row[source] = 0.0
-                    row.append(
-                        (self._target_log_odds(logits, target_id) - base_output) / delta
-                    )
-                    matrix.append(row)
-                    del logits, acts
-                return matrix
+            invalid_reference = self._out_of_bounds(
+                reference_features, layers, positions, features
+            )
+            if invalid_reference:
+                raise ValueError(
+                    f"invalid hidden reference coordinates: {invalid_reference[:4]}"
+                )
+            invalid_replacement = self._out_of_bounds(
+                replacement_features, layers, positions, features
+            )
+            if invalid_replacement:
+                return {
+                    "valid": False,
+                    "error": (
+                        "invalid replacement coordinates: "
+                        f"{invalid_replacement[:4]}"
+                    ),
+                }
 
-            calibration = [
-                response_matrix(float(fraction))
-                for fraction in calibration_fractions
-            ]
-            validation = [
-                response_matrix(float(fraction)) for fraction in validation_fractions
-            ]
-            del base_logits, base_acts
+            def ablate(coordinates: list[tuple[int, int, int]]):
+                interventions = [
+                    (layer, position, feature, 0.0)
+                    for layer, feature, position in coordinates
+                ]
+                logits, _ = self.model.feature_intervention(
+                    tokens, interventions, return_activations=False
+                )
+                return logits.reshape(-1, logits.shape[-1])[-1].float()
 
-        matrices = calibration + validation
-        columns = len(features) + 1
-        noise_scales: list[float] = []
-        for destination in range(columns):
-            variation = 0.0
-            means: list[float] = []
-            for source in range(len(features)):
-                values = [matrix[source][destination] for matrix in matrices]
-                mean = sum(values) / len(values)
-                means.append(mean)
-                variation += sum((value - mean) ** 2 for value in values)
-            denominator = len(features) * max(len(matrices) - 1, 1)
-            scale = math.sqrt(variation / denominator)
-            if scale <= 1e-12:
-                scale = math.sqrt(sum(value * value for value in means) / len(means))
-            noise_scales.append(scale if scale > 1e-12 else 1.0)
+            base_final = base_logits.reshape(-1, base_logits.shape[-1])[-1].float()
+            reference_final = ablate(reference_features)
+            replacement_final = ablate(replacement_features)
+            base_probs = torch.softmax(base_final, dim=-1)
+            reference_probs = torch.softmax(reference_final, dim=-1)
+            replacement_probs = torch.softmax(replacement_final, dim=-1)
 
-        column_weights = [
-            sum(matrix[source][-1] ** 2 for matrix in calibration) / len(calibration)
-            for source in range(len(features))
-        ] + [1.0]
+            output_tv = 0.5 * torch.abs(reference_probs - replacement_probs).sum()
+            reference_effect_tv = 0.5 * torch.abs(base_probs - reference_probs).sum()
+            replacement_effect_tv = (
+                0.5 * torch.abs(base_probs - replacement_probs).sum()
+            )
+            reference_top_id = int(reference_probs.argmax().item())
+            replacement_top_id = int(replacement_probs.argmax().item())
 
-        response_digest = hashlib.sha256(
-            json.dumps(
-                [calibration, validation, noise_scales, column_weights],
-                separators=(",", ":"),
-            ).encode()
-        ).hexdigest()
-        bank_key = json.dumps(
-            {
-                "version": RESPONSE_BANK_VERSION,
-                "model": MODEL_NAME,
-                "transcoders": TRANSCODER_SET,
-                "prompt": prompt,
-                "target": target_token,
-                "features": features,
-                "calibration": calibration_fractions,
-                "validation": validation_fractions,
-                "response_digest": response_digest,
-            },
-            sort_keys=True,
-        )
-        return {
-            "feature_ids": ["_".join(map(str, feature)) for feature in features],
-            "calibration": calibration,
-            "validation": validation,
-            "noise_scales": noise_scales,
-            "column_weights": column_weights,
-            "metadata": {
-                "bank_id": hashlib.sha256(bank_key.encode()).hexdigest()[:20],
-                "response_digest": response_digest,
-                "version": RESPONSE_BANK_VERSION,
-                "model": MODEL_NAME,
-                "transcoders": TRANSCODER_SET,
-                "calibration_fractions": calibration_fractions,
-                "validation_fractions": validation_fractions,
-                "response": "local derivative toward across-position mean",
-                "noise_scale": "pooled within-coordinate condition variation",
-                "mediator_weight": "mean squared calibration output sensitivity",
-            },
-        }
+            return {
+                "valid": True,
+                "top_token_match": reference_top_id == replacement_top_id,
+                "reference_top_token": self.model.tokenizer.decode([reference_top_id]),
+                "replacement_top_token": self.model.tokenizer.decode(
+                    [replacement_top_id]
+                ),
+                "output_total_variation": float(output_tv.item()),
+                "reference_effect_total_variation": float(reference_effect_tv.item()),
+                "replacement_effect_total_variation": float(
+                    replacement_effect_tv.item()
+                ),
+                "target_token": target_token,
+                "reference_target_probability": float(
+                    reference_probs[target_id].item()
+                ),
+                "replacement_target_probability": float(
+                    replacement_probs[target_id].item()
+                ),
+                "target_probability_gap": float(
+                    torch.abs(
+                        reference_probs[target_id] - replacement_probs[target_id]
+                    ).item()
+                ),
+            }
+
+    @staticmethod
+    def _out_of_bounds(
+        coordinates: list[tuple[int, int, int]],
+        layers: int,
+        positions: int,
+        features: int,
+    ) -> list[tuple[int, int, int]]:
+        return [
+            coordinate
+            for coordinate in coordinates
+            if not 0 <= coordinate[0] < layers
+            or not 0 <= coordinate[1] < features
+            or not 0 <= coordinate[2] < positions
+        ]

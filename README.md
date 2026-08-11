@@ -1,8 +1,9 @@
-# Bio-circuit
+# Promptless supernode discovery
 
-A Verifiers 0.2.1 environment for evaluating and training agents to identify
-causal circuits in Qwen3-4B attribution graphs. Agents may run bounded feature
-ablations before submitting a graph of conceptual supernodes and causal edges.
+A Verifiers 0.2.1 environment in which an agent discovers a requested, curated
+supernode by designing its own prompts for a transcoder-equipped subject model.
+Each tool call runs circuit tracer on the agent-authored prompt and returns a
+label-free attribution graph. A hidden causal replacement distance is the reward.
 
 The implementation lives in `environments/circuit_supernodes`. Evaluation and
 RL configurations live in `configs/`.
@@ -13,37 +14,24 @@ RL configurations live in `configs/`.
 cd environments/circuit_supernodes
 uv sync
 uv run modal setup
-uv run modal deploy modal_app/attribution.py
+uv run modal deploy modal_app/attribution_gemma.py
 
-# Build six training families and two held-out evaluation families.
-uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
-    --families antonym analogy acronym sequence factual incontext \
-    --out circuit_supernodes/data/train.jsonl
-uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
-    --families two_hop addition \
-    --out circuit_supernodes/data/heldout.jsonl
+# Build one task for every pre-existing supernode in a curated circuit.
+uv run python scripts/build_rediscovery_dataset.py \
+    --source path/to/curated-gemma-graph.json \
+    --out circuit_supernodes/data/rediscovery.jsonl
 
 # PRIME_API_KEY is required for policy-model evaluation.
 uv run eval @ ../../configs/eval/circuit-supernodes.toml --no-push
 ```
 
-Dataset generation, interactive experiments, and final reward scoring use the
-deployed Modal service. Generated datasets are intentionally ignored by Git and
-must be rebuilt on a fresh checkout.
-
-Training runs on Prime Lab (`prime train run configs/rl/...`), which manages the
-trainer, rollout inference, and scheduling; the environment is installed there as
-a wheel from the Environments Hub, and Modal credentials reach it as environment
-secrets. Two canary configs under `configs/` are hard blockers that must pass
-before any real run — see the environment documentation.
-
-**Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) first.** The
-reward was audited before training anything on it, and the audit is currently the
-main result: its causal signal turns out to be dominated by the transformer's
-layer ordering, which a partition can exploit with zero experiments. Three
-frontier models add approximately nothing over that baseline. (The audit
-scripts and archived run data behind it were removed in a repo cleanup; they
-remain in git history.)
+Agent-requested circuit traces and the hidden replacement grader use the deployed
+Modal service. The initial task contains the curator's specific supernode
+description and a prompt budget, but no subject prompt or graph.
+The grader maps stable `layer_feature` identities to the hidden reference
+position and compares the proposal and reference ablation distributions. Exact
+functional equivalence scores `1`; reward halves for each configured TV-distance
+half-life. The former strict pass remains a diagnostic.
 
 See the [environment documentation](environments/circuit_supernodes/README.md)
 for the task contract, reward, validation, and training workflows.
