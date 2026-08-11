@@ -12,6 +12,7 @@ class GraphNode:
     influence: float
     share: float = 0.0
     label: str = ""
+    activation: float = 0.0
 
 
 @dataclass
@@ -33,8 +34,25 @@ class Graph:
         return [n for n in self.nodes.values() if n.kind == "feature"]
 
 
-def slim_graph(g: Graph, max_features: int = 60) -> Graph:
-    feats = sorted(g.feature_nodes, key=lambda n: -n.share)[:max_features]
+def slim_graph(
+    g: Graph,
+    max_features: int = 60,
+    required_feature_ids: set[str] | None = None,
+) -> Graph:
+    """Return a top-k view, optionally retaining explicitly required features."""
+
+    required_feature_ids = required_feature_ids or set()
+    if len(required_feature_ids) > max_features:
+        raise ValueError("required features exceed the visible feature budget")
+    feature_ids = {node.id for node in g.feature_nodes}
+    if missing := required_feature_ids - feature_ids:
+        raise ValueError(
+            f"required features are absent from the graph: {sorted(missing)}"
+        )
+    ranked = sorted(g.feature_nodes, key=lambda n: -n.share)
+    feats = [node for node in ranked if node.id in required_feature_ids]
+    feats.extend(node for node in ranked if node.id not in required_feature_ids)
+    feats = feats[:max_features]
     keep = {n.id for n in feats} | {
         n.id for n in g.nodes.values() if n.kind in ("embedding", "logit")
     }
@@ -107,6 +125,7 @@ def load_graph_json(data: dict) -> Graph:
             token=token,
             influence=float(raw.get("influence", 0.0) or 0.0),
             label=str(raw.get("clerp", "") or raw.get("label", "") or ""),
+            activation=float(raw.get("activation", 0.0) or 0.0),
         )
         g.nodes[nid] = node
         if kind == "logit":
@@ -182,7 +201,7 @@ def render_graph(
         outs = ", ".join(f"{t!r} (p={p:.2f})" for t, p in g.top_outputs[:5])
         lines.append(f"TOP OUTPUTS: {outs}")
     lines.append("")
-    columns = "id | kind | layer | pos:token | importance"
+    columns = "id | kind | layer | pos:token | activation | importance"
     if include_labels:
         columns += " | label"
     lines.append(f"NODES ({columns}):")
@@ -192,7 +211,8 @@ def render_graph(
     for node in ordered:
         line = (
             f"  {node.id} | {node.kind} | L{node.layer} | "
-            f"{node.ctx_idx}:{node.token!r} | {node.share:.4f}"
+            f"{node.ctx_idx}:{node.token!r} | {node.activation:+.5g} "
+            f"| {node.share:.4f}"
         )
         if include_labels:
             line += f" | {node.label[:70]}"

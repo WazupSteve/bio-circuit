@@ -16,7 +16,7 @@ from pydantic import Field
 
 from .graphs import Graph, load_graph_json, render_graph, slim_graph
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).parent / "data" / "supernode_rediscovery"
 DEFAULT_PROMPT_BUDGET = 5
 DEFAULT_REPLACEMENT_MAX_TV = 0.05
 DEFAULT_REPLACEMENT_REWARD_HALF_LIFE = 0.05
@@ -222,9 +222,7 @@ def discovery_graph(graph: Graph, max_features: int) -> Graph:
     return graph
 
 
-async def call_with_retries(
-    operation: str, call: Callable[[], Awaitable[Any]]
-) -> Any:
+async def call_with_retries(operation: str, call: Callable[[], Awaitable[Any]]) -> Any:
     """Retry a remote call and preserve the final exception as the cause."""
 
     attempts = len(RETRY_DELAYS) + 1

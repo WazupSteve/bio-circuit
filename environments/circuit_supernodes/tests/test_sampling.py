@@ -6,7 +6,7 @@ from circuit_supernodes.sampling import (
     sampling_request,
 )
 from modal_app.attribution import _first_answer
-from scripts.build_dataset import prepare_samples
+from scripts.build_mdl_dataset import prepare_samples
 
 
 class FakeRemoteMethod:

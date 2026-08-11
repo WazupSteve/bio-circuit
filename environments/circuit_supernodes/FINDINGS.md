@@ -1,7 +1,7 @@
 # What the intervention reward actually measures
 
 > Historical audit: this document describes the retired v1/v2 three-factor
-> reward. The active `v3.0-mdl` implementation replaces it with held-out causal
+> reward. The active `v4.0` implementation uses held-out causal
 > minimum-description-length saving; see `README.md` and `circuit_supernodes/mdl.py`.
 
 An audit of the `circuit-supernodes` reward, run before training anything on it.

@@ -20,7 +20,7 @@ from .rubric import (
     parse_proposal,
 )
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).parent / "data" / "circuit_mdl"
 
 SYSTEM_PROMPT = f"""\
 You are analyzing an attribution graph of Qwen3-4B built with per-layer
@@ -163,7 +163,7 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
 
 
 class CircuitTasksetConfig(vf.TasksetConfig):
-    dataset_file: str = "dataset.jsonl"
+    dataset_file: str = "circuit-mdl.jsonl"
     experiment_budget: int = Field(DEFAULT_BUDGET, ge=0)
     experiment_budgets: list[int] | None = None
     """Emit one task per budget from every graph, for the budget-curve arms.
@@ -181,7 +181,7 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
         path = DATA_DIR / self.config.dataset_file
         if not path.exists():
             raise FileNotFoundError(
-                f"{path} missing; run `uv run python scripts/build_dataset.py`."
+                f"{path} missing; run `uv run python scripts/build_mdl_dataset.py`."
             )
 
         idx = 0

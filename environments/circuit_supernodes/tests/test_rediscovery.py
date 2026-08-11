@@ -77,16 +77,10 @@ def test_task_library_uses_exact_curator_descriptions_by_default() -> None:
 
 def test_task_library_rejects_ambiguous_curated_groups() -> None:
     with pytest.raises(ValueError, match="repeats a node"):
-        curated_groups(
-            {"qParams": {"supernodes": [["capital", "1_2_3", "1_2_3"]]}}
-        )
+        curated_groups({"qParams": {"supernodes": [["capital", "1_2_3", "1_2_3"]]}})
     with pytest.raises(ValueError, match="duplicated"):
         curated_groups(
-            {
-                "qParams": {
-                    "supernodes": [["capital", "1_2_3"], ["capital", "4_5_6"]]
-                }
-            }
+            {"qParams": {"supernodes": [["capital", "1_2_3"], ["capital", "4_5_6"]]}}
         )
 
 
@@ -149,9 +143,7 @@ def test_replacement_coordinates_reuse_hidden_semantic_positions() -> None:
         (3, 99, 12),
         (21, 5943, 10),
     ]
-    duplicate, error = replacement_coordinates(
-        ["3_99_123", "3_99"], ["8_22_12"]
-    )
+    duplicate, error = replacement_coordinates(["3_99_123", "3_99"], ["8_22_12"])
     assert duplicate is None
     assert error == "duplicate feature identity '3_99'"
 
@@ -172,21 +164,30 @@ def test_replacement_grade_requires_same_top_token_and_close_distribution() -> N
 
 
 def test_continuous_reward_uses_distance_half_life() -> None:
-    assert continuous_replacement_reward(
-        {"valid": True, "output_total_variation": 0.0}, 0.05
-    ) == 1.0
+    assert (
+        continuous_replacement_reward(
+            {"valid": True, "output_total_variation": 0.0}, 0.05
+        )
+        == 1.0
+    )
     assert continuous_replacement_reward(
         {"valid": True, "output_total_variation": 0.05}, 0.05
     ) == pytest.approx(0.5)
     assert continuous_replacement_reward(
         {"valid": True, "output_total_variation": 0.1}, 0.05
     ) == pytest.approx(0.25)
-    assert continuous_replacement_reward(
-        {"valid": False, "output_total_variation": 0.0}, 0.05
-    ) == 0.0
-    assert continuous_replacement_reward(
-        {"valid": True, "output_total_variation": float("nan")}, 0.05
-    ) == 0.0
+    assert (
+        continuous_replacement_reward(
+            {"valid": False, "output_total_variation": 0.0}, 0.05
+        )
+        == 0.0
+    )
+    assert (
+        continuous_replacement_reward(
+            {"valid": True, "output_total_variation": float("nan")}, 0.05
+        )
+        == 0.0
+    )
 
 
 def test_last_valid_json_node_list_is_parsed() -> None:

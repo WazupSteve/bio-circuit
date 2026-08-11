@@ -1,6 +1,6 @@
 """Build an exactly balanced dataset from the six training prompt families.
 
-Unlike ``build_dataset.py --n 30``, this script replenishes prompts rejected by
+Unlike ``build_mdl_dataset.py --n 30``, this script replenishes prompts rejected by
 the subject-faithfulness and graph-quality screens. The destination is replaced
 only after every family reaches its requested quota.
 """
@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 import modal
-from build_dataset import (
+from build_mdl_dataset import (
     DATA_DIR,
     add_neuronpedia_labels,
     is_clean,

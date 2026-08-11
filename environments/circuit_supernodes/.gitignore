@@ -1,4 +1,4 @@
 # Generated attribution datasets are large. Keep only the compact curated task
 # library needed by the exported environment in version control.
-circuit_supernodes/data/*
-!circuit_supernodes/data/rediscovery.jsonl
+circuit_supernodes/data/circuit_mdl/
+circuit_supernodes/data/output_restoration/

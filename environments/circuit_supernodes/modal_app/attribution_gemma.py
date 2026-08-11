@@ -158,8 +158,7 @@ class GemmaAttributor:
                 return {
                     "valid": False,
                     "error": (
-                        "invalid replacement coordinates: "
-                        f"{invalid_replacement[:4]}"
+                        f"invalid replacement coordinates: {invalid_replacement[:4]}"
                     ),
                 }
 

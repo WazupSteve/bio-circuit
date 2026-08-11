@@ -1,0 +1,16 @@
+# Hosted egress/Modal-secret canary for output restoration.
+model = "openai/gpt-4.1-mini"
+num_tasks = 1
+num_rollouts = 1
+max_turns = 4
+
+[sampling]
+max_tokens = 4096
+
+[taskset]
+id = "output-restoration"
+dataset_file = "output-restoration.jsonl"
+reward_mode = "eval"
+
+[harness]
+id = "null"

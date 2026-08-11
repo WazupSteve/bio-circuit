@@ -1,0 +1,18 @@
+# prime eval run configs/eval/output-restoration.toml [--hosted]
+model = "Qwen/Qwen3.5-4B"
+num_tasks = 16
+num_rollouts = 1
+max_turns = 8
+
+[sampling]
+max_tokens = 16384
+enable_thinking = false
+
+[taskset]
+id = "output-restoration"
+dataset_file = "output-restoration.jsonl"
+max_features = 60
+reward_mode = "eval"
+
+[harness]
+id = "null"

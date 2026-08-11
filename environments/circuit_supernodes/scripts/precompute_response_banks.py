@@ -7,6 +7,7 @@ dataset file; the input is never edited in place.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -16,7 +17,7 @@ import modal
 from circuit_supernodes.graphs import feature_coords, load_graph_json
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
 
-DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
+DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data" / "circuit_mdl"
 
 
 def fractions(value: str) -> list[float]:
@@ -37,7 +38,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Precompute proposal-independent MDL response banks"
     )
-    parser.add_argument("--input", default="dataset.jsonl")
+    parser.add_argument("--input", default="circuit-mdl.jsonl")
     parser.add_argument("--out", required=True)
     parser.add_argument("--calibration", type=fractions, default=[0.25, 0.5])
     parser.add_argument("--validation", type=fractions, default=[0.75, 1.0])
@@ -111,6 +112,19 @@ def main() -> None:
         temporary.unlink(missing_ok=True)
         raise
     print(f"wrote {completed} rows to {destination}")
+    digest = hashlib.sha256(destination.read_bytes()).hexdigest()
+    manifest = {
+        "dataset": destination.name,
+        "rows": completed,
+        "sha256": digest,
+        "source": str(source),
+        "reward_version": REWARD_VERSION,
+        "calibration": args.calibration,
+        "validation": args.validation,
+    }
+    manifest_path = destination.with_suffix(".manifest.json")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"wrote manifest to {manifest_path}")
 
 
 if __name__ == "__main__":

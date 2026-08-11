@@ -24,7 +24,7 @@ from circuit_supernodes.sampling import (
 
 sys.path.insert(0, str(Path(__file__).parent.parent))  # for modal_app.attribution
 
-DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
+DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data" / "circuit_mdl"
 NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
 
 
@@ -228,7 +228,7 @@ def main() -> None:
         choices=("train", "eval"),
         help="use the explicit training or sealed evaluation family set",
     )
-    ap.add_argument("--out", default=str(DATA_DIR / "dataset.jsonl"))
+    ap.add_argument("--out", default=str(DATA_DIR / "circuit-mdl.jsonl"))
     ap.add_argument(
         "--max-error-share",
         type=float,

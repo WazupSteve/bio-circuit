@@ -1,0 +1,25 @@
+# Verify scoring exceptions are excluded from group statistics rather than zeroed.
+model = "Qwen/Qwen3.5-0.8B"
+max_steps = 3
+batch_size = 16
+rollouts_per_example = 8
+
+[sampling]
+max_tokens = 4096
+enable_thinking = false
+
+[[post_batch_filters]]
+type = "zero_advantage"
+enforce = false
+
+[[env]]
+max_turns = 4
+
+[env.taskset]
+id = "output-restoration"
+dataset_file = "output-restoration.jsonl"
+reward_mode = "train"
+fault_rate = 0.125
+
+[env.harness]
+id = "null"

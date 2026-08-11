@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import urllib.request
 from pathlib import Path
@@ -127,8 +128,7 @@ def main() -> None:
             )
             if invalid:
                 raise ValueError(
-                    "curated group contains invalid FEATURE nodes: "
-                    f"{invalid[:4]}"
+                    f"curated group contains invalid FEATURE nodes: {invalid[:4]}"
                 )
             prompt = str(data.get("metadata", {}).get("prompt", "")).strip()
             target_token = graph.top_outputs[0][0] if graph.top_outputs else ""
@@ -156,6 +156,16 @@ def main() -> None:
     )
     temporary.replace(args.out)
     print(f"wrote {len(rows)} active-discovery tasks to {args.out}")
+    manifest = {
+        "dataset": args.out.name,
+        "rows": len(rows),
+        "sha256": hashlib.sha256(args.out.read_bytes()).hexdigest(),
+        "sources": args.source,
+        "targets": args.target,
+    }
+    manifest_path = args.out.with_suffix(".manifest.json")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"wrote manifest to {manifest_path}")
 
 
 if __name__ == "__main__":

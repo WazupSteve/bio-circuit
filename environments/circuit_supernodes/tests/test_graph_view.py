@@ -48,7 +48,7 @@ def test_taskset_keeps_complete_exported_graph(tmp_path, monkeypatch) -> None:
         "target": "y",
         "graph": graph_to_json(graph),
     }
-    dataset = tmp_path / "dataset.jsonl"
+    dataset = tmp_path / "circuit-mdl.jsonl"
     dataset.write_text(json.dumps(row) + "\n")
     monkeypatch.setattr(environment, "DATA_DIR", tmp_path)
 
@@ -67,7 +67,7 @@ def test_taskset_rejects_legacy_truncated_response_bank(tmp_path, monkeypatch) -
         "graph": graph_to_json(graph),
         "response_bank": {"feature_ids": ["0_0_0"]},
     }
-    dataset = tmp_path / "dataset.jsonl"
+    dataset = tmp_path / "circuit-mdl.jsonl"
     dataset.write_text(json.dumps(row) + "\n")
     monkeypatch.setattr(environment, "DATA_DIR", tmp_path)
 
@@ -87,7 +87,7 @@ def test_taskset_rejects_duplicate_response_bank_feature_ids(
         "graph": graph_to_json(graph),
         "response_bank": {"feature_ids": ["0_0_0", "0_1_0", "0_1_0"]},
     }
-    dataset = tmp_path / "dataset.jsonl"
+    dataset = tmp_path / "circuit-mdl.jsonl"
     dataset.write_text(json.dumps(row) + "\n")
     monkeypatch.setattr(environment, "DATA_DIR", tmp_path)
 

@@ -1,42 +1,31 @@
 # Bio-circuit environments
 
-This repository contains independent Verifiers 0.2.1 tasksets for causal-circuit
-MDL modeling and active promptless supernode discovery. Shared graph,
-serialization, validation, and retry primitives live in
-`environments/circuit_supernodes`.
+Three independent Verifiers 0.2.1 tasksets share graph, serialization,
+validation, and retry primitives without sharing task contracts:
 
-Evaluation and RL configurations live in `configs/` and are named after their
-task contract.
+| Task | Plugin/taskset ID | Subject backend |
+| --- | --- | --- |
+| Causal circuit MDL | `circuit-supernodes` | Qwen attribution |
+| Promptless discovery | `supernode-rediscovery` | Gemma discovery |
+| Persistent output restoration | `output-restoration` | Qwen restoration |
 
-## Quickstart
+Each task has dedicated eval/RL configs, a dataset namespace, a builder, and a
+Modal app/class pair. See
+[the environment guide](environments/circuit_supernodes/README.md) for exact
+clean-checkout generation, manifest, validation, and deployment commands.
+
+## Local setup
 
 ```bash
 cd environments/circuit_supernodes
-uv sync
-uv run modal setup
-uv run modal deploy modal_app/attribution.py
-uv run modal deploy modal_app/attribution_gemma.py
-
-# Build causal MDL datasets.
-uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
-    --split train --out circuit_supernodes/data/train-mdl.jsonl
-uv run python scripts/build_dataset.py --n 72 --seed 1 --neuronpedia-labels \
-    --split eval --out circuit_supernodes/data/heldout-mdl.jsonl
-
-# Rebuild promptless rediscovery data from a curated source graph.
-uv run python scripts/build_rediscovery_dataset.py \
-    --source path/to/curated-gemma-graph.json \
-    --out circuit_supernodes/data/rediscovery.jsonl
-
-# PRIME_API_KEY is required for policy-model evaluation.
-uv run eval @ ../../configs/eval/circuit-mdl.toml --no-push
-uv run eval @ ../../configs/eval/supernode-rediscovery.toml --no-push
+uv sync --group dev
+uv run pytest
+uv run ruff check .
 ```
 
-The compact rediscovery task library is checked in. Generated causal MDL
-datasets are intentionally ignored and must be rebuilt on a fresh checkout.
+The compact promptless rediscovery library and its manifest are checked in.
+Causal MDL and output-restoration datasets contain generated attribution graphs,
+are ignored by Git, and must be rebuilt as documented.
 
-Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) for the causal
-reward audit, and see the
-[environment documentation](environments/circuit_supernodes/README.md) for the
-task contracts, validation, and deployment workflows.
+Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) before training
+the causal task; it records the reward audit and accepted limitations.
