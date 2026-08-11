@@ -11,7 +11,7 @@ enable_thinking = false  # must match the RL config; never compare across modes
 
 [taskset]
 id = "circuit-supernodes"
-dataset_file = "heldout-mdl.jsonl"
+dataset_file = "heldout.jsonl"
 reward_mode = "eval"
 
 [harness]

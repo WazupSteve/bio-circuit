@@ -8,7 +8,8 @@ from urllib.request import Request, urlopen
 import modal
 from circuit_supernodes.datagen import generate
 from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
-from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
+from circuit_supernodes.interventions import CORRUPTION_VERSION
+from circuit_supernodes.restoration import MODAL_APP, MODAL_CLS, REWARD_VERSION
 
 sys.path.insert(0, str(Path(__file__).parent.parent))  # for modal_app.attribution
 
@@ -23,15 +24,6 @@ def file_sha256(path: Path, chunk_size: int = 1024 * 1024) -> str:
         while chunk := f.read(chunk_size):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def is_faithful(graph_json: dict, target: str) -> tuple[bool, str]:
-    g = load_graph_json(graph_json)
-    if not g.top_outputs:
-        return False, ""
-    top_tok = g.top_outputs[0][0]
-    t, tt = target.strip(), top_tok.strip()
-    return bool(tt) and t.startswith(tt), top_tok
 
 
 def add_neuronpedia_labels(graph_json: dict, max_features: int = 60) -> int:
@@ -120,8 +112,12 @@ def write_manifest(out: Path, rows: int, args, quality: list[dict]) -> Path:
         "node_threshold": NODE_THRESHOLD,
         "edge_threshold": EDGE_THRESHOLD,
         "reward_version": REWARD_VERSION,
+        "corruption_version": CORRUPTION_VERSION,
         "screening": {
-            "exact_first_token": False,
+            "clean_target_matches_family_sample": True,
+            "corruption_changes_top_token": True,
+            "all_corrupted_nodes_displayed": True,
+            "blanket_visible_inverse_restoration_rejected": True,
             "max_error_share": args.max_error_share,
         },
         "generator": {
@@ -169,8 +165,22 @@ def main() -> None:
     )
 
     attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
-    graphs = list(
-        attributor.attribute_prompt.map([s.prompt for s in samples], order_outputs=True)
+    sample_seeds = [
+        int.from_bytes(
+            hashlib.blake2b(
+                f"{args.seed}:{index}:{sample.prompt}".encode(), digest_size=8
+            ).digest(),
+            "big",
+        )
+        for index, sample in enumerate(samples)
+    ]
+    corrupted = list(
+        attributor.build_corrupted_sample.map(
+            [s.prompt for s in samples],
+            [s.target for s in samples],
+            sample_seeds,
+            order_outputs=True,
+        )
     )
 
     out = Path(args.out)
@@ -178,18 +188,18 @@ def main() -> None:
     tmp = out.with_suffix(out.suffix + ".tmp")
     kept, stats, quality = 0, {}, []
     with tmp.open("w") as f:
-        for s, graph in zip(samples, graphs, strict=True):
-            if graph is None:
-                print(f"  ! attribution failed for {s.prompt!r}, skipping")
+        for s, result in zip(samples, corrupted, strict=True):
+            if result is None:
+                print(f"  ! corrupted attribution failed for {s.prompt!r}, skipping")
                 continue
-            faithful, top_tok = is_faithful(graph, s.target)
-            stats.setdefault(s.family, []).append(faithful)
-            if not faithful:
+            if rejected := result.get("rejected"):
+                stats.setdefault(s.family, []).append(False)
                 print(
-                    f"  ! unfaithful [{s.family}] {s.prompt!r}: "
-                    f"model says {top_tok!r}, wanted {s.target!r} — skipping"
+                    f"  ! rejected [{s.family}] {s.prompt!r}: {rejected}"
                 )
                 continue
+            stats.setdefault(s.family, []).append(True)
+            graph = result["graph"]
             clean, graph_stats = is_clean(graph, args.max_error_share, 60)
             if not clean:
                 print(
@@ -207,10 +217,15 @@ def main() -> None:
                     print(f"  ! Neuronpedia labels unavailable: {exc}")
             row = s.to_row()
             row["graph"] = graph
+            row["target_token"] = result["target_token"]
+            row["corruption"] = result["corruption"]
+            row["corruption_id"] = result["corruption_id"]
+            row["corruption_version"] = result["corruption_version"]
+            row["corruption_attempt"] = result["corruption_attempt"]
             f.write(json.dumps(row) + "\n")
             kept += 1
     print(
-        "faithfulness by family:",
+        "accepted corruptions by family:",
         {k: f"{sum(v)}/{len(v)}" for k, v in sorted(stats.items())},
     )
     if quality:

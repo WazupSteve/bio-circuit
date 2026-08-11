@@ -1,131 +1,76 @@
 # circuit-supernodes
 
-`circuit-supernodes` is a multi-turn Verifiers 0.2.1 environment for circuit
-discovery in Qwen3-4B. A policy model receives a pruned attribution graph,
-groups feature nodes into conceptual supernodes, and predicts causal edges
-between those groups.
+`circuit-supernodes` is a multi-turn Verifiers 0.2.1 environment for restoring a
+suppressed Qwen3-4B response. A policy receives an attribution graph produced
+under a persistent hidden corruption and submits weighted feature
+interventions that recover the original response.
 
 ## Task contract
 
 - Harness: `null`
 - Maximum turns: 8
-- Experiment budget: 7 calls to `circuit_run_ablation` by default, overridable
+- Experiment budget: 7 calls to `circuit_run_restoration` by default, overridable
   per dataset row (`experiment_budget`) for budget-curve variants
 - Displayed graph: up to 60 feature nodes, plus embedding and logit nodes
-- Allowed proposal size: 1–8 disjoint supernodes, at least 2 features each
-- Reserved terminal node: `output`
+- Allowed proposal size: 1–60 unique displayed feature nodes
+- Intervention weights: finite values in `[-8, 8]`
 
-Each experiment clamps selected feature nodes to zero and reports the change in
-the target-token probability and optional probe-group activations. Experiments
-provide evidence but do not directly contribute reward.
+Dataset construction samples 40–60 nodes from the clean prompt's preidentified
+attribution repository, samples positive amplification factors, and rejects the
+sample unless the original top token changes. It then runs attribution again
+with those clamps active. Only this corrupted graph is stored as the visible
+graph. Every scoring and experiment call replays the same corruption before
+applying the policy's proposal.
+
+Corrupted repository nodes are retained in the 60-node visible slice even if
+the corruption changes their influence rank; remaining slots are filled by the
+ordinary per-node influence ranking. They are rendered identically to every
+other feature and carry no corruption marker.
+
+For clean activation `a`, hidden factor `c`, and policy factor `r`, execution
+uses `a × c × r`; either omitted factor is one. Thus policy weight `1` is a true
+no-op and cannot restore clean behavior. The seed, clean activations, clean graph,
+hidden node identities, and hidden factors are never included in the prompt or
+tool response. The JSONL retains only a small hidden replay payload (four numbers
+per corrupted node), which is negligible beside the attribution graph.
 
 The final response must contain one JSON code block:
 
 ```json
 {
-  "supernodes": [
-    {"name": "<concept>", "nodes": ["<feature_id>"]}
-  ],
-  "edges": [["<source>", "<target-or-output>"]]
+  "nodes": [
+    {"id": "<feature_id>", "intervention_weight": 1.0}
+  ]
 }
 ```
 
 ## Reward
 
-`circuit_faithfulness` is an exponential transform of normalized
-minimum-description-length saving. First compute the signed value:
+`output_restoration` first requires the declared original token to be top-1. If
+that gate passes, it compares the intervened distribution with the unmodified
+standard distribution. Let `D_r = KL(standard || restored)`:
 
 ```text
-net_reward = 1 - circuit_error/null_error
-               - 2·ln(2)·description_bits/null_error
-reward = 2 ** (net_reward - 1)
+reward = 0                       if the original token is not top-1
+reward = exp(-D_r)               otherwise
 ```
 
-- `null_error` is the whitened squared error of predicting zero on the entire
-  fixed hidden response tensor.
-- `circuit_error` is held-out error when the submitted partition and DAG form a
-  block-constant predictor of that tensor.
-- `description_bits` is the canonical literal encoding of the selected members,
-  group assignments, and submitted edges.
+One means the submitted intervention recreates the standard distribution. The
+scorer also verifies that the clean replay has the declared target at top-1 and
+that the hidden corruption still changes the top token. A missing clean KL or a
+failed replay invariant is an infrastructure error, never a reward-bearing
+fallback.
 
-The factor `2·ln(2)` is not tuned. Unit-variance Gaussian residuals cost
-`error / (2·ln(2))` bits. A circuit scores above the `0.5` break-even point
-exactly when its predictive bit saving exceeds the bits required to describe
-it. Every valid finite circuit has positive reward; invalid proposals retain
-the `0.0` sentinel. The exponential is strictly monotone, so it preserves every
-ordering from signed net MDL value without collapsing net-cost circuits into a
-single clipped score.
-
-### Fixed hidden response bank
-
-The backend intervenes on every displayed feature and records its signed local
-effect on every other displayed feature plus target-token log-odds. Mediator
-columns are weighted by squared output sensitivity, following the first-order
-output propagation approximation. Proposal-independent scales whiten each
-column.
-
-Block values are fitted on calibration intervention radii and evaluated only on
-disjoint validation radii. When predicting one source member, its calibration
-row is excluded. Randomly mixed members must therefore predict one another's
-held-out causal roles rather than fitting a proposal-specific experiment.
-
-Unsubmitted source rows, unsubmitted destination columns, and unreachable blocks
-predict zero. Omitting most of the mechanism cannot shrink the validation set.
-The response bank is cached and can be precomputed into the hidden dataset, so
-every sibling proposal is evaluated against exactly the same tensor.
-
-### Literal circuit code
-
-For `N` available features, `n` selected features, `K` groups and `m` edges:
-
-```text
-L = b_n + b_K + n·(b_node + b_group) + b_m + 2·m·b_endpoint
-```
-
-Each width is `ceil(log2(cardinality))`; `K_max` is 8. Feature identifiers are
-sorted and group labels are canonical. Natural-language names and block values
-are not encoded: names are annotations, while block values are reconstructed
-from the shared calibration bank. The deliberately literal edge code ensures
-that every extra member or edge costs positive bits.
-
-### Gates
-
-Malformed proposals are **rejected, not repaired**. A proposal scores zero when
-it has fewer than 1 or more than 8 supernodes, repeats or overlaps members, names
-a non-FEATURE id, contains a supernode below the leave-one-member-out minimum of
-2, duplicates an edge, or does not form a DAG. There is no dominance, coverage,
-or preferred-size gate; valid catch-alls and tiny circuits fail through error or
-description length.
-
-Edges are scored as **reachability**, not as direct connections. Edge sets with
-the same transitive closure have the same prediction error. Redundant transitive
-edges still cost additional description bits, so the shortest representative
-wins.
-
-### Reward modes
-
-`train` and `eval` now return the same objective. V2's separately weighted
-parse/membership/topology training floor was removed because it reintroduced an
-arbitrary multi-reward rubric. The result also reports signed `net_reward` and
-`net_bits` as diagnostics. The harness reward is its exponential transform in
-`(0, 1]` for valid proposals; `0.5` is the net-saving threshold.
+Malformed proposals are rejected rather than repaired. Unknown or duplicate
+feature ids, missing/non-finite weights, and weights outside the allowed range
+score zero.
 
 Infrastructure failures are retried with backoff and then **raise**. They are
 never scored: a false zero would corrupt every advantage in its GRPO group.
-Identical response banks are cached within the scorer.
 
 `REWARD_VERSION` records which definition produced a score. Numbers from
-different versions are not comparable. The old three-factor score is retained
-only in `FINDINGS.md` as an audit record.
-
-### What the reward does not measure
-
-The score identifies equivalence under its frozen intervention operator, not a
-human semantic name. Reachability-equivalent direct DAGs are not identifiable.
-The claim is relative to the displayed feature slice and the local derivative
-conditions, not every hidden transformer feature or nonlinear interaction. Lean
-proves the algebraic reward properties; validation of the response bank and
-backend remains empirical.
+different versions are not comparable. This remains a first-token restoration
+task; it does not compare complete generated continuations.
 
 ## Setup
 
@@ -145,8 +90,10 @@ transcoder set.
 ## Datasets
 
 The generator supports two-hop recall, addition, antonyms, analogies, acronyms,
-sequences, factual recall, and in-context mappings. Attribution graphs are
-precomputed on Modal and stored with each retained prompt.
+sequences, factual recall, and in-context mappings. Clean attribution is used
+only to form the candidate repository; the retained graph is attributed under
+the accepted corruption. Dataset admission rejects corruptions that can be
+solved by applying one generic inverse weight to every visible feature.
 
 Build the standard family split:
 
@@ -157,12 +104,6 @@ uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
 uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
     --families two_hop addition \
     --out circuit_supernodes/data/heldout.jsonl
-
-# Freeze the proposal-independent banks used by the MDL scorer.
-uv run python scripts/precompute_response_banks.py \
-    --input train.jsonl --out train-mdl.jsonl --max-features 60
-uv run python scripts/precompute_response_banks.py \
-    --input heldout.jsonl --out heldout-mdl.jsonl --max-features 60
 ```
 
 `--neuronpedia-labels` is optional. Labels are cached in the generated JSONL and
@@ -207,35 +148,6 @@ jq -c '{
 }' outputs/.../traces.jsonl
 ```
 
-## Discover suppressed features in a provided model
-
-Suppression is measured against a compatible reference model, using the same
-transcoder coordinates and identical tokenization. For every prompt-position
-feature, the profiler clamps its activation to that feature's across-position
-mean. A feature is reported as suppressed when this intervention removes
-materially less target log-odds in the provided model than in the reference,
-consistently across prompts. The report also says whether the causal reduction is
-backed by a smaller activation deviation.
-
-The two models must share architecture, tokenizer, and transcoder feature space;
-the analyzer rejects mismatched transcoders or token fingerprints.
-
-```bash
-uv run modal deploy modal_app/suppression.py
-uv run python scripts/profile_model_pair.py \
-    --dataset circuit_supernodes/data/heldout-mdl.jsonl \
-    --reference-model Qwen/Qwen3-4B \
-    --provided-model org/my-finetuned-qwen3-4b \
-    --transcoders mwhanna/qwen3-4b-transcoders \
-    --out analysis/model-pair-profiles.json
-uv run python scripts/discover_suppressed_features.py \
-    --profiles analysis/model-pair-profiles.json \
-    --out analysis/suppressed-features.json
-```
-
-Model profiling requires the `huggingface-secret` Modal secret for private model
-ids. The final comparison is local, deterministic, and makes no model calls.
-
 ## Train
 
 For hosted RL, install the Prime CLI separately and run the repository config:
@@ -262,31 +174,25 @@ automatically.
 | --- | --- | --- |
 | `taskset.dataset_file` | `dataset.jsonl` | Dataset under `circuit_supernodes/data/` |
 | `taskset.max_features` | `60` | Maximum feature nodes shown to the policy |
-| `taskset.experiment_budget` | `7` | Default ablation budget; rows may override |
-| `taskset.reward_mode` | `eval` | Compatibility field; both modes use the same MDL reward |
+| `taskset.experiment_budget` | `7` | Default restoration-test budget; rows may override |
+| `taskset.reward_mode` | `eval` | Compatibility field; both modes use the same reward |
 | `taskset.fault_rate` | `0.0` | Canary only: fraction of rollouts whose scoring raises |
 
-Fixed safety limits allow at most 12 ablated features, 8 probe groups, and 60
-probe features per interactive experiment. Each interactive experiment costs two
-subject-model passes. Building the default fixed response bank costs one base
-pass plus four interventions per displayed feature (`241` passes for 60
-features), but it is proposal-independent and should be precomputed once. A
-dataset row containing `response_bank` needs no final-scoring GPU passes; missing
-banks are constructed lazily and cached as a compatibility fallback.
+Each restoration evaluation costs one standard forward pass plus corrupted and
+composed-intervention passes. Proposals may contain at most 60 features.
 
 ## Layout
 
 - `circuit_supernodes/circuit_supernodes.py`: task and taskset
-- `circuit_supernodes/experiments.py`: interactive ablation tool
+- `circuit_supernodes/experiments.py`: interactive restoration tool
 - `circuit_supernodes/graphs.py`: graph normalization, pruning, and rendering
-- `circuit_supernodes/mdl.py`: pure response-bank decoder and proved MDL formula
-- `circuit_supernodes/rubric.py`: proposal validation and bank integration
-- `circuit_supernodes/suppression.py`: aligned suppressed-feature analysis
+- `circuit_supernodes/interventions.py`: shared coordinate and factor contract
+- `circuit_supernodes/restoration.py`: weighted-graph validation and output reward
 - `circuit_supernodes/datagen.py`: prompt generation
-- `modal_app/attribution.py`: Modal attribution, intervention, and bank service
-- `modal_app/suppression.py`: generic reference/provided-model feature profiler
+- `modal_app/attribution.py`: Modal attribution and restoration service
 - `scripts/build_dataset.py`: dataset construction
-- `scripts/precompute_response_banks.py`: hidden-bank precomputation
-- `scripts/profile_model_pair.py`: collect aligned profiles from a model pair
-- `scripts/discover_suppressed_features.py`: rank suppressed features locally
-- `tests/test_mdl_reward.py`: planted-world and adversarial validation
+- `tests/test_restoration.py`: contract and scoring regression tests
+
+`mdl.py`, `rubric.py`, `scripts/precompute_response_banks.py`, and
+`tests/test_mdl_reward.py` are retained only to reproduce the immediately prior
+MDL rollout. They are not imported by the active task or Modal deployment.

@@ -30,7 +30,7 @@ max_turns = 4
 
 [env.taskset]
 id = "circuit-supernodes"
-dataset_file = "heldout-mdl.jsonl"
+dataset_file = "heldout.jsonl"
 reward_mode = "train"
 fault_rate = 0.125
 

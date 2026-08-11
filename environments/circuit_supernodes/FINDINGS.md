@@ -1,8 +1,8 @@
 # What the intervention reward actually measures
 
-> Historical audit: this document describes the retired v1/v2 three-factor
-> reward. The active `v3.0-mdl` implementation replaces it with held-out causal
-> minimum-description-length saving; see `README.md` and `circuit_supernodes/mdl.py`.
+> Historical audit: this document describes the retired supernode-partition
+> rewards. The active environment is a persistent-corruption restoration task;
+> see `README.md` and `circuit_supernodes/restoration.py`.
 
 An audit of the `circuit-supernodes` reward, run before training anything on it.
 The audit scripts and archived run data behind these numbers were removed in a

@@ -1,29 +1,54 @@
 import hashlib
 import json
-import math
-from pathlib import Path
+import random
+import types
 
 import modal
+from circuit_supernodes.interventions import (
+    CORRUPTION_VERSION,
+    MAX_ABS_WEIGHT,
+    MAX_CORRUPTION_FACTOR,
+    MAX_CORRUPTION_NODES,
+    MAX_INTERVENTIONS,
+    MIN_CORRUPTION_FACTOR,
+    MIN_CORRUPTION_NODES,
+    compose_multipliers,
+    coordinate_from_feature_id,
+    validate_interventions,
+)
 
 MODEL_NAME = "Qwen/Qwen3-4B"
 TRANSCODER_SET = "mwhanna/qwen3-4b-transcoders"
 NODE_THRESHOLD = 0.8
 EDGE_THRESHOLD = 0.98
 MAX_FEATURE_NODES = 4096
-RESPONSE_BANK_VERSION = "v1-local-derivative"
-CALIBRATION_FRACTIONS = (0.25, 0.5)
-VALIDATION_FRACTIONS = (0.75, 1.0)
+CORRUPTION_MIN_NODES = MIN_CORRUPTION_NODES
+CORRUPTION_MAX_NODES = MAX_CORRUPTION_NODES
+CORRUPTION_MIN_LOG2_MAGNITUDE = 1.0
+CORRUPTION_MAX_LOG2_MAGNITUDE = 3.0
+CORRUPTION_CANDIDATES = 60
+CORRUPTION_ATTEMPTS = 32
+BLANKET_RESTORATION_WEIGHTS = (0.25, 0.353553, 0.176777, 0.5, 0.125)
 
-app = modal.App("circuit-supernodes-attribution")
+# Keep the persistent-corruption backend isolated from legacy attribution
+# deployments: Modal app names are account-global, so another worktree deploying
+# the old class can otherwise remove restore_output while an eval is running.
+app = modal.App("circuit-supernodes-persistent-restoration")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git")
     .pip_install(
-        "circuit-tracer==0.5.0",  # brings torch, transformer-lens, transformers
-        "huggingface_hub[hf_transfer]",
+        "circuit-tracer==0.5.0",
+        "nnsight==0.6.1",
+        "torch==2.8.0",
+        "transformer-lens==2.16.1",
+        # nnsight 0.6.1 imports two internals removed by cloudpickle 3.1.
+        "cloudpickle==3.0.0",
+        "huggingface_hub[hf_transfer]<1",
     )
     .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
+    .add_local_python_source("circuit_supernodes")
 )
 
 hf_cache = modal.Volume.from_name("circuit-supernodes-hf-cache", create_if_missing=True)
@@ -44,14 +69,34 @@ class Attributor:
         from circuit_tracer import ReplacementModel
 
         self.model = ReplacementModel.from_pretrained(
-            MODEL_NAME, TRANSCODER_SET, dtype=torch.bfloat16
+            MODEL_NAME,
+            TRANSCODER_SET,
+            backend="nnsight",
+            dtype=torch.bfloat16,
         )
 
     def _tokens_and_target(self, prompt: str, target_token: str):
         token_ids = self.model.tokenizer.encode(target_token, add_special_tokens=False)
-        if not token_ids:
-            raise ValueError(f"target token {target_token!r} encodes to nothing")
+        if len(token_ids) != 1:
+            raise ValueError(
+                f"target token {target_token!r} must encode to exactly one token"
+            )
+        if self.model.tokenizer.decode(token_ids) != target_token:
+            raise ValueError(f"target token {target_token!r} does not round-trip")
         return self.model.ensure_tokenized(prompt), token_ids[0]
+
+    def _intervention_input(self, tokens) -> str:
+        """Render the BOS-prefixed tensor back to text for NNSight interventions."""
+
+        rendered = self.model.tokenizer.decode(
+            tokens.tolist(),
+            skip_special_tokens=False,
+            clean_up_tokenization_spaces=False,
+        )
+        roundtrip = self.model.tokenizer.encode(rendered, add_special_tokens=False)
+        if roundtrip != tokens.tolist():
+            raise ValueError("BOS-prefixed intervention input does not round-trip")
+        return rendered
 
     @staticmethod
     def _target_prob(logits, target_id: int) -> float:
@@ -61,282 +106,385 @@ class Attributor:
         return torch.softmax(final_logits, dim=-1)[target_id].item()
 
     @staticmethod
-    def _target_log_odds(logits, target_id: int) -> float:
-        """Stable target-vs-rest log odds, the response tensor's output unit."""
-
-        import torch
-
-        final_logits = logits.reshape(-1, logits.shape[-1])[-1].float()
-        other_logits = torch.cat(
-            (final_logits[:target_id], final_logits[target_id + 1 :])
-        )
-        return (final_logits[target_id] - torch.logsumexp(other_logits, dim=0)).item()
-
-    @staticmethod
     def _normalize_acts(acts):
         return acts[:, 0] if acts.dim() == 4 else acts
 
-    @staticmethod
-    def _group_act(acts, members) -> float:
-        layers, features, positions = zip(*members, strict=True)
-        return acts[list(layers), list(positions), list(features)].sum().item()
-
-    @staticmethod
-    def _clamp_values(base_acts, members, ablation: str) -> list[float]:
-        """The value each feature is clamped to.
-
-        ``zero`` removes the feature outright. ``mean`` removes only its
-        deviation from its own average activation over the prompt's positions,
-        which reweights a group's members unequally — the property that makes it
-        a genuinely different operator rather than a weaker version of the same
-        one. Scoring uses ``mean`` while the agent's tool offers ``zero``, so a
-        circuit fitted to what the agent measured has to generalise to be
-        credited.
-        """
-        if ablation == "zero":
-            return [0.0] * len(members)
-        return [base_acts[layer, :, feat].mean().item() for layer, feat, _ in members]
-
     @modal.method()
-    def intervene(
+    def restore_output(
         self,
         prompt: str,
-        groups: list[list[tuple[int, int, int]]],
+        corruption: list[tuple[int, int, int, float]],
+        restorations: list[tuple[int, int, int, float]],
         target_token: str,
-        complement: list[tuple[int, int, int]] | None = None,
-        ablation_indices: list[int] | None = None,
-        ablation: str = "zero",
     ) -> dict:
+        """Replay hidden corruption and compose submitted multipliers on top.
+
+        For clean activation ``a``, hidden factor ``c`` and submitted factor
+        ``r``, the executed value is ``a * c * r``. Missing factors are one, so
+        submitting weight one cannot reveal or undo the hidden intervention.
+        """
+
         import torch
 
-        # Attribution graphs index ctx_idx in BOS-prepended coordinates
-        # (attribute() uses ensure_tokenized) — tokenize the same way here so
-        # intervention positions line up.
-        tokens, target_id = self._tokens_and_target(prompt, target_token)
+        corruption = validate_interventions(
+            corruption,
+            label="corruption",
+            require_nonempty=True,
+            min_count=MIN_CORRUPTION_NODES,
+            max_count=MAX_CORRUPTION_NODES,
+            min_factor=MIN_CORRUPTION_FACTOR,
+            max_abs_factor=MAX_CORRUPTION_FACTOR,
+            require_positive=True,
+        )
+        restorations = validate_interventions(
+            restorations,
+            label="restoration",
+            max_count=MAX_INTERVENTIONS,
+            max_abs_factor=MAX_ABS_WEIGHT,
+        )
 
-        with torch.inference_mode():
-            base_logits, base_acts = self.model.get_activations(tokens)
+        tokens, target_id = self._tokens_and_target(prompt, target_token)
+        intervention_input = self._intervention_input(tokens)
+        with torch.no_grad():
+            standard_logits, base_acts = self.model.get_activations(tokens)
             base_acts = self._normalize_acts(base_acts)
-            out = {
-                "base_prob": self._target_prob(base_logits, target_id),
-                "base_group_acts": [self._group_act(base_acts, g) for g in groups],
-                "ablations": [],
-                "complement_prob": None,
-            }
-            indices = (
-                range(len(groups)) if ablation_indices is None else ablation_indices
+            hidden_factors = {item[:3]: item[3] for item in corruption}
+            composed_factors = compose_multipliers(corruption, restorations)
+
+            def interventions(include_submission: bool, activations=base_acts):
+                factors = composed_factors if include_submission else hidden_factors
+                values = []
+                for (layer, feature, position), factor in sorted(factors.items()):
+                    base = activations[layer, position, feature].float().item()
+                    values.append((layer, position, feature, base * factor))
+                return values
+
+            corrupted_logits, _ = self.model.feature_intervention(
+                intervention_input,
+                interventions(False),
+                freeze_attention=False,
+                return_activations=False,
             )
-            for index in indices:
-                g = groups[index]
-                values = self._clamp_values(base_acts, g, ablation)
-                interventions = [
-                    (layer, pos, feat, v)
-                    for (layer, feat, pos), v in zip(g, values, strict=True)
-                ]
-                logits, acts = self.model.feature_intervention(tokens, interventions)
-                acts = self._normalize_acts(acts)
-                out["ablations"].append(
-                    {
-                        "target_prob": self._target_prob(logits, target_id),
-                        "group_acts": [
-                            self._group_act(acts, group) for group in groups
-                        ],
-                    }
-                )
-                del logits, acts
-            if complement:
-                values = self._clamp_values(base_acts, complement, ablation)
-                interventions = [
-                    (layer, pos, feat, v)
-                    for (layer, feat, pos), v in zip(complement, values, strict=True)
-                ]
-                logits, _ = self.model.feature_intervention(
-                    tokens, interventions, return_activations=False
-                )
-                out["complement_prob"] = self._target_prob(logits, target_id)
-                del logits
-            del base_logits, base_acts
+            restored_logits, _ = self.model.feature_intervention(
+                intervention_input,
+                interventions(True),
+                freeze_attention=False,
+                return_activations=False,
+            )
+
+            def final_logits(logits):
+                return logits.reshape(-1, logits.shape[-1])[-1].float()
+
+            standard_final = final_logits(standard_logits)
+            corrupted_final = final_logits(corrupted_logits)
+            restored_final = final_logits(restored_logits)
+            standard_log_probs = torch.log_softmax(standard_final, dim=-1)
+            standard_probs = standard_log_probs.exp()
+
+            def standard_kl(candidate) -> float:
+                candidate_log_probs = torch.log_softmax(candidate, dim=-1)
+                return (
+                    standard_probs * (standard_log_probs - candidate_log_probs)
+                ).sum().item()
+
+            standard_top_id = int(standard_final.argmax().item())
+            corrupted_top_id = int(corrupted_final.argmax().item())
+            restored_top_id = int(restored_final.argmax().item())
+            out = {
+                "target_token": target_token,
+                "standard_target_probability": self._target_prob(
+                    standard_logits, target_id
+                ),
+                "corrupted_target_probability": self._target_prob(
+                    corrupted_logits, target_id
+                ),
+                "restored_target_probability": self._target_prob(
+                    restored_logits, target_id
+                ),
+                "corrupted_standard_kl": standard_kl(corrupted_final),
+                "restored_standard_kl": standard_kl(restored_final),
+                "standard_top_token": self.model.tokenizer.decode([standard_top_id]),
+                "corrupted_top_token": self.model.tokenizer.decode(
+                    [corrupted_top_id]
+                ),
+                "restored_top_token": self.model.tokenizer.decode([restored_top_id]),
+                "standard_target_is_top": standard_top_id == target_id,
+                "corruption_changed_top_token": corrupted_top_id != standard_top_id,
+                "restored_target_is_top": restored_top_id == target_id,
+            }
+            del standard_logits, corrupted_logits, restored_logits, base_acts
         return out
 
-    @modal.method()
-    def causal_response_bank(
-        self,
-        prompt: str,
-        features: list[tuple[int, int, int]],
-        target_token: str,
-        calibration_fractions: list[float] | None = None,
-        validation_fractions: list[float] | None = None,
-    ) -> dict:
-        """Measure a fixed full-universe causal response bank.
+    @staticmethod
+    def _export_graph(graph, required_feature_ids: set[str] | None = None) -> dict:
+        """Export the ordinary pruned graph while retaining required features.
 
-        Each feature is perturbed from its prompt-position activation toward its
-        across-position mean.  Dividing every downstream change by the source
-        perturbation produces a local causal derivative.  Calibration and
-        validation use disjoint perturbation radii, so proposal-specific block
-        values are fitted without reading the matrices that determine reward.
+        Required nodes use their real corrupted activation, influence and
+        adjacency entries. We merely pin each node and its strongest incoming
+        and outgoing graph edges through the same frontend exporter.
         """
 
         import torch
+        from circuit_tracer.graph import prune_graph
+        from circuit_tracer.utils.create_graph_files import (
+            build_model,
+            create_nodes,
+            create_used_nodes_and_edges,
+        )
+        from transformers import AutoTokenizer
 
-        calibration_fractions = list(
-            CALIBRATION_FRACTIONS
-            if calibration_fractions is None
-            else calibration_fractions
+        slug = "g"
+        graph.to("cuda" if torch.cuda.is_available() else "cpu")
+        node_mask, edge_mask, cumulative_scores = (
+            value.cpu()
+            for value in prune_graph(graph, NODE_THRESHOLD, EDGE_THRESHOLD)
         )
-        validation_fractions = list(
-            VALIDATION_FRACTIONS
-            if validation_fractions is None
-            else validation_fractions
-        )
-        if not features or len(set(features)) != len(features):
-            raise ValueError("features must be a non-empty unique list")
-        all_fractions = calibration_fractions + validation_fractions
-        if (
-            not calibration_fractions
-            or not validation_fractions
-            or any(not 0.0 < float(fraction) <= 1.0 for fraction in all_fractions)
-            or set(calibration_fractions) & set(validation_fractions)
-        ):
+        graph.to("cpu")
+
+        required_feature_ids = required_feature_ids or set()
+        found: set[str] = set()
+        adjacency = graph.adjacency_matrix
+        for node_index, selected_index in enumerate(graph.selected_features.tolist()):
+            layer, position, feature = graph.active_features[selected_index].tolist()
+            node_id = f"{layer}_{feature}_{position}"
+            if node_id not in required_feature_ids:
+                continue
+            found.add(node_id)
+            node_mask[node_index] = True
+            for scores, incoming in (
+                (adjacency[node_index].abs(), True),
+                (adjacency[:, node_index].abs(), False),
+            ):
+                nonzero = scores.nonzero(as_tuple=False).flatten()
+                if not len(nonzero):
+                    continue
+                keep = nonzero[
+                    torch.topk(scores[nonzero], min(5, len(nonzero))).indices
+                ]
+                node_mask[keep] = True
+                if incoming:
+                    edge_mask[node_index, keep] = True
+                else:
+                    edge_mask[keep, node_index] = True
+        if missing := required_feature_ids - found:
             raise ValueError(
-                "calibration and validation fractions must be disjoint values in (0, 1]"
+                f"required corrupted features were not attributed: {sorted(missing)}"
             )
 
-        tokens, target_id = self._tokens_and_target(prompt, target_token)
-        with torch.inference_mode():
-            base_logits, base_acts = self.model.get_activations(tokens)
-            base_acts = self._normalize_acts(base_acts)
-            base_output = self._target_log_odds(base_logits, target_id)
-            base_values = [
-                base_acts[layer, position, feature].float().item()
-                for layer, feature, position in features
-            ]
-            directions = []
-            for (layer, feature, _), base_value in zip(
-                features, base_values, strict=True
-            ):
-                reference = base_acts[layer, :, feature].float().mean().item()
-                directions.append(reference - base_value)
-
-            def response_matrix(fraction: float) -> list[list[float]]:
-                matrix: list[list[float]] = []
-                for source, (
-                    (layer, feature, position),
-                    base_value,
-                    direction,
-                ) in enumerate(zip(features, base_values, directions, strict=True)):
-                    delta = float(fraction) * direction
-                    if abs(delta) <= 1e-12:
-                        matrix.append([0.0] * (len(features) + 1))
-                        continue
-                    logits, acts = self.model.feature_intervention(
-                        tokens,
-                        [(layer, position, feature, base_value + delta)],
-                    )
-                    acts = self._normalize_acts(acts)
-                    row = [
-                        (
-                            acts[dst_layer, dst_position, dst_feature].float().item()
-                            - baseline
-                        )
-                        / delta
-                        for (dst_layer, dst_feature, dst_position), baseline in zip(
-                            features, base_values, strict=True
-                        )
-                    ]
-                    # The clamped source coordinate is an intervention artefact,
-                    # not a causal self-edge available to the proposal language.
-                    row[source] = 0.0
-                    row.append(
-                        (self._target_log_odds(logits, target_id) - base_output) / delta
-                    )
-                    matrix.append(row)
-                    del logits, acts
-                return matrix
-
-            calibration = [
-                response_matrix(float(fraction)) for fraction in calibration_fractions
-            ]
-            validation = [
-                response_matrix(float(fraction)) for fraction in validation_fractions
-            ]
-            del base_logits, base_acts
-
-        # Pooled within-coordinate variation across hidden intervention radii is
-        # the frozen per-column noise estimate.  A deterministic column has zero
-        # measured variation, so its RMS signal supplies the unique positive
-        # scale available from the fixed bank; an all-zero column uses unit scale
-        # and contributes no null energy.
-        matrices = calibration + validation
-        columns = len(features) + 1
-        noise_scales: list[float] = []
-        for destination in range(columns):
-            variation = 0.0
-            means: list[float] = []
-            for source in range(len(features)):
-                values = [matrix[source][destination] for matrix in matrices]
-                mean = sum(values) / len(values)
-                means.append(mean)
-                variation += sum((value - mean) ** 2 for value in values)
-            denominator = len(features) * max(len(matrices) - 1, 1)
-            scale = math.sqrt(variation / denominator)
-            if scale <= 1e-12:
-                scale = math.sqrt(sum(value * value for value in means) / len(means))
-            noise_scales.append(scale if scale > 1e-12 else 1.0)
-
-        # First-order output propagation says mediator-column residuals should be
-        # multiplied by (d output / d mediator)^2.  The calibration source row of
-        # that mediator supplies this sensitivity without a hand-tuned weight.
-        column_weights = [
-            sum(matrix[source][-1] ** 2 for matrix in calibration) / len(calibration)
-            for source in range(len(features))
-        ] + [1.0]
-
-        response_digest = hashlib.sha256(
-            json.dumps(
-                [calibration, validation, noise_scales, column_weights],
-                separators=(",", ":"),
-            ).encode()
-        ).hexdigest()
-        bank_key = json.dumps(
-            {
-                "version": RESPONSE_BANK_VERSION,
-                "model": MODEL_NAME,
-                "transcoders": TRANSCODER_SET,
-                "prompt": prompt,
-                "target": target_token,
-                "features": features,
-                "calibration": calibration_fractions,
-                "validation": validation_fractions,
-                "response_digest": response_digest,
-            },
-            sort_keys=True,
+        tokenizer = AutoTokenizer.from_pretrained(graph.cfg.tokenizer_name)
+        nodes = create_nodes(graph, node_mask, tokenizer, cumulative_scores)
+        used_nodes, used_edges = create_used_nodes_and_edges(graph, nodes, edge_mask)
+        model = build_model(
+            graph,
+            used_nodes,
+            used_edges,
+            slug,
+            graph.scan,
+            NODE_THRESHOLD,
+            tokenizer,
         )
-        return {
-            "feature_ids": ["_".join(map(str, feature)) for feature in features],
-            "calibration": calibration,
-            "validation": validation,
-            "noise_scales": noise_scales,
-            "column_weights": column_weights,
-            "metadata": {
-                "bank_id": hashlib.sha256(bank_key.encode()).hexdigest()[:20],
-                "response_digest": response_digest,
-                "version": RESPONSE_BANK_VERSION,
-                "model": MODEL_NAME,
-                "transcoders": TRANSCODER_SET,
-                "calibration_fractions": calibration_fractions,
-                "validation_fractions": validation_fractions,
-                "response": "local derivative toward across-position mean",
-                "noise_scale": "pooled within-coordinate condition variation",
-                "mediator_weight": "mean squared calibration output sensitivity",
-            },
-        }
+        return json.loads(model.model_dump_json())
 
-    @modal.method()
-    def attribute_prompt(self, prompt: str) -> dict | None:
+    def _corrupted_attribution_context(self, inputs, interventions):
+        """Build circuit-tracer's phase-0 context from a corrupted execution."""
+
+        import torch
+        from circuit_tracer.attribution.context_nnsight import AttributionContext
+        from nnsight import save
+
+        model = self.model
+        tokens = (
+            model.ensure_tokenized(inputs)
+            if isinstance(inputs, str)
+            else inputs.squeeze()
+        )
+        intervention_layers = {int(item[0]) for item in interventions}
+        activation_matrix, activation_fn = model.get_activation_fn()
+
+        with model.trace() as tracer:
+            activation_barrier = tracer.barrier(2)
+            with tracer.invoke(tokens):
+                activation_fn(
+                    barrier=activation_barrier,
+                    barrier_layers=intervention_layers,
+                    activation_layers=sorted(intervention_layers),
+                )
+            with tracer.invoke():
+                # A shape-only tensor avoids _perform_feature_intervention trying
+                # to tokenize an already-tokenized tensor. It is otherwise unused
+                # when constrained_layers is None.
+                shape_stub = torch.empty((1, tokens.numel(), 1), device=model.device)
+                model._perform_feature_intervention(
+                    tokens,
+                    interventions,
+                    activation_matrix,
+                    shape_stub,
+                    activation_barrier,
+                    None,
+                    constrained_layers=None,
+                )
+            with tracer.invoke():
+                mlp_inputs, mlp_outputs = [], []
+                for feature_input_loc, feature_output_loc in zip(
+                    model.feature_input_locs,
+                    model.feature_output_locs,
+                    strict=True,
+                ):
+                    mlp_inputs.append(feature_input_loc.output)
+                    output = feature_output_loc.output
+                    if output.ndim == 2:
+                        output = output.unsqueeze(0)
+                    mlp_outputs.append(output)
+                mlp_inputs = save(torch.cat(mlp_inputs, dim=0))
+                mlp_outputs = save(torch.cat(mlp_outputs, dim=0))
+                logits = save(model.output.logits)
+
+        components = model.transcoders.compute_attribution_components(
+            mlp_inputs, model.zero_positions
+        )
+        sparse = components["activation_matrix"].coalesce()
+        indices = sparse.indices().clone()
+        values = sparse.values().clone()
+        reconstruction = components["reconstruction"].clone()
+        transcoders = (
+            model.transcoders._module
+            if hasattr(model.transcoders, "_module")
+            else model.transcoders
+        )
+
+        # The encoder sees the natural pre-intervention value. Replace it with
+        # the value actually written into the residual stream, and make its
+        # scaled decoder vector and reconstruction agree with that execution.
+        for layer, position, feature, desired_value in interventions:
+            matches = (
+                (indices[0] == layer)
+                & (indices[1] == position)
+                & (indices[2] == feature)
+            ).nonzero(as_tuple=False).flatten()
+            decoder = transcoders._get_decoder_vectors(
+                int(layer), torch.tensor([feature], device=values.device)
+            )[0]
+            if len(matches) == 1:
+                index = int(matches[0])
+                delta = float(desired_value) - values[index].float()
+                values[index] = float(desired_value)
+            elif len(matches) == 0:
+                coordinate = torch.tensor(
+                    [[layer], [position], [feature]],
+                    dtype=indices.dtype,
+                    device=indices.device,
+                )
+                indices = torch.cat((indices, coordinate), dim=1)
+                values = torch.cat(
+                    (
+                        values,
+                        torch.tensor(
+                            [desired_value], dtype=values.dtype, device=values.device
+                        ),
+                    )
+                )
+                delta = torch.tensor(
+                    float(desired_value), dtype=values.dtype, device=values.device
+                )
+            else:
+                raise ValueError("duplicate sparse attribution coordinate")
+            reconstruction[layer, position] += decoder * delta
+
+        activation_matrix = torch.sparse_coo_tensor(
+            indices, values, sparse.shape, device=values.device
+        ).coalesce()
+        (
+            _,
+            _,
+            _,
+            decoder_vecs,
+            encoder_to_decoder_map,
+        ) = transcoders.select_decoder_vectors(activation_matrix)
+        final_indices = activation_matrix.indices()
+        encoder_vecs = torch.cat(
+            [
+                transcoders[layer].W_enc[final_indices[2, final_indices[0] == layer]]
+                for layer in final_indices[0].unique(sorted=True).tolist()
+            ]
+        )
+        error_vectors = mlp_outputs - reconstruction
+        error_vectors[:, model.zero_positions] = 0
+        token_vectors = model.embed_weight[tokens].detach()
+        return AttributionContext(
+            activation_matrix=activation_matrix,
+            logits=logits,
+            error_vectors=error_vectors,
+            token_vectors=token_vectors,
+            decoder_vecs=decoder_vecs,
+            encoder_vecs=encoder_vecs,
+            encoder_to_decoder_map=encoder_to_decoder_map,
+            decoder_locations=activation_matrix.indices()[:2],
+        )
+
+    def _configure_corrupted_gradient_flow(
+        self, tracer, interventions, original_configure, n_positions
+    ):
+        """Replay corruption in circuit-tracer's phase-1 attribution forward."""
+
+        import torch
+
+        model = self.model
+        transcoders = (
+            model.transcoders._module
+            if hasattr(model.transcoders, "_module")
+            else model.transcoders
+        )
+        intervention_layers = {int(item[0]) for item in interventions}
+        activations = [None] * model.cfg.n_layers
+        activation_barrier = tracer.barrier(2)
+        with tracer.invoke():
+            for layer in sorted(intervention_layers):
+                acts = transcoders.encode_layer(
+                    model.get_feature_input_loc(layer).output, layer
+                ).detach()[0]
+                acts[model.zero_positions] = 0
+                activations[layer] = acts
+                activation_barrier()
+        with tracer.invoke():
+            shape_stub = torch.empty(
+                (1, n_positions, 1), device=model.device
+            )
+            # Only size(1) is read, and layer deltas derive their actual shape
+            # from the activation proxies above.
+            model._perform_feature_intervention(
+                "",
+                interventions,
+                activations,
+                shape_stub,
+                activation_barrier,
+                None,
+                constrained_layers=None,
+            )
+        original_configure(tracer)
+
+    def _attribute_graph(self, prompt: str, interventions=None):
+        """Attribute a clean or persistently corrupted execution."""
+
         import torch
         from circuit_tracer import attribute
-        from circuit_tracer.utils.create_graph_files import create_graph_files
 
+        interventions = list(interventions or [])
+        original_setup = self.model.setup_attribution
+        original_configure = self.model.configure_gradient_flow
+        if interventions:
+            owner = self
+            n_positions = int(self.model.ensure_tokenized(prompt).numel())
+
+            def setup(model, inputs):
+                return owner._corrupted_attribution_context(inputs, interventions)
+
+            def configure(model, tracer):
+                return owner._configure_corrupted_gradient_flow(
+                    tracer, interventions, original_configure, n_positions
+                )
+
+            self.model.setup_attribution = types.MethodType(setup, self.model)
+            self.model.configure_gradient_flow = types.MethodType(configure, self.model)
         try:
             graph = attribute(
                 prompt=prompt,
@@ -344,24 +492,259 @@ class Attributor:
                 max_n_logits=5,
                 desired_logit_prob=0.95,
                 max_feature_nodes=MAX_FEATURE_NODES,
-                batch_size=64,
+                # NNSight retains a much larger autograd graph than the
+                # TransformerLens backend. Reused generator containers need
+                # additional headroom after corruption screening.
+                batch_size=8,
                 offload=None,
                 verbose=True,
             )
-            out_dir = Path("/tmp/graph_out")
-            out_dir.mkdir(exist_ok=True)
-            slug = "g"
-            create_graph_files(
-                graph_or_path=graph,
-                slug=slug,
-                output_path=str(out_dir),
-                node_threshold=NODE_THRESHOLD,
-                edge_threshold=EDGE_THRESHOLD,
-            )
-            data = json.loads((out_dir / f"{slug}.json").read_text())
-            del graph
+            required = {
+                f"{int(layer)}_{int(feature)}_{int(position)}"
+                for layer, position, feature, _ in interventions
+            }
+            return self._export_graph(graph, required)
+        finally:
+            self.model.setup_attribution = original_setup
+            self.model.configure_gradient_flow = original_configure
+            if "graph" in locals():
+                del graph
             torch.cuda.empty_cache()
-            return data
+
+    @staticmethod
+    def _feature_nodes(graph: dict) -> list[dict]:
+        nodes = []
+        for node in graph.get("nodes", []):
+            node_id = str(node.get("node_id", node.get("id", "")))
+            try:
+                coordinate_from_feature_id(node_id)
+            except ValueError:
+                continue
+            if float(node.get("activation", 0.0) or 0.0) > 0:
+                nodes.append(node)
+        return sorted(nodes, key=lambda node: float(node.get("influence", 1.0)))
+
+    @classmethod
+    def _visible_feature_nodes(cls, graph: dict, limit: int = 60) -> list[dict]:
+        """Mirror graphs.slim_graph's cumulative-influence conversion."""
+
+        shares = []
+        previous = 0.0
+        ordered = sorted(
+            graph.get("nodes", []),
+            key=lambda node: float(node.get("influence", 0.0) or 0.0),
+        )
+        feature_objects = {id(node): node for node in cls._feature_nodes(graph)}
+        for node in ordered:
+            influence = float(node.get("influence", 0.0) or 0.0)
+            share = max(influence - previous, 0.0)
+            previous = influence
+            if id(node) in feature_objects:
+                node_id = str(node.get("node_id", node.get("id", "")))
+                shares.append((share, node_id, node))
+        shares.sort(key=lambda item: (-item[0], item[1]))
+        return [node for _, _, node in shares[:limit]]
+
+    @modal.method()
+    def build_corrupted_sample(
+        self, prompt: str, expected_target: str, seed: int
+    ) -> dict | None:
+        """Create one accepted graph and its compact, hidden replay payload."""
+
+        import torch
+
+        try:
+            clean_graph = self._attribute_graph(prompt)
+            tokens = self.model.ensure_tokenized(prompt)
+            intervention_input = self._intervention_input(tokens)
+            clean_logits, clean_acts = self.model.get_activations(tokens)
+            clean_acts = self._normalize_acts(clean_acts)
+            clean_final = clean_logits.reshape(-1, clean_logits.shape[-1])[-1]
+            target_id = int(clean_final.argmax().item())
+            target_token = self.model.tokenizer.decode([target_id])
+            if not target_token.strip() or not expected_target.strip().startswith(
+                target_token.strip()
+            ):
+                return {
+                    "rejected": "clean target mismatch",
+                    "target_token": target_token,
+                }
+
+            candidates = self._visible_feature_nodes(
+                clean_graph, CORRUPTION_CANDIDATES
+            )
+            if len(candidates) < CORRUPTION_MIN_NODES:
+                return {"rejected": "too few clean repository nodes"}
+            rng = random.Random(int(seed))
+            clean_probs = clean_final.float().softmax(dim=-1)
+            lowest_target_prob = float(clean_probs[target_id].item())
+            strongest_competitor_prob = float(
+                clean_probs.masked_fill(
+                    torch.arange(clean_probs.numel(), device=clean_probs.device)
+                    == target_id,
+                    float("-inf"),
+                )
+                .max()
+                .item()
+            )
+
+            def blanket_restores(graph, hidden_factors, base_activations):
+                hidden_ids = {
+                    f"{layer}_{feature}_{position}"
+                    for layer, feature, position in hidden_factors
+                }
+                ranked_visible = self._visible_feature_nodes(
+                    graph, CORRUPTION_CANDIDATES
+                )
+                visible_ids = list(hidden_ids)
+                visible_ids.extend(
+                    str(node.get("node_id", node.get("id", "")))
+                    for node in ranked_visible
+                    if str(node.get("node_id", node.get("id", "")))
+                    not in hidden_ids
+                )
+                visible_coordinates = [
+                    coordinate_from_feature_id(node_id)
+                    for node_id in visible_ids[:CORRUPTION_CANDIDATES]
+                ]
+                for weight in BLANKET_RESTORATION_WEIGHTS:
+                    factors = dict(hidden_factors)
+                    for coordinate in visible_coordinates:
+                        factors[coordinate] = factors.get(coordinate, 1.0) * weight
+                    blanket_absolute = [
+                        (
+                            layer,
+                            position,
+                            feature,
+                            base_activations[layer, position, feature].float().item()
+                            * factor,
+                        )
+                        for (layer, feature, position), factor in sorted(
+                            factors.items()
+                        )
+                    ]
+                    blanket_logits, _ = self.model.feature_intervention(
+                        intervention_input,
+                        blanket_absolute,
+                        freeze_attention=False,
+                        return_activations=False,
+                    )
+                    blanket_final = blanket_logits.reshape(
+                        -1, blanket_logits.shape[-1]
+                    )[-1]
+                    solved = int(blanket_final.argmax().item()) == target_id
+                    del blanket_logits, blanket_final
+                    if solved:
+                        return True
+                return False
+
+            blanket_rejections = 0
+            for attempt in range(CORRUPTION_ATTEMPTS):
+                count = rng.randint(
+                    CORRUPTION_MIN_NODES,
+                    min(CORRUPTION_MAX_NODES, len(candidates)),
+                )
+                chosen = rng.sample(candidates, count)
+                corruption = []
+                absolute = []
+                for node in chosen:
+                    layer, feature, position = map(
+                        int, str(node.get("node_id", node.get("id"))).split("_")
+                    )
+                    magnitude = rng.uniform(
+                        CORRUPTION_MIN_LOG2_MAGNITUDE,
+                        CORRUPTION_MAX_LOG2_MAGNITUDE,
+                    )
+                    factor = round(2**magnitude, 6)
+                    base = clean_acts[layer, position, feature].float().item()
+                    corruption.append((layer, feature, position, factor))
+                    absolute.append((layer, position, feature, base * factor))
+
+                corrupted_logits, _ = self.model.feature_intervention(
+                    intervention_input,
+                    absolute,
+                    freeze_attention=False,
+                    return_activations=False,
+                )
+                corrupted_final = corrupted_logits.reshape(
+                    -1, corrupted_logits.shape[-1]
+                )[-1]
+                corrupted_probs = corrupted_final.float().softmax(dim=-1)
+                lowest_target_prob = min(
+                    lowest_target_prob, float(corrupted_probs[target_id].item())
+                )
+                competitor_prob = corrupted_probs.masked_fill(
+                    torch.arange(
+                        corrupted_probs.numel(), device=corrupted_probs.device
+                    )
+                    == target_id,
+                    float("-inf"),
+                ).max()
+                strongest_competitor_prob = max(
+                    strongest_competitor_prob, float(competitor_prob.item())
+                )
+                changed_top = int(corrupted_final.argmax().item()) != target_id
+                del corrupted_logits, corrupted_final, corrupted_probs, competitor_prob
+                if not changed_top:
+                    continue
+                hidden_factors = {item[:3]: item[3] for item in corruption}
+                # Most shortcut candidates can be rejected against the clean
+                # graph's visible slice before paying for corrupted attribution.
+                # The exact corrupted slice is checked again below.
+                if blanket_restores(clean_graph, hidden_factors, clean_acts):
+                    blanket_rejections += 1
+                    continue
+                torch.cuda.empty_cache()
+                try:
+                    graph = self._attribute_graph(prompt, absolute)
+                except (RuntimeError, ValueError) as exc:
+                    print(f"corrupted attribution attempt {attempt} rejected: {exc}")
+                    continue
+                displayed = {
+                    str(node.get("node_id", node.get("id", "")))
+                    for node in self._feature_nodes(graph)
+                }
+                hidden_ids = {
+                    f"{layer}_{feature}_{position}"
+                    for layer, feature, position, _ in corruption
+                }
+                if not hidden_ids.issubset(displayed):
+                    continue
+
+                # Reject tasks solved by scaling every visible feature with one
+                # generic inverse factor. This known shortcut belongs in dataset
+                # admission rather than in the rollout reward contract.
+                if blanket_restores(graph, hidden_factors, clean_acts):
+                    blanket_rejections += 1
+                    continue
+                digest = hashlib.sha256(
+                    json.dumps(corruption, separators=(",", ":")).encode()
+                ).hexdigest()[:16]
+                del clean_logits, clean_acts
+                return {
+                    "graph": graph,
+                    "target_token": target_token,
+                    "corruption": corruption,
+                    "corruption_id": digest,
+                    "corruption_version": CORRUPTION_VERSION,
+                    "corruption_attempt": attempt,
+                }
+            return {
+                "rejected": (
+                    "no admissible corruption found "
+                    f"(blanket shortcut rejected {blanket_rejections}, "
+                    f"lowest target p={lowest_target_prob:.4g}, "
+                    f"largest competitor p={strongest_competitor_prob:.4g})"
+                )
+            }
+        except Exception as exc:
+            print(f"corrupted sample failed for {prompt!r}: {exc}")
+            return None
+
+    @modal.method()
+    def attribute_prompt(self, prompt: str) -> dict | None:
+        try:
+            return self._attribute_graph(prompt)
         except Exception as exc:
             print(f"attribution failed for {prompt!r}: {exc}")
             return None

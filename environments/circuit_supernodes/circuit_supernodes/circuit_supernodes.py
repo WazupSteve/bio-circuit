@@ -7,7 +7,7 @@ from typing import Literal
 import verifiers.v1 as vf
 from pydantic import Field
 
-from .experiments import DEFAULT_BUDGET, AblationTools, CircuitState
+from .experiments import DEFAULT_BUDGET, CircuitState, RestorationTools
 from .graphs import (
     Graph,
     graph_to_json,
@@ -15,43 +15,40 @@ from .graphs import (
     render_graph,
     slim_graph,
 )
-from .rubric import (
-    MIN_GROUP_SIZE,
+from .interventions import CORRUPTION_VERSION, MIN_CORRUPTION_NODES
+from .restoration import (
     REWARD_VERSION,
-    InterventionScoring,
-    parse_proposal,
+    RestorationScoring,
+    parse_intervention_graph,
+    validate_corruption,
 )
 
 DATA_DIR = Path(__file__).parent / "data"
 
-SYSTEM_PROMPT = f"""\
-You are analyzing an attribution graph of Qwen3-4B built with per-layer
-transcoders. Group FEATURE nodes by concept and causal role, then connect the
-groups into a directed circuit.
+SYSTEM_PROMPT = """\
+You are given an attribution graph for a model response and the original next
+token that must be recovered. Construct a weighted intervention subgraph that
+makes that token the model's top next-token output. You may call
+circuit_run_restoration to test candidate weights.
 
-You may call circuit_run_ablation before answering. It clamps selected FEATURE
-nodes to zero and reports changes in output probability and requested probe-group
-activations. Use it to test uncertain causal links.
+An intervention weight is a multiplicative factor on that FEATURE's activation.
+Weight 1 is a no-op, 0 ablates it, and other values scale or reverse it. Omitted
+features are unchanged. The graph is presented in the same format as an ordinary
+circuit-discovery task; infer the useful intervention from its nodes and edges.
 
-Your final proposal is scored against a fixed hidden causal-response bank. Members
-of one supernode must predict one another's held-out intervention responses, and
-the DAG must predict which destination groups and output change. Omitted responses
-are predicted as zero. Every submitted member and edge also costs literal
-description bits, so include structure only when it improves held-out prediction.
+The score is zero unless the declared original token becomes top-1. Once it is
+top-1, the score is proportional to similarity with the original clean
+next-token distribution.
 
-Rules — violations are rejected, not repaired:
-- 1-8 disjoint supernodes, at least {MIN_GROUP_SIZE} FEATURE ids each, FEATURE ids only.
-- Edges form a duplicate-free DAG; "output" is the reserved terminal.
-- Edges mean reachability: A -> B -> output predicts that intervening on A
-  changes B and the output with a shared signed response pattern.
-- Names are annotations; causal membership and topology determine the score.
-
-Finish with a short analysis and exactly one JSON code block:
+Use only displayed FEATURE ids, do not repeat ids, use at most 60 nodes, and use
+finite weights in [-8, 8]. Your final submission must be exactly one JSON code
+block and nothing else:
 ```json
-{{
-  "supernodes": [{{"name": "<concept>", "nodes": ["<node_id>", ...]}}, ...],
-  "edges": [["<source>", "<target or output>"], ...]
-}}
+{
+  "nodes": [
+    {"id": "<feature_id>", "intervention_weight": 1.0}
+  ]
+}
 ```"""
 
 
@@ -59,13 +56,14 @@ class CircuitTaskData(vf.TaskData):
     family: str
     subject_prompt: str
     graph: dict
+    target_token: str
+    corruption: list[list[int | float]]
     experiment_budget: int = DEFAULT_BUDGET
     reward_mode: Literal["train", "eval"] = "eval"
     fault_rate: float = 0.0
-    response_bank: dict | None = None
 
 
-_SCORER = InterventionScoring()
+_SCORER = RestorationScoring()
 
 
 def fails_injected_fault(rollout_id: str, rate: float) -> bool:
@@ -83,24 +81,23 @@ def fails_injected_fault(rollout_id: str, rate: float) -> bool:
 
 
 class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
-    tools = (AblationTools,)
+    tools = (RestorationTools,)
 
     @vf.metric
     async def experiments_used(self, trace: vf.Trace) -> float:
         return float(trace.state.experiments_used)
 
     @vf.reward
-    async def circuit_faithfulness(self, trace: vf.Trace) -> float:
+    async def output_restoration(self, trace: vf.Trace) -> float:
         # Infra failures deliberately propagate: verifiers records a task error
         # the trainer can drop, where a 0.0 would corrupt the group's advantages.
         if fails_injected_fault(trace.id, self.data.fault_rate):
             raise RuntimeError("injected scoring failure (fault_rate canary)")
-        proposal = parse_proposal(trace.last_reply)
+        proposal = parse_intervention_graph(trace.last_reply)
         if proposal is None:
             result = {
                 "reward": 0.0,
-                "net_reward": 0.0,
-                "gated": "missing proposal JSON",
+                "gated": "missing weighted intervention graph JSON",
                 "parse": False,
                 "reward_version": REWARD_VERSION,
             }
@@ -108,19 +105,17 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
             result = await _SCORER.score(
                 self.data.subject_prompt,
                 load_graph_json(self.data.graph),
+                self.data.corruption,
+                self.data.target_token,
                 proposal,
-                response_bank=self.data.response_bank,
             )
         trace.info["reward_components"] = result
-        # V4 deliberately has no parse/membership/topology side reward.  Train
-        # and eval retain separate configuration names for compatibility, but
-        # both return the same exponential transform of the MDL objective.
         return result["reward"]
 
 
 class CircuitTasksetConfig(vf.TasksetConfig):
     dataset_file: str = "dataset.jsonl"
-    max_features: int = Field(60, ge=2, le=4096)
+    max_features: int = Field(60, ge=MIN_CORRUPTION_NODES, le=4096)
     experiment_budget: int = Field(DEFAULT_BUDGET, ge=0)
     experiment_budgets: list[int] | None = None
     """Emit one task per budget from every graph, for the budget-curve arms.
@@ -147,8 +142,25 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 if not line.strip():
                     continue
                 row = json.loads(line)
+                if not row.get("corruption") or not row.get("target_token"):
+                    raise ValueError(
+                        f"{path} contains a legacy clean row; rebuild it with "
+                        "scripts/build_dataset.py to create persistent corruptions"
+                    )
+                if row.get("corruption_version") != CORRUPTION_VERSION:
+                    raise ValueError(
+                        f"{path} contains unsupported corruption version "
+                        f"{row.get('corruption_version')!r}; rebuild the dataset"
+                    )
+                corruption = validate_corruption(row["corruption"])
+                row["corruption"] = corruption
                 graph = slim_graph(
-                    load_graph_json(row["graph"]), self.config.max_features
+                    load_graph_json(row["graph"]),
+                    self.config.max_features,
+                    {
+                        f"{int(layer)}_{int(feature)}_{int(position)}"
+                        for layer, feature, position, _ in corruption
+                    },
                 )
                 budgets = self.config.experiment_budgets or [
                     int(row.get("experiment_budget", self.config.experiment_budget))
@@ -160,10 +172,10 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
     def _task(self, idx: int, row: dict, graph: Graph, budget: int) -> CircuitTask:
         prompt = (
             f"Subject prompt: {row['prompt']!r}\n"
-            f"Expected continuation: {row['target']!r}\n\n"
+            f"Original next token to restore: {row['target_token']!r}\n\n"
             f"{render_graph(graph)}\n\n"
             f"Experiment budget: {budget}. "
-            "Submit the final circuit when ready."
+            "Submit the final weighted intervention graph when ready."
         )
         data = CircuitTaskData(
             idx=idx,
@@ -173,9 +185,10 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
             family=row["family"],
             subject_prompt=row["prompt"],
             graph=graph_to_json(graph),
+            target_token=row["target_token"],
+            corruption=row["corruption"],
             experiment_budget=budget,
             reward_mode=self.config.reward_mode,
             fault_rate=self.config.fault_rate,
-            response_bank=row.get("response_bank"),
         )
         return CircuitTask(data, self.config.task)

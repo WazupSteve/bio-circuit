@@ -1,8 +1,8 @@
 # prime train run configs/rl/circuit-supernodes.toml
 #
 # Train on 6 prompt families, evaluate on held-out ones. Each rollout may spend
-# its experiment budget on two-pass ablations. Final MDL scoring reads a frozen
-# response bank precomputed once per task and requires no proposal-time GPU pass.
+# its experiment budget on restoration trials. Final scoring compares the
+# intervened response with the unmodified standard response.
 model = "Qwen/Qwen3.5-4B"
 
 max_steps = 40
@@ -28,8 +28,8 @@ max_turns = 8
 
 [env.taskset]
 id = "circuit-supernodes"
-dataset_file = "train-mdl.jsonl"
-reward_mode = "train"  # same single MDL objective used during evaluation
+dataset_file = "train.jsonl"
+reward_mode = "train"
 
 [env.harness]
 id = "null"
@@ -45,7 +45,7 @@ max_turns = 8
 
 [eval.env.taskset]
 id = "circuit-supernodes"
-dataset_file = "heldout-mdl.jsonl"
+dataset_file = "heldout.jsonl"
 reward_mode = "eval"
 
 [eval.env.harness]

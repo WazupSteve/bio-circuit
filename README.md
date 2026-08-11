@@ -1,8 +1,9 @@
 # Bio-circuit
 
-A Verifiers 0.2.1 environment for evaluating and training agents to identify
-causal circuits in Qwen3-4B attribution graphs. Agents may run bounded feature
-ablations before submitting a graph of conceptual supernodes and causal edges.
+A Verifiers 0.2.1 environment for evaluating and training agents to restore a
+Qwen3-4B next-token distribution after a persistent hidden feature corruption.
+Agents inspect the corrupted attribution graph, run bounded restoration trials,
+and submit multiplicative feature interventions.
 
 The implementation lives in `environments/circuit_supernodes`. Evaluation and
 RL configurations live in `configs/`.
@@ -37,13 +38,9 @@ a wheel from the Environments Hub, and Modal credentials reach it as environment
 secrets. Two canary configs under `configs/` are hard blockers that must pass
 before any real run — see the environment documentation.
 
-**Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) first.** The
-reward was audited before training anything on it, and the audit is currently the
-main result: its causal signal turns out to be dominated by the transformer's
-layer ordering, which a partition can exploit with zero experiments. Three
-frontier models add approximately nothing over that baseline. (The audit
-scripts and archived run data behind it were removed in a repo cleanup; they
-remain in git history.)
+[FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) records the audit of
+the retired supernode-partition reward. It is useful historical context, but its
+measurements do not describe the active restoration objective.
 
 See the [environment documentation](environments/circuit_supernodes/README.md)
 for the task contract, reward, validation, and training workflows.
