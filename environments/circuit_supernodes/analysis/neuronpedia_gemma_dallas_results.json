@@ -1,0 +1,1261 @@
+{
+  "source": {
+    "url": "https://neuronpedia-attrib.s3.us-east-1.amazonaws.com/user-graphs/cmao6p1xd0000ypedw0qhlhob/gemma-fact-dallas-austin.json",
+    "slug": "gemma-fact-dallas-austin",
+    "model": "gemma-2-2b",
+    "transcoder_urls": [],
+    "prompt": "<bos>Fact: The capital of the state containing Dallas is",
+    "target_token": " Austin"
+  },
+  "audit": {
+    "seed": 0,
+    "controls": 5000,
+    "feature_universe_size": 60,
+    "calibration_matrices": 2,
+    "validation_matrices": 2,
+    "bank_id": "26c0b46ebbec28ab4794"
+  },
+  "circuit": {
+    "supernodes": {
+      "capital": [
+        "15_4494_4",
+        "6_4662_4",
+        "4_7671_4",
+        "3_13984_4",
+        "1_1000_4"
+      ],
+      "state": [
+        "6_4012_7",
+        "0_13727_7"
+      ],
+      "Texas": [
+        "20_15589_9",
+        "19_7477_9",
+        "16_25_9",
+        "4_13154_9",
+        "14_2268_9",
+        "7_6861_9"
+      ],
+      "preposition followed by place name": [
+        "19_1445_10",
+        "18_6101_10"
+      ],
+      "capital cities / say a capital city": [
+        "21_5943_10",
+        "17_7178_10",
+        "7_691_10",
+        "16_4298_10"
+      ]
+    },
+    "curated_node_importance_ranks": {
+      "15_4494_4": 82,
+      "6_4662_4": 162,
+      "4_7671_4": 160,
+      "3_13984_4": 209,
+      "1_1000_4": 29,
+      "6_4012_7": 99,
+      "0_13727_7": 122,
+      "20_15589_9": 8,
+      "19_7477_9": 72,
+      "16_25_9": 6,
+      "4_13154_9": 11,
+      "14_2268_9": 5,
+      "7_6861_9": 13,
+      "19_1445_10": 24,
+      "18_6101_10": 18,
+      "21_5943_10": 3,
+      "17_7178_10": 57,
+      "7_691_10": 59,
+      "16_4298_10": 61
+    },
+    "derived_edges": [
+      [
+        "Texas",
+        "capital cities / say a capital city"
+      ],
+      [
+        "Texas",
+        "preposition followed by place name"
+      ],
+      [
+        "capital",
+        "Texas"
+      ],
+      [
+        "capital",
+        "capital cities / say a capital city"
+      ],
+      [
+        "capital",
+        "preposition followed by place name"
+      ],
+      [
+        "capital cities / say a capital city",
+        "preposition followed by place name"
+      ],
+      [
+        "preposition followed by place name",
+        "output"
+      ],
+      [
+        "state",
+        "Texas"
+      ],
+      [
+        "state",
+        "capital cities / say a capital city"
+      ],
+      [
+        "state",
+        "preposition followed by place name"
+      ]
+    ],
+    "score": {
+      "reward": 0.0,
+      "net_reward": -0.574745674388808,
+      "null_error": 452.8109854720588,
+      "circuit_error": 372.03372785236485,
+      "distortion_ratio": 0.8216093243950717,
+      "description_bits": 246,
+      "description_error_cost": 341.0284128354931,
+      "predictive_bits": 58.26847449227135,
+      "net_bits": -187.73152550772863,
+      "bit_scale": 1.3862943611198906,
+      "validation_matrices": 2
+    }
+  },
+  "curated_subcircuits": [
+    {
+      "groups": [
+        "capital"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.1260254464254479,
+        "null_error": 452.8109854720588,
+        "circuit_error": 450.2660345343667,
+        "distortion_ratio": 0.9943796616704452,
+        "description_bits": 43,
+        "description_error_cost": 59.61065752815529,
+        "predictive_bits": 1.8357940485570396,
+        "net_bits": -41.16420595144296,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state"
+      ],
+      "derived_edges": [
+        [
+          "state",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.08846526477362109,
+        "null_error": 452.8109854720588,
+        "circuit_error": 458.2116701662515,
+        "distortion_ratio": 1.0119270178230382,
+        "description_bits": 25,
+        "description_error_cost": 34.657359027997266,
+        "predictive_bits": -3.895770512858372,
+        "net_bits": -28.895770512858373,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "Texas"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.13888107766996113,
+        "null_error": 452.8109854720588,
+        "circuit_error": 447.7694394203408,
+        "distortion_ratio": 0.9888661136468185,
+        "description_bits": 49,
+        "description_error_cost": 67.92842369487464,
+        "predictive_bits": 3.6367067436134466,
+        "net_bits": -45.363293256386555,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.09329549111948997,
+        "null_error": 452.8109854720588,
+        "circuit_error": 460.3988497179775,
+        "distortion_ratio": 1.016757244168907,
+        "description_bits": 25,
+        "description_error_cost": 34.657359027997266,
+        "predictive_bits": -5.473487059262788,
+        "net_bits": -30.473487059262787,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital cities / say a capital city",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.07683938252689211,
+        "net_reward": 0.07683938252689211,
+        "null_error": 452.8109854720588,
+        "circuit_error": 366.72437758555634,
+        "distortion_ratio": 0.8098840119862452,
+        "description_bits": 37,
+        "description_error_cost": 51.29289136143595,
+        "predictive_bits": 62.09836114240492,
+        "net_bits": 25.09836114240492,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "output"
+        ],
+        [
+          "state",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.2206137709551156,
+        "null_error": 452.8109854720588,
+        "circuit_error": 455.66671922855943,
+        "distortion_ratio": 1.0063066794934834,
+        "description_bits": 70,
+        "description_error_cost": 97.04060527839233,
+        "predictive_bits": -2.0599764643013323,
+        "net_bits": -72.05997646430133,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "Texas"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "output"
+        ],
+        [
+          "capital",
+          "Texas"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.2832757798551711,
+        "null_error": 452.8109854720588,
+        "circuit_error": 445.22452311889555,
+        "distortion_ratio": 0.983245851808886,
+        "description_bits": 98,
+        "description_error_cost": 135.85684738974928,
+        "predictive_bits": 5.472475807399722,
+        "net_bits": -92.52752419260028,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.22542813829315717,
+        "null_error": 452.8109854720588,
+        "circuit_error": 457.8467176473225,
+        "distortion_ratio": 1.0111210468315248,
+        "description_bits": 70,
+        "description_error_cost": 97.04060527839233,
+        "predictive_bits": -3.632512918248979,
+        "net_bits": -73.63251291824898,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital cities / say a capital city",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.061184268639750336,
+        "null_error": 452.8109854720588,
+        "circuit_error": 364.0671681161405,
+        "distortion_ratio": 0.8040157588857916,
+        "description_bits": 84,
+        "description_error_cost": 116.44872633407081,
+        "predictive_bits": 64.01513260446961,
+        "net_bits": -19.984867395530387,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "Texas"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.23653824915011207,
+        "null_error": 452.8109854720588,
+        "circuit_error": 453.17343736532484,
+        "distortion_ratio": 1.0008004485423165,
+        "description_bits": 77,
+        "description_error_cost": 106.74466580623158,
+        "predictive_bits": -0.26145377448786644,
+        "net_bits": -77.26145377448786,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.17869730035822137,
+        "null_error": 452.8109854720588,
+        "circuit_error": 465.79866245358687,
+        "distortion_ratio": 1.0286823363350788,
+        "description_bits": 49,
+        "description_error_cost": 67.92842369487464,
+        "predictive_bits": -9.368628586959144,
+        "net_bits": -58.36862858695915,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital cities / say a capital city",
+          "output"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.014696598201020048,
+        "null_error": 452.8109854720588,
+        "circuit_error": 372.1292218359965,
+        "distortion_ratio": 0.821820215885551,
+        "description_bits": 63,
+        "description_error_cost": 87.3365447505531,
+        "predictive_bits": 58.19959014396131,
+        "net_bits": -4.800409856038691,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "Texas",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.24136457838800282,
+        "null_error": 452.8109854720588,
+        "circuit_error": 455.35885226374677,
+        "distortion_ratio": 1.0056267777802073,
+        "description_bits": 77,
+        "description_error_cost": 106.74466580623158,
+        "predictive_bits": -1.837897392606951,
+        "net_bits": -78.83789739260695,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "Texas",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital cities / say a capital city",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.07735088997619241,
+        "null_error": 452.8109854720588,
+        "circuit_error": 361.68353132740924,
+        "distortion_ratio": 0.7987516710760705,
+        "description_bits": 91,
+        "description_error_cost": 126.15278686191004,
+        "predictive_bits": 65.73456309166117,
+        "net_bits": -25.265436908338827,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.019557067957992887,
+        "null_error": 452.8109854720588,
+        "circuit_error": 374.3300959365085,
+        "distortion_ratio": 0.8266806856425238,
+        "description_bits": 63,
+        "description_error_cost": 87.3365447505531,
+        "predictive_bits": 56.611995068746495,
+        "net_bits": -6.388004931253505,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "Texas"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "output"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "state",
+          "Texas"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.3931790708474155,
+        "null_error": 452.8109854720588,
+        "circuit_error": 450.62852106387965,
+        "distortion_ratio": 0.9951801867043841,
+        "description_bits": 130,
+        "description_error_cost": 180.21826694558578,
+        "predictive_bits": 1.5743152892983685,
+        "net_bits": -128.42568471070163,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.32307606704398184,
+        "null_error": 452.8109854720588,
+        "circuit_error": 463.2465303829319,
+        "distortion_ratio": 1.0230461389976968,
+        "description_bits": 98,
+        "description_error_cost": 135.85684738974928,
+        "predictive_bits": -7.527654445945334,
+        "net_bits": -105.52765444594533,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital cities / say a capital city",
+          "output"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.16496636887975577,
+        "null_error": 452.8109854720588,
+        "circuit_error": 369.47201236658066,
+        "distortion_ratio": 0.8159519627850975,
+        "description_bits": 114,
+        "description_error_cost": 158.03755716766753,
+        "predictive_bits": 60.11636160602601,
+        "net_bits": -53.88363839397399,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "Texas",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.41023566058957217,
+        "null_error": 452.8109854720588,
+        "circuit_error": 452.8067548293387,
+        "distortion_ratio": 0.9999906569344476,
+        "description_bits": 134,
+        "description_error_cost": 185.76344439006533,
+        "predictive_bits": 0.0030517636360530465,
+        "net_bits": -133.99694823636395,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "Texas",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital cities / say a capital city",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.25211297617073686,
+        "null_error": 452.8109854720588,
+        "circuit_error": 359.02635649424025,
+        "distortion_ratio": 0.7928834944672392,
+        "description_bits": 150,
+        "description_error_cost": 207.94415416798358,
+        "predictive_bits": 67.6513095689551,
+        "net_bits": -82.3486904310449,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.18205709914099452,
+        "null_error": 452.8109854720588,
+        "circuit_error": 371.66570533412977,
+        "distortion_ratio": 0.8207965735342431,
+        "description_bits": 118,
+        "description_error_cost": 163.58273461214708,
+        "predictive_bits": 58.53394662326796,
+        "net_bits": -59.46605337673204,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "Texas",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.354327473601404,
+        "null_error": 452.8109854720588,
+        "circuit_error": 460.7619782501475,
+        "distortion_ratio": 1.017559187018839,
+        "description_bits": 110,
+        "description_error_cost": 152.49237972318795,
+        "predictive_bits": -5.735428925546247,
+        "net_bits": -115.73542892554624,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "Texas",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital cities / say a capital city",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.19644795667877418,
+        "null_error": 452.8109854720588,
+        "circuit_error": 367.09168882864066,
+        "distortion_ratio": 0.8106951920478361,
+        "description_bits": 126,
+        "description_error_cost": 174.6730895011062,
+        "predictive_bits": 61.83340208797467,
+        "net_bits": -64.16659791202534,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.1263987724191552,
+        "null_error": 452.8109854720588,
+        "circuit_error": 379.73406822836523,
+        "distortion_ratio": 0.8386149638849633,
+        "description_bits": 94,
+        "description_error_cost": 130.31166994526973,
+        "predictive_bits": 52.713853055464945,
+        "net_bits": -41.286146944535055,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "Texas",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.20130452932776904,
+        "null_error": 452.8109854720588,
+        "circuit_error": 369.29079827584866,
+        "distortion_ratio": 0.815551764696831,
+        "description_bits": 126,
+        "description_error_cost": 174.6730895011062,
+        "predictive_bits": 60.247079941045136,
+        "net_bits": -65.75292005895486,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "Texas",
+        "preposition followed by place name"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.5354446753150666,
+        "null_error": 452.8109854720588,
+        "circuit_error": 458.2098808157394,
+        "distortion_ratio": 1.0119230661730791,
+        "description_bits": 171,
+        "description_error_cost": 237.05633575150128,
+        "predictive_bits": -3.8944797693032434,
+        "net_bits": -174.89447976930325,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "Texas",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital cities / say a capital city",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.3773331026293653,
+        "null_error": 452.8109854720588,
+        "circuit_error": 364.43451399547166,
+        "distortion_ratio": 0.8048270154390048,
+        "description_bits": 187,
+        "description_error_cost": 259.23704552941956,
+        "predictive_bits": 63.7501485652686,
+        "net_bits": -123.2498514347314,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.3072679828702967,
+        "null_error": 452.8109854720588,
+        "circuit_error": 377.0696776259865,
+        "distortion_ratio": 0.8327308517766825,
+        "description_bits": 155,
+        "description_error_cost": 214.87562597358303,
+        "predictive_bits": 54.635804609986415,
+        "net_bits": -100.36419539001358,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "Texas",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.4005429955386728,
+        "null_error": 452.8109854720588,
+        "circuit_error": 366.6264423097168,
+        "distortion_ratio": 0.8096677290801725,
+        "description_bits": 193,
+        "description_error_cost": 267.55481169613887,
+        "predictive_bits": 62.1690065107958,
+        "net_bits": -130.8309934892042,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "state",
+        "Texas",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.34489190939767095,
+        "null_error": 452.8109854720588,
+        "circuit_error": 374.6980838184967,
+        "distortion_ratio": 0.8274933600117302,
+        "description_bits": 169,
+        "description_error_cost": 234.28374702926152,
+        "predictive_bits": 56.34654792252069,
+        "net_bits": -112.6534520774793,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    },
+    {
+      "groups": [
+        "capital",
+        "state",
+        "Texas",
+        "preposition followed by place name",
+        "capital cities / say a capital city"
+      ],
+      "derived_edges": [
+        [
+          "Texas",
+          "capital cities / say a capital city"
+        ],
+        [
+          "Texas",
+          "preposition followed by place name"
+        ],
+        [
+          "capital",
+          "Texas"
+        ],
+        [
+          "capital",
+          "capital cities / say a capital city"
+        ],
+        [
+          "capital",
+          "preposition followed by place name"
+        ],
+        [
+          "capital cities / say a capital city",
+          "preposition followed by place name"
+        ],
+        [
+          "preposition followed by place name",
+          "output"
+        ],
+        [
+          "state",
+          "Texas"
+        ],
+        [
+          "state",
+          "capital cities / say a capital city"
+        ],
+        [
+          "state",
+          "preposition followed by place name"
+        ]
+      ],
+      "score": {
+        "reward": 0.0,
+        "net_reward": -0.574745674388808,
+        "null_error": 452.8109854720588,
+        "circuit_error": 372.03372785236485,
+        "distortion_ratio": 0.8216093243950717,
+        "description_bits": 246,
+        "description_error_cost": 341.0284128354931,
+        "predictive_bits": 58.26847449227135,
+        "net_bits": -187.73152550772863,
+        "bit_scale": 1.3862943611198906,
+        "validation_matrices": 2
+      }
+    }
+  ],
+  "controls": {
+    "regrouped_same_nodes": {
+      "exact": false,
+      "partition_population": 14665931280,
+      "count": 5000,
+      "mean": -196.7933443530768,
+      "median": -194.3379465682412,
+      "p05": -249.04542425200384,
+      "p95": -158.44189759625405,
+      "observed_percentile": 0.6126,
+      "upper_tail_p": 0.38752249550089984
+    },
+    "random_features_same_size": {
+      "count": 5000,
+      "mean": -247.61536180026053,
+      "median": -247.18819443116644,
+      "p05": -288.4425075881179,
+      "p95": -209.01746214358852,
+      "observed_percentile": 0.9894,
+      "upper_tail_p": 0.010797840431913617
+    },
+    "best_subcircuit_random_features": {
+      "groups": [
+        "capital cities / say a capital city"
+      ],
+      "count": 5000,
+      "mean": -36.3833011993176,
+      "median": -37.522616538749766,
+      "p05": -47.85672944532887,
+      "p95": -20.9597352161039,
+      "observed_percentile": 0.9988,
+      "upper_tail_p": 0.0013997200559888023
+    },
+    "best_subcircuit_same_curated_pool": {
+      "groups": [
+        "capital cities / say a capital city"
+      ],
+      "exact": true,
+      "count": 3876,
+      "mean": -25.1195319731143,
+      "median": -28.918469583005198,
+      "p05": -41.39299521996715,
+      "p95": 4.8892024136709935,
+      "observed_percentile": 0.9868421052631579,
+      "upper_tail_p": 0.013415892672858616
+    }
+  }
+}

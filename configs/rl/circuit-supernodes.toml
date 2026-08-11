@@ -1,9 +1,8 @@
 # prime train run configs/rl/circuit-supernodes.toml
 #
 # Train on 6 prompt families, evaluate on held-out ones. Each rollout may spend
-# its experiment budget on two-pass ablations before final scoring, which costs
-# 2k+2 further GPU passes on the Modal backend (v2 ablates two halves per group).
-# Modal throughput, not Prime tokens, is the binding constraint here.
+# its experiment budget on two-pass ablations. Final MDL scoring reads a frozen
+# response bank precomputed once per task and requires no proposal-time GPU pass.
 model = "Qwen/Qwen3.5-4B"
 
 max_steps = 40
@@ -29,8 +28,8 @@ max_turns = 8
 
 [env.taskset]
 id = "circuit-supernodes"
-dataset_file = "train.jsonl"
-reward_mode = "train"  # small structured floor toward a valid proposal
+dataset_file = "train-mdl.jsonl"
+reward_mode = "train"  # same single MDL objective used during evaluation
 
 [env.harness]
 id = "null"
@@ -46,8 +45,8 @@ max_turns = 8
 
 [eval.env.taskset]
 id = "circuit-supernodes"
-dataset_file = "heldout.jsonl"
-reward_mode = "eval"  # strict: checkpoint selection must see the real score
+dataset_file = "heldout-mdl.jsonl"
+reward_mode = "eval"
 
 [eval.env.harness]
 id = "null"

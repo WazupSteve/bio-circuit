@@ -11,13 +11,19 @@ between those groups.
 - Maximum turns: 8
 - Experiment budget: 7 calls to `circuit_run_ablation` by default, overridable
   per dataset row (`experiment_budget`) for budget-curve variants
-- Displayed graph: up to 60 feature nodes, plus embedding and logit nodes
-- Allowed proposal size: 2–8 disjoint supernodes, at least 2 features each
+- Available graph: every feature retained by Circuit Tracer's `0.8` node
+  threshold, plus embedding and logit nodes
+- Displayed graph: the policy chooses the feature count with `circuit_view_graph`
+- Allowed proposal size: 1–8 disjoint supernodes, at least 2 features each
 - Reserved terminal node: `output`
 
 Each experiment clamps selected feature nodes to zero and reports the change in
 the target-token probability and optional probe-group activations. Experiments
 provide evidence but do not directly contribute reward.
+
+Graph inspection is free and repeatable. It only changes how much of the fixed
+exported graph the policy sees; the hidden response bank and scoring universe
+contain every feature in that export.
 
 The final response must contain one JSON code block:
 
@@ -32,100 +38,100 @@ The final response must contain one JSON code block:
 
 ## Reward
 
-The `circuit_faithfulness` reward performs independent interventions on the
-subject model:
+`circuit_faithfulness` is an exponential transform of normalized
+minimum-description-length saving. First compute the signed value:
 
 ```text
-reward = separation^0.6 × coverage^0.2 × completeness^0.2
+net_reward = 1 - circuit_error/null_error
+               - 2·ln(2)·description_bits/null_error
+reward = 2 ** (net_reward - 1)
 ```
 
-- `separation` measures whether predicted downstream groups change more than
-  unpredicted groups and whether the effect sizes are calibrated.
-- `coverage` is the share of displayed feature influence included in the
-  proposal.
-- `completeness` measures how well the selected circuit accounts for the target
-  token after the ungrouped complement is ablated.
+- `null_error` is the whitened squared error of predicting zero on the entire
+  fixed hidden response tensor.
+- `circuit_error` is held-out error when the submitted partition and DAG form a
+  block-constant predictor of that tensor.
+- `description_bits` is the canonical literal encoding of the selected members,
+  group assignments, and submitted edges.
 
-### Hidden split-half separation
+The factor `2·ln(2)` is not tuned. Unit-variance Gaussian residuals cost
+`error / (2·ln(2))` bits. A circuit scores above the `0.5` break-even point
+exactly when its predictive bit saving exceeds the bits required to describe
+it. Every valid finite circuit has positive reward; invalid proposals retain
+the `0.0` sentinel. The exponential is strictly monotone, so it preserves every
+ordering from signed net MDL value without collapsing net-cost circuits into a
+single clipped score.
 
-Scoring does not ablate a supernode whole. A seed derived as
-`HMAC(salt, graph ‖ nonce)` splits every supernode into two halves; each half is
-ablated separately, and the effect credited to that supernode is the geometric
-mean of the two halves' fraction-normalized drops. A group therefore earns credit
-only when its causal role is *distributed* across its members — which is what the
-word supernode is supposed to mean — and an agent cannot pre-measure whole-group
-effects and transcribe them, because it does not know the split.
+### Fixed hidden response bank
 
-The nonce comes from the run the rollout belongs to (`run.id:run.step` in
-training, a constant during evaluation), so every rollout of a GRPO group is
-scored under the same split by construction, the split rotates between steps so
-no fixed split can be memorized, and evaluation stays reproducible. Set
-`CIRCUIT_SPLIT_SALT` to commit a run's salt in advance and publish it afterwards.
+The backend intervenes on every exported feature and records its signed local
+effect on every other exported feature plus target-token log-odds. Mediator
+columns are weighted by squared output sensitivity, following the first-order
+output propagation approximation. Proposal-independent scales whiten each
+column.
 
-`MIN_GROUP_SIZE` is 2 because a singleton has no halves — a mechanical floor, not
-an adversarial one. A larger floor looks like it should make the split harder to
-guess (a group of `m` admits only `C(m, m//2)/2` halvings), but the oracle audit
-measured otherwise: raising it from 2 to 6 left the adaptive coherence-matched
-attack no worse off and *weakened* the penalty on blind small groups. Knowing the
-split only helps an attacker that can also satisfy it, which takes per-feature
-measurement rather than small groups.
+Block values are fitted on calibration intervention radii and evaluated only on
+disjoint validation radii. When predicting one source member, its calibration
+row is excluded. Randomly mixed members must therefore predict one another's
+held-out causal roles rather than fitting a proposal-specific experiment.
+
+Unsubmitted source rows, unsubmitted destination columns, and unreachable blocks
+predict zero. Omitting most of the mechanism cannot shrink the validation set.
+The response bank is cached and can be precomputed into the hidden dataset, so
+every sibling proposal is evaluated against exactly the same tensor.
+
+### Literal circuit code
+
+For `N` available features, `n` selected features, `K` groups and `m` edges:
+
+```text
+L = b_n + b_K + n·(b_node + b_group) + b_m + 2·m·b_endpoint
+```
+
+Each width is `ceil(log2(cardinality))`; `K_max` is 8. Feature identifiers are
+sorted and group labels are canonical. Natural-language names and block values
+are not encoded: names are annotations, while block values are reconstructed
+from the shared calibration bank. The deliberately literal edge code ensures
+that every extra member or edge costs positive bits.
 
 ### Gates
 
-Malformed proposals are **rejected, not repaired**: silently fixing them teaches
-the policy that malformed proposals are fine. A proposal scores zero when it has
-fewer than 2 or more than 8 supernodes, repeats or overlaps members, names a
-non-FEATURE id, contains a supernode below the minimum size, gives one group over
-70% of grouped influence, or whose edges do not form a DAG.
+Malformed proposals are **rejected, not repaired**. A proposal scores zero when
+it has fewer than 1 or more than 8 supernodes, repeats or overlaps members, names
+a non-FEATURE id, contains a supernode below the leave-one-member-out minimum of
+2, duplicates an edge, or does not form a DAG. There is no dominance, coverage,
+or preferred-size gate; valid catch-alls and tiny circuits fail through error or
+description length.
 
-At least one supernode must reach `output`, but not every one. A group with no
-outgoing edge claims that ablating it changes nothing downstream, which is a
-falsifiable prediction the calibration term already checks. Requiring every group
-to reach `output` made the true answer unstateable whenever a group is genuinely
-off-path — the honest proposal was rejected and the agent had to assert an effect
-the subject model does not have, which cost the correct answer about 14%.
-
-Edges are scored as **reachability**, not as direct connections: two edge sets
-with the same transitive closure receive the same score.
-
-### Held-out intervention operator
-
-`circuit_run_ablation` clamps features to zero. Scoring **mean-ablates**,
-removing only each feature's deviation from its own average activation over the
-prompt. Fitting edges to whatever the agent measured is what lets any partition
-score well, so the operator the agent can buy is deliberately not the operator it
-is graded under, and a circuit has to generalise across them to earn credit.
-
-The two disagree about ordering, not just magnitude — on a sample graph zero-clamp
-ranks one group as moving the target most (0.906 vs 0.875) while mean-ablation
-ranks the other (0.860 vs 0.838) — and reordering is what breaks a fitted edge
-set. A uniform rescaling would not do this: it attenuates every feature equally
-and fitted edges transfer unchanged.
+Edges are scored as **reachability**, not as direct connections. Edge sets with
+the same transitive closure have the same prediction error. Redundant transitive
+edges still cost additional description bits, so the shortest representative
+wins.
 
 ### Reward modes
 
-`taskset.reward_mode = "train"` adds a small structured floor —
-`0.01·parse + 0.02·membership + 0.02·topology + 0.95·causal` — so a policy that
-cannot yet earn causal credit still has gradient toward a valid proposal.
-`"eval"` (the default) is strict, so checkpoint selection and any published
-number see the real score.
+`train` and `eval` now return the same objective. V2's separately weighted
+parse/membership/topology training floor was removed because it reintroduced an
+arbitrary multi-reward rubric. The result also reports signed `net_reward` and
+`net_bits` as diagnostics. The harness reward is its exponential transform in
+`(0, 1]` for valid proposals; `0.5` is the net-saving threshold.
 
 Infrastructure failures are retried with backoff and then **raise**. They are
 never scored: a false zero would corrupt every advantage in its GRPO group.
-Identical interventions are cached within the scorer.
+Identical response banks are cached within the scorer.
 
 `REWARD_VERSION` records which definition produced a score. Numbers from
-different versions are not comparable — the frontier ranking under v1 turned out
-to be an artefact of terms that v2 removed.
+different versions are not comparable. The old three-factor score is retained
+only in `FINDINGS.md` as an audit record.
 
 ### What the reward does not measure
 
-The displayed slice is the top `max_features` by influence, and the influence
-distribution is flat: 60 features carry only about 31% of total feature
-influence, half of it would take roughly 196 features and 80% roughly 722. The
-complement ablation touches only the ungrouped *displayed* features, so the rest
-is never intervened on. A proposal at coverage 1.0 has grouped everything it was
-shown, which is a considerably weaker claim than having captured the circuit.
+The score identifies equivalence under its frozen intervention operator, not a
+human semantic name. Reachability-equivalent direct DAGs are not identifiable.
+The claim is relative to Circuit Tracer's `0.8`-threshold export and the local
+derivative conditions, not every hidden transformer feature or nonlinear
+interaction. Lean proves the algebraic reward properties; validation of the
+response bank and backend remains empirical.
 
 ## Setup
 
@@ -157,7 +163,18 @@ uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
 uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
     --families two_hop addition \
     --out circuit_supernodes/data/heldout.jsonl
+
+# Freeze the proposal-independent banks used by the MDL scorer.
+uv run python scripts/precompute_response_banks.py \
+    --input train.jsonl --out train-mdl.jsonl
+uv run python scripts/precompute_response_banks.py \
+    --input heldout.jsonl --out heldout-mdl.jsonl
 ```
+
+Response banks produced by earlier versions contain only the top 60 features
+and are incompatible with the complete exported universe. Rebuild both
+`*-mdl.jsonl` files before evaluation or training, passing `--overwrite` when
+replacing existing files.
 
 `--neuronpedia-labels` is optional. Labels are cached in the generated JSONL and
 Neuronpedia is not called during rollouts. The data directory is ignored by Git
@@ -176,6 +193,7 @@ uv run validate circuit-supernodes \
 Validate the evaluation configuration, then run it:
 
 ```bash
+uv run pytest
 uv run ruff check .
 uv run eval @ ../../configs/eval/circuit-supernodes.toml \
     --dry-run true --no-push
@@ -225,22 +243,28 @@ automatically.
 | Field | Default | Purpose |
 | --- | --- | --- |
 | `taskset.dataset_file` | `dataset.jsonl` | Dataset under `circuit_supernodes/data/` |
-| `taskset.max_features` | `60` | Maximum feature nodes shown to the policy |
 | `taskset.experiment_budget` | `7` | Default ablation budget; rows may override |
-| `taskset.reward_mode` | `eval` | `train` adds the structured floor |
+| `taskset.reward_mode` | `eval` | Compatibility field; both modes use the same MDL reward |
 | `taskset.fault_rate` | `0.0` | Canary only: fraction of rollouts whose scoring raises |
 
 Fixed safety limits allow at most 12 ablated features, 8 probe groups, and 60
-probe features per experiment. Each experiment costs two subject-model passes;
-final scoring costs `2k + 2` passes for `k` supernodes, since both halves of
-every group are ablated.
+probe features per interactive experiment. Each interactive experiment costs two
+subject-model passes. Building the fixed response bank costs one base pass plus
+four interventions per exported feature, so a 1,400-feature export costs `5,601`
+passes. It is proposal-independent and should be precomputed once. A dataset row
+containing `response_bank` needs no final-scoring GPU passes; missing banks are
+constructed lazily and cached as a compatibility fallback.
 
 ## Layout
 
 - `circuit_supernodes/circuit_supernodes.py`: task and taskset
 - `circuit_supernodes/experiments.py`: interactive ablation tool
 - `circuit_supernodes/graphs.py`: graph normalization, pruning, and rendering
-- `circuit_supernodes/rubric.py`: intervention-based reward
+- `circuit_supernodes/mdl.py`: pure response-bank decoder and proved MDL formula
+- `circuit_supernodes/rubric.py`: proposal validation and bank integration
 - `circuit_supernodes/datagen.py`: prompt generation
-- `modal_app/attribution.py`: Modal attribution and intervention service
+- `modal_app/attribution.py`: Modal attribution, intervention, and bank service
 - `scripts/build_dataset.py`: dataset construction
+- `scripts/precompute_response_banks.py`: hidden-bank precomputation
+- `tests/test_mdl_reward.py`: planted-world and adversarial validation
+- `tests/test_graph_view.py`: full-export loading and policy-selected graph views

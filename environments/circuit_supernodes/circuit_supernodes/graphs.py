@@ -146,10 +146,9 @@ def graph_quality(g: Graph, max_features: int = 60) -> dict[str, float]:
 
     Error nodes stand for everything the transcoders failed to explain, so a
     graph where they carry most of the influence is one whose circuit is mostly
-    missing. ``displayed`` is the share of *feature* influence inside the slice
-    the agent actually sees — the influence distribution is flat enough that the
-    top 60 features carry only about a third of it, which bounds what any
-    proposal can claim regardless of how good it is.
+    missing. ``displayed`` is the share of *feature* influence inside a top-k
+    diagnostic slice. The key is retained in dataset manifests for compatibility;
+    task loading now exposes the complete Circuit Tracer export.
     """
     total = sum(n.share for n in g.nodes.values())
     if total <= 0:

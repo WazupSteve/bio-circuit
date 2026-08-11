@@ -1,7 +1,13 @@
 import verifiers.v1 as vf
 
-from .graphs import Graph, feature_coords, load_graph_json
-from .rubric import MODAL_APP, MODAL_CLS, intervene_with_retries, relative_drop
+from .graphs import Graph, feature_coords, load_graph_json, render_graph, slim_graph
+from .rubric import (
+    MIN_GROUP_SIZE,
+    MODAL_APP,
+    MODAL_CLS,
+    intervene_with_retries,
+    relative_drop,
+)
 
 DEFAULT_BUDGET = 7
 MAX_ABLATED_FEATURES = 12
@@ -11,6 +17,22 @@ MAX_PROBE_FEATURES = 60
 
 class CircuitState(vf.State):
     experiments_used: int = 0
+
+
+def graph_view(graph: Graph, feature_count: int) -> dict[str, int | str]:
+    """Render an exact top-k view of the complete exported graph."""
+
+    available_feature_count = len(graph.feature_nodes)
+    if not MIN_GROUP_SIZE <= feature_count <= available_feature_count:
+        raise ValueError(
+            f"feature_count must be between {MIN_GROUP_SIZE} and "
+            f"{available_feature_count}"
+        )
+    return {
+        "returned_feature_count": feature_count,
+        "available_feature_count": available_feature_count,
+        "graph": render_graph(slim_graph(graph, feature_count)),
+    }
 
 
 class AblationTools(vf.Toolset[vf.ToolsetConfig, CircuitState]):
@@ -60,6 +82,17 @@ class AblationTools(vf.Toolset[vf.ToolsetConfig, CircuitState]):
         return await intervene_with_retries(
             self._attributor, self._prompt, groups, self._target, None, [0]
         )
+
+    @vf.tool(name="view_graph")
+    async def view_graph(self, feature_count: int) -> dict:
+        """Return the top ``feature_count`` FEATURE nodes and their induced graph."""
+        if self._graph is None:
+            return self._fail("tool is not initialized")
+        try:
+            payload = graph_view(self._graph, feature_count)
+        except ValueError as exc:
+            return self._fail(str(exc))
+        return {**payload, "experiments_remaining": self.remaining}
 
     @vf.tool(name="run_ablation")
     async def run_ablation(
