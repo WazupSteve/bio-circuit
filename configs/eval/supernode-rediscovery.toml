@@ -1,0 +1,21 @@
+# prime eval run configs/eval/supernode-rediscovery.toml [--hosted]
+model = "moonshotai/kimi-k3"
+num_tasks = 5
+num_rollouts = 3
+max_turns = 8
+max_concurrent = 5
+
+[sampling]
+max_tokens = 16384
+enable_thinking = false
+
+[taskset]
+id = "supernode-rediscovery"
+dataset_file = "rediscovery.jsonl"
+max_features = 150
+prompt_budget = 5
+replacement_max_tv = 0.05
+replacement_reward_half_life = 0.05
+
+[harness]
+id = "null"

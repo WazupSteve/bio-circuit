@@ -1,9 +1,15 @@
-# circuit-supernodes
+# active promptless supernode discovery
 
-`circuit-supernodes` is a multi-turn Verifiers 0.2.1 environment for circuit
-discovery in Qwen3-4B. A policy model receives a pruned attribution graph,
-groups feature nodes into conceptual supernodes, and predicts causal edges
-between those groups.
+This worktree adds the separate `supernode-rediscovery` Verifiers 0.2.1
+taskset for discovering a
+pre-identified semantic supernode. The agent receives the curator's specific
+supernode description. It must write diagnostic prompts for a separate,
+transcoder-equipped subject model, call circuit tracer on those prompts, and
+infer recurring features from the returned label-free attribution graphs. A
+hidden causal replacement distance is the reward.
+
+The causal-circuit implementation inherited from the shared baseline remains in
+the tree for comparison, but it is not the exported task in this worktree.
 
 ## Task contract
 
@@ -17,9 +23,32 @@ between those groups.
 - Allowed proposal size: 1–8 disjoint supernodes, at least 2 features each
 - Reserved terminal node: `output`
 
-Each experiment clamps selected feature nodes to zero and reports the change in
-the target-token probability and optional probe-group activations. Experiments
-provide evidence but do not directly contribute reward.
+The independent promptless rediscovery task instead has:
+
+- Subject-prompt budget: 5 by default
+- Initial graph or subject prompt: none
+- Tool: `circuit_run_prompt(prompt)` runs the Gemma-2-2B subject and circuit tracer
+- Tool graph: up to 150 features with human-authored feature labels stripped
+- Reward: `2 ** (-output_tv / replacement_reward_half_life)` for valid proposals
+- Exact functional equivalence: `1.0`; each `0.05` TV halves reward by default
+- Strict-pass diagnostic: same top token and at most `0.05` TV
+- Diagnostics: output distance, reference/proposal effects, and membership metrics
+
+Circuit-tracer node ids have the form `layer_feature_position`. Position changes
+with each agent-authored prompt, so grading and final answers use the stable
+`layer_feature` pair. Full node ids are accepted and normalized. Unknown or
+malformed node syntax fails the replacement test.
+
+The hidden grader uses the curator's original subject prompt and supernode
+positions. It first zero-ablates the reference set, then substitutes the agent's
+stable feature set into that same ablation experiment. Valid proposals receive
+the continuous reward `2 ** (-output_tv / replacement_reward_half_life)`.
+`replacement_reward_half_life` defaults to `0.05`, so an exact replacement gets
+`1.0`, TV `0.05` gets `0.5`, and TV `0.10` gets `0.25`. The former strict rule—
+matching argmax and TV no greater than `replacement_max_tv`—is retained as the
+`replacement_pass` diagnostic. Literal precision, recall, and exact match also
+remain diagnostics, so causally interchangeable IDs can earn full reward without
+matching the curated membership.
 
 Graph inspection is free and repeatable. It only changes how much of the fixed
 exported graph the policy sees; the hidden response bank and scoring universe
@@ -29,14 +58,11 @@ The final response must contain one JSON code block:
 
 ```json
 {
-  "supernodes": [
-    {"name": "<concept>", "nodes": ["<feature_id>"]}
-  ],
-  "edges": [["<source>", "<target-or-output>"]]
+    "nodes": ["<layer>_<feature>", "<layer>_<feature>"]
 }
 ```
 
-## Reward
+## Inherited causal-circuit reward (not used by active discovery)
 
 `circuit_faithfulness` is an exponential transform of normalized
 minimum-description-length saving. First compute the signed value:
@@ -140,15 +166,13 @@ Run commands from this directory:
 ```bash
 uv sync --group dev
 uv run modal setup
-uv run modal deploy modal_app/attribution.py
-uv run modal run modal_app/attribution.py \
-    --prompt "Fact: Michael Jordan plays the sport of"
+uv run modal deploy modal_app/attribution_gemma.py
 ```
 
-Redeploy after changing `modal_app/attribution.py`, the subject model, or the
+Redeploy after changing `modal_app/attribution_gemma.py`, the subject model, or the
 transcoder set.
 
-## Datasets
+## Inherited causal-circuit datasets
 
 The generator has six training families and a disjoint sealed evaluation split.
 The evaluation split replaces one-shot addition with path traversal, modular
@@ -197,8 +221,8 @@ because attribution files are large and reproducible.
 Validate task loading without policy inference:
 
 ```bash
-uv run validate circuit-supernodes \
-    --taskset.dataset-file heldout.jsonl \
+uv run validate supernode-rediscovery \
+    --taskset.dataset-file rediscovery.jsonl \
     --runtime.type subprocess --only-setup true --rich false -n 1
 ```
 
@@ -218,13 +242,40 @@ prime eval run ../../configs/eval/circuit-supernodes.toml --hosted --follow
 Override the policy model with `--model`. Completed runs are written beneath
 `outputs/`.
 
+## Active supernode discovery
+
+In this worktree, curators have already identified reference supernodes inside
+published circuits. Their exact descriptions (for example, `capital cities /
+say a capital city`) become task descriptions, and their memberships remain
+hidden grading data. The agent receives that description and a query budget. It
+chooses every prompt sent to the subject model and may compare the resulting
+circuit-tracer graphs before answering. It receives no seed graph, feature
+labels, visible reference membership, or correctness feedback.
+
+Build the task library from every pre-existing supernode in one or more curated
+graphs, then evaluate normally:
+
+```bash
+uv run python scripts/build_rediscovery_dataset.py \
+    --source https://neuronpedia-attrib.s3.us-east-1.amazonaws.com/user-graphs/cmao6p1xd0000ypedw0qhlhob/gemma-fact-dallas-austin.json \
+    --out circuit_supernodes/data/rediscovery.jsonl
+uv run eval @ ../../configs/eval/circuit-supernodes.toml --no-push
+```
+
+The shipped library contains all five curator-defined supernodes in that Gemma
+circuit: `capital`, `state`, `Texas`, `preposition followed by place name`, and
+`capital cities / say a capital city`. The agent returns one stable
+`layer_feature` set. Its continuous reward decreases exponentially with output
+distance. Strict pass, output distance, intervention effects, top-token
+agreement, membership diagnostics, and prompts used are all recorded.
+
 ## Inspect a trace
 
 ```bash
 jq -c '{
   task: .task.data.name,
   reward: (([.rewards[]] | add) // 0),
-  experiments_used: (.metrics.experiments_used // 0),
+  prompts_used: (.metrics.prompts_used // 0),
   turns: ([.nodes[] | select(.sampled == true)] | length),
   errors
 }' outputs/.../traces.jsonl
@@ -240,11 +291,6 @@ prime login
 cd ../..
 prime train run configs/rl/circuit-supernodes.toml
 ```
-
-Two canaries are hard blockers and must pass first — see
-`configs/eval/canary-egress.toml` (does environment code reach the Modal backend
-from a hosted run at all?) and `configs/rl/canary-error-semantics.toml` (does a
-scoring exception exclude the rollout from its group, or contribute a zero?).
 
 `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` must be linked to the pushed
 environment as secrets; they are injected into hosted evaluations and training
@@ -267,16 +313,36 @@ passes. It is proposal-independent and should be precomputed once. A dataset row
 containing `response_bank` needs no final-scoring GPU passes; missing banks are
 constructed lazily and cached as a compatibility fallback.
 
+Promptless rediscovery has its own taskset settings:
+
+| Field | Default | Purpose |
+| --- | --- | --- |
+| `taskset.dataset_file` | `rediscovery.jsonl` | Curated supernode task library |
+| `taskset.prompt_budget` | `5` | Subject prompts the agent may run |
+| `taskset.max_features` | `150` | Maximum features returned per trace |
+| `taskset.replacement_max_tv` | `0.05` | Strict-pass diagnostic TV threshold |
+| `taskset.replacement_reward_half_life` | `0.05` | TV distance that halves continuous reward |
+| `taskset.modal_app` | `circuit-supernodes-gemma-attribution` | Subject service |
+| `taskset.modal_cls` | `GemmaAttributor` | Subject service class |
+
+Empty prompts and prompts over 4096 characters are rejected without spending
+budget. Infrastructure failures are retried and raised; successful circuit
+traces spend one prompt.
+
 ## Layout
 
 - `circuit_supernodes/circuit_supernodes.py`: task and taskset
 - `circuit_supernodes/experiments.py`: interactive ablation tool
 - `circuit_supernodes/graphs.py`: graph normalization, pruning, and rendering
 - `circuit_supernodes/mdl.py`: pure response-bank decoder and proved MDL formula
+- `circuit_supernodes/rediscovery.py`: active prompt tool and replacement grade
 - `circuit_supernodes/rubric.py`: proposal validation and bank integration
 - `circuit_supernodes/datagen.py`: prompt generation
 - `modal_app/attribution.py`: Modal attribution, intervention, and bank service
+- `modal_app/attribution_gemma.py`: active-discovery subject and circuit tracer
 - `scripts/build_dataset.py`: dataset construction
 - `scripts/precompute_response_banks.py`: hidden-bank precomputation
+- `scripts/build_rediscovery_dataset.py`: curate hidden-reference benchmark rows
 - `tests/test_mdl_reward.py`: planted-world and adversarial validation
 - `tests/test_graph_view.py`: full-export loading and policy-selected graph views
+- `tests/test_rediscovery.py`: active prompting and replacement-grade validation

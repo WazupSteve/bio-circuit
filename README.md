@@ -1,11 +1,12 @@
-# Bio-circuit
+# Bio-circuit environments
 
-A Verifiers 0.2.1 environment for evaluating and training agents to identify
-causal circuits in Qwen3-4B attribution graphs. Agents may run bounded feature
-ablations before submitting a graph of conceptual supernodes and causal edges.
+This repository contains independent Verifiers 0.2.1 tasksets for causal-circuit
+MDL modeling and active promptless supernode discovery. Shared graph,
+serialization, validation, and retry primitives live in
+`environments/circuit_supernodes`.
 
-The implementation lives in `environments/circuit_supernodes`. Evaluation and
-RL configurations live in `configs/`.
+Evaluation and RL configurations live in `configs/` and are named after their
+task contract.
 
 ## Quickstart
 
@@ -14,36 +15,28 @@ cd environments/circuit_supernodes
 uv sync
 uv run modal setup
 uv run modal deploy modal_app/attribution.py
+uv run modal deploy modal_app/attribution_gemma.py
 
-# Build six training families and nine held-out evaluation families.
+# Build causal MDL datasets.
 uv run python scripts/build_dataset.py --n 48 --neuronpedia-labels \
-    --split train \
-    --out circuit_supernodes/data/train.jsonl
+    --split train --out circuit_supernodes/data/train-mdl.jsonl
 uv run python scripts/build_dataset.py --n 72 --seed 1 --neuronpedia-labels \
-    --split eval \
-    --out circuit_supernodes/data/heldout.jsonl
+    --split eval --out circuit_supernodes/data/heldout-mdl.jsonl
+
+# Rebuild promptless rediscovery data from a curated source graph.
+uv run python scripts/build_rediscovery_dataset.py \
+    --source path/to/curated-gemma-graph.json \
+    --out circuit_supernodes/data/rediscovery.jsonl
 
 # PRIME_API_KEY is required for policy-model evaluation.
-uv run eval @ ../../configs/eval/circuit-supernodes.toml --no-push
+uv run eval @ ../../configs/eval/circuit-mdl.toml --no-push
+uv run eval @ ../../configs/eval/supernode-rediscovery.toml --no-push
 ```
 
-Dataset generation, interactive experiments, and final reward scoring use the
-deployed Modal service. Generated datasets are intentionally ignored by Git and
-must be rebuilt on a fresh checkout.
+The compact rediscovery task library is checked in. Generated causal MDL
+datasets are intentionally ignored and must be rebuilt on a fresh checkout.
 
-Training runs on Prime Lab (`prime train run configs/rl/...`), which manages the
-trainer, rollout inference, and scheduling; the environment is installed there as
-a wheel from the Environments Hub, and Modal credentials reach it as environment
-secrets. Two canary configs under `configs/` are hard blockers that must pass
-before any real run — see the environment documentation.
-
-**Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) first.** The
-reward was audited before training anything on it, and the audit is currently the
-main result: its causal signal turns out to be dominated by the transformer's
-layer ordering, which a partition can exploit with zero experiments. Three
-frontier models add approximately nothing over that baseline. (The audit
-scripts and archived run data behind it were removed in a repo cleanup; they
-remain in git history.)
-
-See the [environment documentation](environments/circuit_supernodes/README.md)
-for the task contract, reward, validation, and training workflows.
+Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) for the causal
+reward audit, and see the
+[environment documentation](environments/circuit_supernodes/README.md) for the
+task contracts, validation, and deployment workflows.

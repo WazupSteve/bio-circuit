@@ -174,23 +174,29 @@ def feature_coords(ids: list[str]) -> list[tuple[int, int, int]]:
     return [tuple(map(int, node_id.split("_"))) for node_id in ids]
 
 
-def render_graph(g: Graph, max_edges_per_node: int = 5) -> str:
+def render_graph(
+    g: Graph, max_edges_per_node: int = 5, *, include_labels: bool = True
+) -> str:
     lines = [f"PROMPT TOKENS: {' | '.join(g.tokens)}"]
     if g.top_outputs:
         outs = ", ".join(f"{t!r} (p={p:.2f})" for t, p in g.top_outputs[:5])
         lines.append(f"TOP OUTPUTS: {outs}")
     lines.append("")
-    lines.append("NODES (id | kind | layer | pos:token | importance | label):")
+    columns = "id | kind | layer | pos:token | importance"
+    if include_labels:
+        columns += " | label"
+    lines.append(f"NODES ({columns}):")
     ordered = sorted(
         g.nodes.values(), key=lambda n: (n.kind != "embedding", n.layer, n.ctx_idx)
     )
-    lines.extend(
-        (
-            f"  {n.id} | {n.kind} | L{n.layer} | {n.ctx_idx}:{n.token!r}"
-            f" | {n.share:.4f} | {n.label[:70]}"
+    for node in ordered:
+        line = (
+            f"  {node.id} | {node.kind} | L{node.layer} | "
+            f"{node.ctx_idx}:{node.token!r} | {node.share:.4f}"
         )
-        for n in ordered
-    )
+        if include_labels:
+            line += f" | {node.label[:70]}"
+        lines.append(line)
     lines.append("")
     lines.append("EDGES (source -> target : weight):")
     by_target: dict[str, list[GraphEdge]] = {}

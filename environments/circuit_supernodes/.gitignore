@@ -1,2 +1,4 @@
-# generated attribution dataset (too large for git; rebuild with scripts/build_dataset.py)
-circuit_supernodes/data/
+# Generated attribution datasets are large. Keep only the compact curated task
+# library needed by the exported environment in version control.
+circuit_supernodes/data/*
+!circuit_supernodes/data/rediscovery.jsonl
