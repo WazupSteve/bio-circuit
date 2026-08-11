@@ -158,7 +158,7 @@ def main() -> None:
     ap.add_argument(
         "--neuronpedia-labels",
         action="store_true",
-        help="label the 60 displayed features using one Neuronpedia batch request",
+        help="label the top-ranked 60 features using one Neuronpedia batch request",
     )
     args = ap.parse_args()
 

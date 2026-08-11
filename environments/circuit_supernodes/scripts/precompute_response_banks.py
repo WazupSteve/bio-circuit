@@ -13,7 +13,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
 import modal
-from circuit_supernodes.graphs import feature_coords, load_graph_json, slim_graph
+from circuit_supernodes.graphs import feature_coords, load_graph_json
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
 
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
@@ -39,7 +39,6 @@ def main() -> None:
     )
     parser.add_argument("--input", default="dataset.jsonl")
     parser.add_argument("--out", required=True)
-    parser.add_argument("--max-features", type=int, default=60)
     parser.add_argument("--calibration", type=fractions, default=[0.25, 0.5])
     parser.add_argument("--validation", type=fractions, default=[0.75, 1.0])
     parser.add_argument("--workers", type=int, default=8)
@@ -63,12 +62,10 @@ def main() -> None:
     completed = 0
 
     def augment(line_number: int, row: dict) -> tuple[dict, str]:
-        graph = slim_graph(
-            load_graph_json(row["graph"]), max_features=args.max_features
-        )
+        graph = load_graph_json(row["graph"])
         feature_ids = sorted(node.id for node in graph.feature_nodes)
         if not feature_ids:
-            raise ValueError(f"row {line_number} has no displayed features")
+            raise ValueError(f"row {line_number} has no exported features")
         if not graph.top_outputs or not graph.top_outputs[0][0].strip():
             raise ValueError(f"row {line_number} has no target token")
         bank = attributor.causal_response_bank.remote(
@@ -79,8 +76,9 @@ def main() -> None:
             args.validation,
         )
         augmented = dict(row)
+        augmented.pop("response_bank_max_features", None)
         augmented["response_bank"] = bank
-        augmented["response_bank_max_features"] = args.max_features
+        augmented["response_bank_feature_count"] = len(feature_ids)
         augmented["reward_version"] = REWARD_VERSION
         return augmented, bank["metadata"]["bank_id"]
 

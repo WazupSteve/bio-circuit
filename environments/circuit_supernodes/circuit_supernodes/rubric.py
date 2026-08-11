@@ -268,7 +268,7 @@ class InterventionScoring:
         )
         if set(bank.feature_ids) != set(feature_ids):
             raise RuntimeError(
-                "response-bank feature universe does not match the displayed graph"
+                "response-bank feature universe does not match the exported graph"
             )
 
         score = score_circuit(

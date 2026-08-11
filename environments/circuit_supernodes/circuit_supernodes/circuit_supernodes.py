@@ -1,6 +1,6 @@
 import hashlib
 import json
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -12,8 +12,6 @@ from .graphs import (
     Graph,
     graph_to_json,
     load_graph_json,
-    render_graph,
-    slim_graph,
 )
 from .rubric import (
     MIN_GROUP_SIZE,
@@ -32,6 +30,10 @@ groups into a directed circuit.
 You may call circuit_run_ablation before answering. It clamps selected FEATURE
 nodes to zero and reports changes in output probability and requested probe-group
 activations. Use it to test uncertain causal links.
+
+Call ``circuit_view_graph(feature_count)`` to choose how many of the available
+top-ranked FEATURE nodes to inspect. Graph inspection is free and repeatable; it
+does not change the fixed, complete exported feature universe used for scoring.
 
 Your final proposal is scored against a fixed hidden causal-response bank. Members
 of one supernode must predict one another's held-out intervention responses, and
@@ -66,6 +68,48 @@ class CircuitTaskData(vf.TaskData):
 
 
 _SCORER = InterventionScoring()
+
+
+def _validate_task_graph(
+    graph: Graph,
+    response_bank: object,
+    *,
+    source: Path,
+    line_number: int,
+) -> None:
+    """Reject graphs and frozen banks that cannot share one feature universe."""
+
+    graph_feature_ids = {node.id for node in graph.feature_nodes}
+    if len(graph_feature_ids) < MIN_GROUP_SIZE:
+        raise ValueError(
+            f"{source} row {line_number} contains {len(graph_feature_ids)} FEATURE "
+            f"nodes; at least {MIN_GROUP_SIZE} are required"
+        )
+
+    if response_bank is None:
+        return
+    if not isinstance(response_bank, Mapping):
+        raise ValueError(f"{source} row {line_number} has a malformed response bank")
+
+    raw_feature_ids = response_bank.get("feature_ids")
+    if not isinstance(raw_feature_ids, Sequence) or isinstance(
+        raw_feature_ids, (str, bytes)
+    ):
+        raise ValueError(
+            f"{source} row {line_number} has a malformed response-bank feature list"
+        )
+
+    bank_feature_ids = [str(node_id) for node_id in raw_feature_ids]
+    bank_feature_set = set(bank_feature_ids)
+    if (
+        len(bank_feature_ids) != len(bank_feature_set)
+        or bank_feature_set != graph_feature_ids
+    ):
+        raise ValueError(
+            f"{source} row {line_number} has a response bank for "
+            f"{len(bank_feature_ids)} features, but its Circuit Tracer export "
+            f"contains {len(graph_feature_ids)}; rebuild the response-bank dataset"
+        )
 
 
 def fails_injected_fault(rollout_id: str, rate: float) -> bool:
@@ -120,7 +164,6 @@ class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
 
 class CircuitTasksetConfig(vf.TasksetConfig):
     dataset_file: str = "dataset.jsonl"
-    max_features: int = Field(60, ge=2, le=4096)
     experiment_budget: int = Field(DEFAULT_BUDGET, ge=0)
     experiment_budgets: list[int] | None = None
     """Emit one task per budget from every graph, for the budget-curve arms.
@@ -143,12 +186,16 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
 
         idx = 0
         with path.open() as rows:
-            for line in rows:
+            for line_number, line in enumerate(rows, 1):
                 if not line.strip():
                     continue
                 row = json.loads(line)
-                graph = slim_graph(
-                    load_graph_json(row["graph"]), self.config.max_features
+                graph = load_graph_json(row["graph"])
+                _validate_task_graph(
+                    graph,
+                    row.get("response_bank"),
+                    source=path,
+                    line_number=line_number,
                 )
                 budgets = self.config.experiment_budgets or [
                     int(row.get("experiment_budget", self.config.experiment_budget))
@@ -161,7 +208,9 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
         prompt = (
             f"Subject prompt: {row['prompt']!r}\n"
             f"Expected continuation: {row['target']!r}\n\n"
-            f"{render_graph(graph)}\n\n"
+            f"Choose between {MIN_GROUP_SIZE} and {len(graph.feature_nodes)} "
+            "FEATURE nodes "
+            "with circuit_view_graph(feature_count).\n"
             f"Experiment budget: {budget}. "
             "Submit the final circuit when ready."
         )

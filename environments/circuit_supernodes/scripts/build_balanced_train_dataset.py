@@ -38,9 +38,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--per-family", type=int, default=5)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument(
-        "--out", default=str(DATA_DIR / "train_5_each.jsonl")
-    )
+    parser.add_argument("--out", default=str(DATA_DIR / "train_5_each.jsonl"))
     parser.add_argument(
         "--oversample",
         type=int,
@@ -62,7 +60,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--neuronpedia-labels",
         action="store_true",
-        help="label the 60 displayed features using Neuronpedia",
+        help="label the top-ranked 60 features using Neuronpedia",
     )
     parser.add_argument(
         "--force",

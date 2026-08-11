@@ -11,13 +11,19 @@ between those groups.
 - Maximum turns: 8
 - Experiment budget: 7 calls to `circuit_run_ablation` by default, overridable
   per dataset row (`experiment_budget`) for budget-curve variants
-- Displayed graph: up to 60 feature nodes, plus embedding and logit nodes
+- Available graph: every feature retained by Circuit Tracer's `0.8` node
+  threshold, plus embedding and logit nodes
+- Displayed graph: the policy chooses the feature count with `circuit_view_graph`
 - Allowed proposal size: 1–8 disjoint supernodes, at least 2 features each
 - Reserved terminal node: `output`
 
 Each experiment clamps selected feature nodes to zero and reports the change in
 the target-token probability and optional probe-group activations. Experiments
 provide evidence but do not directly contribute reward.
+
+Graph inspection is free and repeatable. It only changes how much of the fixed
+exported graph the policy sees; the hidden response bank and scoring universe
+contain every feature in that export.
 
 The final response must contain one JSON code block:
 
@@ -58,8 +64,8 @@ single clipped score.
 
 ### Fixed hidden response bank
 
-The backend intervenes on every displayed feature and records its signed local
-effect on every other displayed feature plus target-token log-odds. Mediator
+The backend intervenes on every exported feature and records its signed local
+effect on every other exported feature plus target-token log-odds. Mediator
 columns are weighted by squared output sensitivity, following the first-order
 output propagation approximation. Proposal-independent scales whiten each
 column.
@@ -122,10 +128,10 @@ only in `FINDINGS.md` as an audit record.
 
 The score identifies equivalence under its frozen intervention operator, not a
 human semantic name. Reachability-equivalent direct DAGs are not identifiable.
-The claim is relative to the displayed feature slice and the local derivative
-conditions, not every hidden transformer feature or nonlinear interaction. Lean
-proves the algebraic reward properties; validation of the response bank and
-backend remains empirical.
+The claim is relative to Circuit Tracer's `0.8`-threshold export and the local
+derivative conditions, not every hidden transformer feature or nonlinear
+interaction. Lean proves the algebraic reward properties; validation of the
+response bank and backend remains empirical.
 
 ## Setup
 
@@ -160,10 +166,15 @@ uv run python scripts/build_dataset.py --n 16 --seed 1 --neuronpedia-labels \
 
 # Freeze the proposal-independent banks used by the MDL scorer.
 uv run python scripts/precompute_response_banks.py \
-    --input train.jsonl --out train-mdl.jsonl --max-features 60
+    --input train.jsonl --out train-mdl.jsonl
 uv run python scripts/precompute_response_banks.py \
-    --input heldout.jsonl --out heldout-mdl.jsonl --max-features 60
+    --input heldout.jsonl --out heldout-mdl.jsonl
 ```
+
+Response banks produced by earlier versions contain only the top 60 features
+and are incompatible with the complete exported universe. Rebuild both
+`*-mdl.jsonl` files before evaluation or training, passing `--overwrite` when
+replacing existing files.
 
 `--neuronpedia-labels` is optional. Labels are cached in the generated JSONL and
 Neuronpedia is not called during rollouts. The data directory is ignored by Git
@@ -232,18 +243,17 @@ automatically.
 | Field | Default | Purpose |
 | --- | --- | --- |
 | `taskset.dataset_file` | `dataset.jsonl` | Dataset under `circuit_supernodes/data/` |
-| `taskset.max_features` | `60` | Maximum feature nodes shown to the policy |
 | `taskset.experiment_budget` | `7` | Default ablation budget; rows may override |
 | `taskset.reward_mode` | `eval` | Compatibility field; both modes use the same MDL reward |
 | `taskset.fault_rate` | `0.0` | Canary only: fraction of rollouts whose scoring raises |
 
 Fixed safety limits allow at most 12 ablated features, 8 probe groups, and 60
 probe features per interactive experiment. Each interactive experiment costs two
-subject-model passes. Building the default fixed response bank costs one base
-pass plus four interventions per displayed feature (`241` passes for 60
-features), but it is proposal-independent and should be precomputed once. A
-dataset row containing `response_bank` needs no final-scoring GPU passes; missing
-banks are constructed lazily and cached as a compatibility fallback.
+subject-model passes. Building the fixed response bank costs one base pass plus
+four interventions per exported feature, so a 1,400-feature export costs `5,601`
+passes. It is proposal-independent and should be precomputed once. A dataset row
+containing `response_bank` needs no final-scoring GPU passes; missing banks are
+constructed lazily and cached as a compatibility fallback.
 
 ## Layout
 
@@ -257,3 +267,4 @@ banks are constructed lazily and cached as a compatibility fallback.
 - `scripts/build_dataset.py`: dataset construction
 - `scripts/precompute_response_banks.py`: hidden-bank precomputation
 - `tests/test_mdl_reward.py`: planted-world and adversarial validation
+- `tests/test_graph_view.py`: full-export loading and policy-selected graph views
