@@ -15,19 +15,11 @@ from build_dataset import (
     add_neuronpedia_labels,
     is_clean,
     is_faithful,
+    prepare_samples,
     write_manifest,
 )
-from circuit_supernodes.datagen import generate
+from circuit_supernodes.datagen import TRAIN_FAMILIES, generate
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS
-
-TRAIN_FAMILIES = (
-    "antonym",
-    "analogy",
-    "acronym",
-    "sequence",
-    "factual",
-    "incontext",
-)
 
 
 def parse_args() -> argparse.Namespace:
@@ -90,6 +82,7 @@ def main() -> None:
     accepted = {family: 0 for family in TRAIN_FAMILIES}
     attempted = {family: 0 for family in TRAIN_FAMILIES}
     faithful = {family: 0 for family in TRAIN_FAMILIES}
+    triage = {"keep_correct": 0, "keep_incorrect": 0, "reject": 0}
     seen_prompts: set[str] = set()
     quality: list[dict] = []
     attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
@@ -118,23 +111,30 @@ def main() -> None:
                 if not samples:
                     break
                 print(
-                    f"Round {round_index + 1}: attributing {len(samples)} candidates; "
+                    f"Round {round_index + 1}: sampling {len(samples)} candidates; "
                     f"accepted so far {accepted}"
                 )
+                for sample in samples:
+                    attempted[sample.family] += 1
+                prepared, round_triage = prepare_samples(attributor, samples)
+                for disposition, count in round_triage.items():
+                    triage[disposition] += count
                 graphs = attributor.attribute_prompt.map(
-                    [sample.prompt for sample in samples], order_outputs=True
+                    [item.sample.prompt for item in prepared], order_outputs=True
                 )
-                for sample, graph in zip(samples, graphs, strict=True):
-                    family = sample.family
-                    attempted[family] += 1
+                for item, graph in zip(prepared, graphs, strict=True):
+                    sample = item.sample
+                    family = sample.source_family or sample.family
                     if graph is None:
                         print(f"  ! attribution failed [{family}], skipping")
                         continue
-                    is_subject_faithful, top_token = is_faithful(graph, sample.target)
+                    is_subject_faithful, top_token = is_faithful(
+                        graph, item.target_token
+                    )
                     if not is_subject_faithful:
                         print(
                             f"  ! unfaithful [{family}]: model says {top_token!r}, "
-                            f"wanted {sample.target!r} — skipping"
+                            f"sampled {item.target_token!r} — skipping"
                         )
                         continue
                     faithful[family] += 1
@@ -156,6 +156,9 @@ def main() -> None:
                         except (OSError, ValueError) as exc:
                             print(f"  ! Neuronpedia labels unavailable: {exc}")
                     row = sample.to_row()
+                    row["sampling"] = item.sampling
+                    row["sampling"]["disposition"] = item.disposition
+                    row["sampling"]["attributed_target_token"] = item.target_token
                     row["graph"] = graph
                     rows.write(json.dumps(row) + "\n")
                     rows.flush()
@@ -180,6 +183,7 @@ def main() -> None:
         tmp.replace(out)
         args.n = args.per_family * len(TRAIN_FAMILIES)
         args.families = list(TRAIN_FAMILIES)
+        args.triage = triage
         manifest_path = write_manifest(out, args.n, args, quality)
         manifest = json.loads(manifest_path.read_text())
         manifest["generator"].update(
@@ -188,6 +192,7 @@ def main() -> None:
                 "accepted": accepted,
                 "attempted": attempted,
                 "faithful": faithful,
+                "triage": triage,
                 "oversample": args.oversample,
                 "max_rounds": args.max_rounds,
             }

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 import modal
@@ -13,6 +14,53 @@ MAX_FEATURE_NODES = 4096
 RESPONSE_BANK_VERSION = "v1-local-derivative"
 CALIBRATION_FRACTIONS = (0.25, 0.5)
 VALIDATION_FRACTIONS = (0.75, 1.0)
+
+
+def _first_answer(
+    text: str, possible_answers: list[str], *, final: bool = False
+) -> tuple[str, int, int] | None:
+    """Find the earliest complete answer label in generated text.
+
+    Word boundaries prevent labels such as ``is`` from matching inside another
+    word. At the live end of generation, a label that prefixes another label
+    (``north``/``northeast`` or ``1``/``12``) is held until a delimiter arrives.
+    """
+
+    answers = [answer.strip() for answer in possible_answers if answer.strip()]
+    matches: list[tuple[int, int, str]] = []
+    for answer in answers:
+        match = re.search(
+            rf"(?<!\w){re.escape(answer)}(?!\w)", text, flags=re.IGNORECASE
+        )
+        if match is None:
+            continue
+        if match.end() == len(text) and not final:
+            key = answer.casefold()
+            if any(
+                other.casefold() != key and other.casefold().startswith(key)
+                for other in answers
+            ):
+                continue
+        matches.append((match.start(), -len(answer), answer))
+    if not matches:
+        return None
+    start, negative_length, answer = min(matches)
+    return answer, start, start - negative_length
+
+
+def _token_prefix_at_char(tokenizer, token_ids: list[int], char_index: int) -> int:
+    """Return how many complete generated tokens precede a character offset."""
+
+    for index in range(len(token_ids) + 1):
+        decoded = tokenizer.decode(
+            token_ids[:index],
+            skip_special_tokens=False,
+            clean_up_tokenization_spaces=False,
+        )
+        if len(decoded) > char_index:
+            return max(0, index - 1)
+    return len(token_ids)
+
 
 app = modal.App("circuit-supernodes-attribution")
 
@@ -75,6 +123,103 @@ class Attributor:
     @staticmethod
     def _normalize_acts(acts):
         return acts[:, 0] if acts.dim() == 4 else acts
+
+    @modal.method()
+    def sample_until_answer(self, request: dict) -> dict:
+        """Greedily sample at most 50 tokens, stopping at an answer label.
+
+        ``provided_prompt`` ends immediately before the token containing the
+        answer. Any preceding narration is therefore context for attribution,
+        rather than being mistaken for the target continuation.
+        """
+
+        import torch
+
+        prompt = str(request.get("prompt", ""))
+        possible_answers = [
+            str(answer).strip()
+            for answer in request.get("possible_answers", [])
+            if str(answer).strip()
+        ]
+        max_new_tokens = int(request.get("max_new_tokens", 50))
+        if not prompt or not possible_answers or not 1 <= max_new_tokens <= 50:
+            return {
+                "status": "error",
+                "generated_text": "",
+                "error": "prompt, possible_answers, and 1-50 new tokens are required",
+            }
+
+        tokenizer = self.model.tokenizer
+        tokens = self.model.ensure_tokenized(prompt)
+        generated_ids: list[int] = []
+        try:
+            with torch.inference_mode():
+                for _ in range(max_new_tokens):
+                    logits = self.model(tokens, return_type="logits")
+                    next_id = int(logits.reshape(-1, logits.shape[-1])[-1].argmax())
+                    generated_ids.append(next_id)
+                    next_token = torch.tensor(
+                        [next_id] if tokens.dim() == 1 else [[next_id]],
+                        device=tokens.device,
+                        dtype=tokens.dtype,
+                    )
+                    tokens = torch.cat((tokens, next_token), dim=-1)
+                    generated_text = tokenizer.decode(
+                        generated_ids,
+                        skip_special_tokens=False,
+                        clean_up_tokenization_spaces=False,
+                    )
+                    match = _first_answer(generated_text, possible_answers)
+                    if match is not None:
+                        break
+                    if next_id == tokenizer.eos_token_id:
+                        break
+                else:
+                    generated_text = tokenizer.decode(
+                        generated_ids,
+                        skip_special_tokens=False,
+                        clean_up_tokenization_spaces=False,
+                    )
+
+            match = match or _first_answer(generated_text, possible_answers, final=True)
+            if match is None:
+                return {
+                    "status": "exhausted",
+                    "generated_text": generated_text,
+                    "generated_tokens": len(generated_ids),
+                }
+
+            answer, start, _ = match
+            answer_token_index = _token_prefix_at_char(tokenizer, generated_ids, start)
+            prefix_text = tokenizer.decode(
+                generated_ids[:answer_token_index],
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=False,
+            )
+            target_token = tokenizer.decode(
+                [generated_ids[answer_token_index]],
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=False,
+            )
+            return {
+                "status": "matched",
+                "generated_text": generated_text,
+                "matched_answer": answer,
+                "provided_prompt": prompt + prefix_text,
+                "target_token": target_token,
+                "generated_tokens": len(generated_ids),
+            }
+        except Exception as exc:
+            return {
+                "status": "error",
+                "generated_text": tokenizer.decode(
+                    generated_ids,
+                    skip_special_tokens=False,
+                    clean_up_tokenization_spaces=False,
+                ),
+                "generated_tokens": len(generated_ids),
+                "error": str(exc),
+            }
 
     @staticmethod
     def _group_act(acts, members) -> float:
@@ -368,7 +513,17 @@ class Attributor:
 
 
 @app.local_entrypoint()
-def main(prompt: str):
+def main(prompt: str, answers: str = "", max_new_tokens: int = 50):
+    if answers:
+        result = Attributor().sample_until_answer.remote(
+            {
+                "prompt": prompt,
+                "possible_answers": [answer for answer in answers.split(",")],
+                "max_new_tokens": max_new_tokens,
+            }
+        )
+        print(json.dumps(result, indent=2))
+        return
     graph = Attributor().attribute_prompt.remote(prompt)
     if graph is None:
         raise SystemExit("attribution failed")

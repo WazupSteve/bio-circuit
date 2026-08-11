@@ -2,18 +2,89 @@ import argparse
 import hashlib
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 import modal
-from circuit_supernodes.datagen import generate
+from circuit_supernodes.datagen import (
+    EVAL_FAMILIES,
+    TRAIN_FAMILIES,
+    CircuitSample,
+    generate,
+)
 from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
 from circuit_supernodes.rubric import MODAL_APP, MODAL_CLS, REWARD_VERSION
+from circuit_supernodes.sampling import (
+    MAX_NEW_TOKENS,
+    SamplingResult,
+    classify_result,
+    sampling_request,
+)
 
 sys.path.insert(0, str(Path(__file__).parent.parent))  # for modal_app.attribution
 
 DATA_DIR = Path(__file__).parent.parent / "circuit_supernodes" / "data"
 NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
+
+
+@dataclass
+class PreparedSample:
+    sample: CircuitSample
+    target_token: str
+    disposition: str
+    sampling: dict
+
+
+def _sample_answers(attributor, samples: list[CircuitSample]) -> list[SamplingResult]:
+    requests = [
+        sampling_request(sample.prompt, sample.possible_answers) for sample in samples
+    ]
+    return list(attributor.sample_until_answer.map(requests, order_outputs=True))
+
+
+def _prepared(
+    sample: CircuitSample,
+    result: SamplingResult,
+    disposition: str,
+    sampling: dict,
+) -> PreparedSample:
+    return PreparedSample(
+        sample=CircuitSample(
+            family=sample.family,
+            prompt=str(result["provided_prompt"]),
+            target=sample.target,
+            possible_answers=sample.possible_answers,
+            source_family=sample.source_family,
+        ),
+        target_token=str(result["target_token"]),
+        disposition=disposition,
+        sampling=sampling,
+    )
+
+
+def prepare_samples(
+    attributor, samples: list[CircuitSample]
+) -> tuple[list[PreparedSample], dict[str, int]]:
+    """Keep correct answers and record, but reject, all other outcomes."""
+
+    counts = {"keep_correct": 0, "keep_incorrect": 0, "reject": 0}
+    prepared: list[PreparedSample] = []
+
+    initial_results = _sample_answers(attributor, samples)
+    for sample, result in zip(samples, initial_results, strict=True):
+        disposition = classify_result(sample.target, result)
+        counts[disposition] += 1
+        if disposition == "keep_correct":
+            prepared.append(
+                _prepared(
+                    sample,
+                    result,
+                    disposition,
+                    {"initial": result, "max_new_tokens": MAX_NEW_TOKENS},
+                )
+            )
+    return prepared, counts
 
 
 def file_sha256(path: Path, chunk_size: int = 1024 * 1024) -> str:
@@ -128,6 +199,10 @@ def write_manifest(out: Path, rows: int, args, quality: list[dict]) -> Path:
             "seed": args.seed,
             "requested": args.n,
             "families": sorted(args.families or []),
+            "answer_sampling": {
+                "max_new_tokens": MAX_NEW_TOKENS,
+                "triage": getattr(args, "triage", None),
+            },
         },
         "graph_quality": {
             "error_influence": (
@@ -148,6 +223,11 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--families", nargs="*", help="restrict to these prompt families")
+    ap.add_argument(
+        "--split",
+        choices=("train", "eval"),
+        help="use the explicit training or sealed evaluation family set",
+    )
     ap.add_argument("--out", default=str(DATA_DIR / "dataset.jsonl"))
     ap.add_argument(
         "--max-error-share",
@@ -162,6 +242,15 @@ def main() -> None:
     )
     args = ap.parse_args()
 
+    if args.split and args.families is not None:
+        ap.error("--split and --families are mutually exclusive")
+    if args.split == "train":
+        args.families = list(TRAIN_FAMILIES)
+    elif args.split == "eval":
+        args.families = list(EVAL_FAMILIES)
+    elif args.families is None:
+        args.families = list(TRAIN_FAMILIES)
+
     samples = generate(args.n, seed=args.seed, families=args.families)
     print(
         f"Sampled {len(samples)} prompts across families:",
@@ -169,8 +258,15 @@ def main() -> None:
     )
 
     attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
+    prepared, triage = prepare_samples(attributor, samples)
+    args.triage = triage
+    print(f"answer sampling triage: {triage}")
+    if not prepared:
+        raise SystemExit("sampling produced no attributable answers")
     graphs = list(
-        attributor.attribute_prompt.map([s.prompt for s in samples], order_outputs=True)
+        attributor.attribute_prompt.map(
+            [item.sample.prompt for item in prepared], order_outputs=True
+        )
     )
 
     out = Path(args.out)
@@ -178,16 +274,17 @@ def main() -> None:
     tmp = out.with_suffix(out.suffix + ".tmp")
     kept, stats, quality = 0, {}, []
     with tmp.open("w") as f:
-        for s, graph in zip(samples, graphs, strict=True):
+        for item, graph in zip(prepared, graphs, strict=True):
+            s = item.sample
             if graph is None:
                 print(f"  ! attribution failed for {s.prompt!r}, skipping")
                 continue
-            faithful, top_tok = is_faithful(graph, s.target)
+            faithful, top_tok = is_faithful(graph, item.target_token)
             stats.setdefault(s.family, []).append(faithful)
             if not faithful:
                 print(
                     f"  ! unfaithful [{s.family}] {s.prompt!r}: "
-                    f"model says {top_tok!r}, wanted {s.target!r} — skipping"
+                    f"model says {top_tok!r}, sampled {item.target_token!r} — skipping"
                 )
                 continue
             clean, graph_stats = is_clean(graph, args.max_error_share, 60)
@@ -206,6 +303,9 @@ def main() -> None:
                 except (OSError, ValueError) as exc:
                     print(f"  ! Neuronpedia labels unavailable: {exc}")
             row = s.to_row()
+            row["sampling"] = item.sampling
+            row["sampling"]["disposition"] = item.disposition
+            row["sampling"]["attributed_target_token"] = item.target_token
             row["graph"] = graph
             f.write(json.dumps(row) + "\n")
             kept += 1
