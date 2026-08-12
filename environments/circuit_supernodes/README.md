@@ -1,105 +1,103 @@
-# Integrated circuit environments
+# Circuit task contracts
 
-This package exports three independent Verifiers tasksets. They reuse the
-`circuit_supernodes` implementation package but retain separate plugin IDs,
-configuration files, datasets, builders, and GPU services.
+The package exports three independent Verifiers tasksets. Model-node-count is a
+universal presentation policy, not a fourth plugin: each dataset stores the
+maximal Circuit Tracer export (up to 4,096 feature nodes), and the policy chooses
+an ordinary top-k view at inference time. Required, goal, corrupted, or held-out
+nodes are never automatically inserted into those views.
 
-## Public surfaces
+## Shared answer sampling and families
 
-| Environment | Plugin/taskset ID | Eval config | RL config |
-| --- | --- | --- | --- |
-| Causal circuit MDL | `circuit-supernodes` | `configs/eval/circuit-mdl.toml` | `configs/rl/circuit-mdl.toml` |
-| Promptless discovery | `supernode-rediscovery` | `configs/eval/supernode-rediscovery.toml` | `configs/rl/supernode-rediscovery.toml` |
-| Output restoration | `output-restoration` | `configs/eval/output-restoration.toml` | `configs/rl/output-restoration.toml` |
+Every generated task calls the same bounded greedy sampler before attribution:
 
-The three Modal pairs are also independent:
+- the subject is instructed to emit one answer from `possible_answers`;
+- generation stops at the first complete answer label, within 50 tokens;
+- correct matches are retained, wrong matches are counted and rejected, and
+  exhaustion/errors are rejected;
+- narration before the matched label becomes attribution context;
+- rows and manifests retain sampler output, disposition, and target-token
+  provenance.
 
-| Purpose | App | Class | Deploy module |
-| --- | --- | --- | --- |
-| Qwen attribution and response banks | `circuit-supernodes-attribution` | `Attributor` | `modal_app/attribution.py` |
-| Gemma promptless discovery | `circuit-supernodes-gemma-attribution` | `GemmaAttributor` | `modal_app/attribution_gemma.py` |
-| Qwen persistent restoration | `circuit-supernodes-persistent-restoration` | `RestorationAttributor` | `modal_app/attribution_restoration.py` |
+The original six training families remain available alongside nine sealed eval
+families: two-hop recall, agreement, comparison, weekday arithmetic, path,
+modular, rule, spatial, and Boolean composition. Every builder supports
+`--split train`, `--split eval`, or (for cohort builders) `--split all`, plus an
+explicit `--families` override.
 
-## Shared graph contract
+## Tasksets
 
-The complete Circuit Tracer export is canonical task data. `GraphNode.activation`
-and labels are optional when loading old slim graphs. Serialization preserves
-activation, labels, all exported nodes, and all retained edges. `slim_graph`
-creates an importance-ranked presentation view and can explicitly retain required
-nodes for export/compatibility callers. Policy-selected views do not pass that
-option, so they never receive hidden or corrupted nodes merely because those
-nodes are required by a grader.
+### `circuit-supernodes`: vanilla causal MDL
 
-Label-free rendering powers promptless discovery. Causal MDL and restoration
-store the complete graph and expose ordinary top-k views. Final and trial
-restoration interventions are validated against the complete exported feature
-universe, not a 60-node load-time slice.
+Each row stores one maximal Qwen attribution graph and a response bank covering
+the same full feature universe. `circuit_view_graph(feature_count)` chooses the
+visible top-k subset. Ablation experiments and the final causal-MDL proposal are
+validated against the maximal graph.
 
-## Task contracts
+Configs: `configs/{eval,rl}/circuit-mdl.toml`.
 
-### Causal circuit MDL
+### `supernode-rediscovery`: promptless goal supernodes
 
-The agent selects top-k graph views, runs bounded zero-ablation experiments, and
-submits disjoint semantic supernodes plus a DAG. The fixed response bank covers
-every exported feature. The answer-aware generator keeps
-`CircuitSample.possible_answers`, samples within a bounded response window, and
-records sampling disposition/provenance in retained rows and manifests.
+Each row contains a positive cohort whose sampled answers share one goal and a
+random different-answer control cohort. Maximal Gemma graphs are stored for all
+prompts, but the policy receives neither the subject prompts nor prompt tokens.
+It calls `circuit_view_graph(cohort_index, feature_count)` to inspect label-free,
+prompt-free top-k views of positive-cohort graphs.
 
-The accepted model-node-count operating envelope is unchanged: an approximately
-1,400-feature export produces a full response bank with `1 + 4N` subject passes
-(`5,601` at `N=1,400`), and bank payloads remain attached once per dataset row.
-Eval/RL row counts also remain the configured 16-task evaluation and 48/72-row
-generation targets unless explicitly overridden.
+The final response contains named supernodes, their stable `layer_feature`
+members, and one multiplicative factor per supernode (node-level overrides are
+also accepted). For every positive prompt the verifier:
 
-### Promptless supernode discovery
+1. maps each stable feature to its highest-ranked stored prompt position;
+2. ablates the proposed set to establish that the answer depends on it;
+3. applies the submitted multipliers; and
+4. requires the desired answer token to be restored.
 
-The agent receives a curator description but no prompt or initial graph. Up to
-five agent-authored prompts are traced through Gemma-2-2B. Returned graphs omit
-human labels, and stable `layer_feature` identities are scored by hidden causal
-replacement distance. The five-task curated library is compact and checked in.
+The same intervention is then applied to randomly sampled controls. Default
+reward is binary: 100% of the positive cohort must shift from the ablated output
+back to the desired answer, while 0% of controls may be driven to that answer.
+The control gate rejects generic target-token activation circuits.
 
-### Persistent output restoration
+Configs: `configs/{eval,rl}/supernode-rediscovery.toml`.
 
-The subject is replayed with a hidden persistent multiplicative corruption over
-40–60 clean top-ranked features. The agent inspects ordinary top-k views and may
-trial weighted interventions. A final proposal scores zero until it restores the
-clean top token, then earns `exp(-KL(clean || restored))`.
+### `suppressed-features`: cohort restoration
 
-Generated rows store the complete corrupted attribution graph. Corrupted nodes
-remain in that universe so exact recovery is expressible, but no view forces all
-of them into its top-k slice. Admission still screens the five accepted blanket
-inverse baselines.
+Generated prompts are answer-sampled normally. Within each same-family cohort,
+the builder intersects stable features from the stored maximal clean graphs,
+samples one shared 4–12-node multiplicative corruption, and retries until that
+corruption changes the output for every discovery and held-out prompt. It then
+stores maximal attribution graphs captured under the corruption.
 
-## Clean-checkout setup and deployment
+The policy sees discovery prompts and desired tokens, and selects top-k views of
+their corrupted graphs. It submits stable feature IDs and multiplicative repair
+factors. Trials report discovery-cohort success only. Final scoring also replays
+the proposal on hidden corrupted prompts. Reward is `1` only when restoration is
+strictly greater than 80% on discovery prompts and strictly greater than 30% on
+held-out prompts; otherwise it is `0`.
 
-Run from this directory:
+Configs: `configs/{eval,rl}/suppressed-features.toml`.
 
-```bash
-uv sync --group dev
-uv run modal setup
-uv run modal deploy modal_app/attribution.py
-uv run modal deploy modal_app/attribution_gemma.py
-uv run modal deploy modal_app/attribution_restoration.py
-```
+## Modal services
 
-Deploy commands mutate external Modal state. Run them only with the intended
-Modal workspace selected. Local unit tests do not require a deployment.
+| Purpose | App/class | Deploy command |
+| --- | --- | --- |
+| Vanilla Qwen attribution/banks | `circuit-supernodes-attribution/Attributor` | `uv run modal deploy modal_app/attribution.py` |
+| Promptless Gemma sampling/graphs/cohort verifier | `circuit-supernodes-gemma-attribution/GemmaAttributor` | `uv run modal deploy modal_app/attribution_gemma.py` |
+| Qwen sampling/corruption/restoration | `circuit-supernodes-persistent-restoration/RestorationAttributor` | `uv run modal deploy modal_app/attribution_restoration.py` |
 
-## Dataset reproduction and manifests
+Deployments mutate external Modal state and are intentionally not part of local
+unit tests.
 
-Generated datasets live in separate ignored namespaces. Every builder writes a
-sidecar `*.manifest.json` with row count, content digest, and generation
-provenance. The response-bank precomputation step writes a new manifest for its
-final output.
+## Dataset generation
 
-### Causal MDL (generated, ignored)
+Generated graph datasets and manifests are ignored by Git. Run from this
+directory after deploying the relevant backend.
+
+Vanilla MDL:
 
 ```bash
 uv run python scripts/build_mdl_dataset.py --n 48 --split train \
-  --neuronpedia-labels \
   --out circuit_supernodes/data/circuit_mdl/train.jsonl
 uv run python scripts/build_mdl_dataset.py --n 72 --seed 1 --split eval \
-  --neuronpedia-labels \
   --out circuit_supernodes/data/circuit_mdl/heldout.jsonl
 uv run python scripts/precompute_response_banks.py \
   --input train.jsonl --out train-mdl.jsonl
@@ -107,54 +105,39 @@ uv run python scripts/precompute_response_banks.py \
   --input heldout.jsonl --out heldout-mdl.jsonl
 ```
 
-The configs consume `train-mdl.jsonl` and `heldout-mdl.jsonl` under
-`circuit_supernodes/data/circuit_mdl/`.
-
-### Promptless discovery (compact, checked in)
+Promptless cohorts:
 
 ```bash
-uv run python scripts/build_rediscovery_dataset.py \
-  --source https://neuronpedia-attrib.s3.us-east-1.amazonaws.com/user-graphs/cmao6p1xd0000ypedw0qhlhob/gemma-fact-dallas-austin.json \
-  --out circuit_supernodes/data/supernode_rediscovery/rediscovery.jsonl \
-  --overwrite
+uv run python scripts/build_promptless_dataset.py --split train \
+  --out circuit_supernodes/data/supernode_rediscovery/promptless-supernodes-train.jsonl
+uv run python scripts/build_promptless_dataset.py --seed 1 --split eval \
+  --out circuit_supernodes/data/supernode_rediscovery/promptless-supernodes.jsonl
 ```
 
-Both `rediscovery.jsonl` and `rediscovery.manifest.json` are versioned.
-
-### Output restoration (generated, ignored)
+Suppressed-feature cohorts:
 
 ```bash
-uv run python scripts/build_restoration_dataset.py --n 48 --seed 0 \
-  --neuronpedia-labels \
-  --out circuit_supernodes/data/output_restoration/output-restoration-train.jsonl
-uv run python scripts/build_restoration_dataset.py --n 72 --seed 1 \
-  --neuronpedia-labels \
-  --out circuit_supernodes/data/output_restoration/output-restoration.jsonl
+uv run python scripts/build_restoration_dataset.py --split train \
+  --out circuit_supernodes/data/output_restoration/suppressed-features-train.jsonl
+uv run python scripts/build_restoration_dataset.py --seed 1 --split eval \
+  --out circuit_supernodes/data/output_restoration/suppressed-features.jsonl
 ```
 
-## Evaluation, training, and validation
+Each builder writes a sidecar `*.manifest.json` containing the content digest,
+family set, sampler triage, cohort sizes, graph policy, and corruption provenance.
+
+## Validation and execution
 
 ```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+
 uv run eval @ ../../configs/eval/circuit-mdl.toml --no-push
 uv run eval @ ../../configs/eval/supernode-rediscovery.toml --no-push
-uv run eval @ ../../configs/eval/output-restoration.toml --no-push
-
-uv run pytest
-uv run ruff check .
+uv run eval @ ../../configs/eval/suppressed-features.toml --no-push
 ```
 
-Hosted restoration canaries use
-`configs/eval/output-restoration-canary-egress.toml` and
-`configs/rl/output-restoration-canary-error.toml`; neither references an MDL
-dataset. A full GPU smoke requires one task through each deployed backend and,
-for restoration, one trial plus a final score.
-
-## Layout
-
-- `circuit_supernodes/`: shared graph code and task implementations
-- `supernode_rediscovery/`: promptless plugin entrypoint
-- `output_restoration/`: restoration plugin entrypoint
-- `scripts/build_mdl_dataset.py`: answer-aware MDL builder
-- `scripts/build_rediscovery_dataset.py`: compact curator-source builder
-- `scripts/build_restoration_dataset.py`: persistent-corruption builder
-- `tests/test_integration_contract.py`: combined schema and restoration-view regressions
+The suppressed-feature egress and scoring-error canaries are named
+`suppressed-features-canary-egress.toml` and
+`suppressed-features-canary-error.toml`.

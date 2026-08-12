@@ -78,21 +78,24 @@ def test_restoration_keeps_full_graph_without_forcing_corruption_into_top_k(
     graph = ranked_graph()
     hidden_ids = {f"0_{index}_0" for index in range(60, 100)}
     corruption = [[0, index, 0, 2.0] for index in range(60, 100)]
-    row = {
+    example = {
         "family": "integration",
         "prompt": "x",
+        "target": "clean",
         "target_token": " clean",
+        "sampling": {"disposition": "keep_correct"},
         "graph": graph_to_json(graph),
         "corruption": corruption,
         "corruption_version": CORRUPTION_VERSION,
     }
-    dataset = tmp_path / "output-restoration.jsonl"
+    row = {"family": "integration", "cohort": [example], "heldout": [example]}
+    dataset = tmp_path / "suppressed-features.jsonl"
     dataset.write_text(json.dumps(row) + "\n")
     monkeypatch.setattr(restoration_environment, "DATA_DIR", tmp_path)
 
-    config = RestorationTasksetConfig(max_features=40)
+    config = RestorationTasksetConfig(max_view_features=40)
     task = next(iter(RestorationTaskset(config).load()))
-    loaded = load_graph_json(task.data.graph)
+    loaded = load_graph_json(task.data.cohort[0]["graph"])
     initial_view = slim_graph(loaded, 40)
 
     assert len(loaded.feature_nodes) == 100
@@ -107,7 +110,7 @@ def test_restoration_keeps_full_graph_without_forcing_corruption_into_top_k(
 
 def test_all_plugin_entrypoints_export_independent_tasksets() -> None:
     from circuit_supernodes import CircuitTaskset as MdlTaskset
-    from output_restoration import CircuitTaskset as OutputRestorationTaskset
     from supernode_rediscovery import DiscoveryTaskset as RediscoveryTaskset
+    from suppressed_features import CircuitTaskset as SuppressedFeaturesTaskset
 
-    assert len({MdlTaskset, RediscoveryTaskset, OutputRestorationTaskset}) == 3
+    assert len({MdlTaskset, RediscoveryTaskset, SuppressedFeaturesTaskset}) == 3

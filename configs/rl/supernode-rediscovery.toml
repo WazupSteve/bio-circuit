@@ -17,35 +17,33 @@ type = "repetition"
 enforce = false
 
 [[env]]
-max_turns = 8
+max_turns = 16
 
 [env.taskset]
 id = "supernode-rediscovery"
-dataset_file = "rediscovery.jsonl"
-prompt_budget = 5
-max_features = 150
-replacement_max_tv = 0.05
-replacement_reward_half_life = 0.05
+dataset_file = "promptless-supernodes-train.jsonl"
+min_cohort_success = 1.0
+max_control_activation = 0.0
+max_view_features = 4096
 
 [env.harness]
 id = "null"
 
 [eval]
 interval = 10
-num_examples = 5
+num_examples = 16
 rollouts_per_example = 1
 eval_base_model = true
 
 [[eval.env]]
-max_turns = 8
+max_turns = 16
 
 [eval.env.taskset]
 id = "supernode-rediscovery"
-dataset_file = "rediscovery.jsonl"
-prompt_budget = 5
-max_features = 150
-replacement_max_tv = 0.05
-replacement_reward_half_life = 0.05
+dataset_file = "promptless-supernodes.jsonl"
+min_cohort_success = 1.0
+max_control_activation = 0.0
+max_view_features = 4096
 
 [eval.env.harness]
 id = "null"

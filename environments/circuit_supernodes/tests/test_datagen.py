@@ -6,6 +6,7 @@ from circuit_supernodes.datagen import (
     SYMBOLS,
     TRAIN_FAMILIES,
     generate,
+    generate_pool,
 )
 
 
@@ -41,6 +42,15 @@ def test_generation_is_seed_deterministic() -> None:
     first = generate(18, seed=123, families=list(EVAL_FAMILIES))
     second = generate(18, seed=123, families=list(EVAL_FAMILIES))
     assert first == second
+
+
+def test_cohort_pool_keeps_sampling_after_small_families_exhaust() -> None:
+    first = generate_pool(240, seed=11, families=list(TRAIN_FAMILIES))
+    second = generate_pool(240, seed=11, families=list(TRAIN_FAMILIES))
+    assert first == second
+    assert len(first) == 240
+    assert set(TRAIN_FAMILIES) == {sample.family for sample in first}
+    assert len({sample.prompt for sample in first}) == 240
 
 
 @pytest.mark.parametrize("family", FAMILIES)

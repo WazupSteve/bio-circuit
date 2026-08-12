@@ -642,3 +642,41 @@ def generate(
             quota -= 1
     rng.shuffle(samples)
     return samples
+
+
+def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]:
+    """Generate an unbalanced cohort pool without one small family capping all.
+
+    Cohort builders need hundreds of candidates so answers repeat. Some finite
+    families have fewer unique prompts than others; exhausted families are
+    retired while the remaining requested families continue sampling.
+    """
+
+    if n < 1:
+        raise ValueError("n must be >= 1")
+    if not families:
+        raise ValueError("families must not be empty")
+    if unknown := set(families) - FAMILIES.keys():
+        raise ValueError(f"unknown families: {sorted(unknown)}")
+    rng = random.Random(seed)
+    active = list(dict.fromkeys(families))
+    misses = {family: 0 for family in active}
+    seen: set[str] = set()
+    samples = []
+    while active and len(samples) < n:
+        family = rng.choice(active)
+        sample = FAMILIES[family](rng)
+        if sample.prompt in seen:
+            misses[family] += 1
+            if misses[family] >= 500:
+                active.remove(family)
+            continue
+        misses[family] = 0
+        seen.add(sample.prompt)
+        samples.append(sample)
+    if len(samples) < n:
+        raise ValueError(
+            f"requested families produced only {len(samples)} unique prompts"
+        )
+    rng.shuffle(samples)
+    return samples

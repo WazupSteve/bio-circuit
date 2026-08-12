@@ -1,247 +1,250 @@
+"""Build common-corruption discovery and held-out prompt cohorts."""
+
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
-import sys
+import random
+from collections import defaultdict
 from pathlib import Path
-from urllib.request import Request, urlopen
 
 import modal
-from circuit_supernodes.datagen import generate
-from circuit_supernodes.graphs import graph_quality, load_graph_json, slim_graph
-from circuit_supernodes.interventions import CORRUPTION_VERSION
+from circuit_supernodes.cohorts import stable_feature_id
+from circuit_supernodes.datagen import (
+    EVAL_FAMILIES,
+    FAMILIES,
+    TRAIN_FAMILIES,
+    generate_pool,
+)
+from circuit_supernodes.graphs import graph_quality, load_graph_json
+from circuit_supernodes.interventions import (
+    CORRUPTION_VERSION,
+    MAX_CORRUPTION_NODES,
+    MIN_CORRUPTION_NODES,
+)
 from circuit_supernodes.restoration import MODAL_APP, MODAL_CLS, REWARD_VERSION
-
-sys.path.insert(0, str(Path(__file__).parent.parent))  # for restoration backend
+from circuit_supernodes.sampling import MAX_NEW_TOKENS
+from scripts.build_mdl_dataset import is_faithful, prepare_samples
 
 DATA_DIR = (
     Path(__file__).parent.parent / "circuit_supernodes" / "data" / "output_restoration"
 )
-NEURONPEDIA_FEATURES_URL = "https://www.neuronpedia.org/api/features"
 
 
-def file_sha256(path: Path, chunk_size: int = 1024 * 1024) -> str:
-    """Hash a dataset without loading its multi-gigabyte contents into memory."""
-    digest = hashlib.sha256()
-    with path.open("rb") as f:
-        while chunk := f.read(chunk_size):
-            digest.update(chunk)
-    return digest.hexdigest()
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def add_neuronpedia_labels(graph_json: dict, max_features: int = 60) -> int:
-    nodes = slim_graph(load_graph_json(graph_json), max_features).feature_nodes
-    features = {tuple(map(int, node.id.split("_")[:2])) for node in nodes}
-    if not features:
-        return 0
-    payload = [
-        {
-            "modelId": "qwen3-4b",
-            "layer": f"{layer}-transcoder-hp",
-            "index": feature,
-            "maxActsToReturn": 1,
-        }
-        for layer, feature in sorted(features)
+def common_stable_features(graphs: list[dict], limit: int = 512) -> list[str]:
+    """Intersect ordinary top-k stable feature identities across clean prompts."""
+
+    feature_sets = []
+    ranks: dict[str, int] = defaultdict(int)
+    for graph_json in graphs:
+        graph = load_graph_json(graph_json)
+        ordered = sorted(
+            (node for node in graph.feature_nodes if node.activation > 0.0),
+            key=lambda node: -node.share,
+        )[:limit]
+        current = set()
+        for rank, node in enumerate(ordered):
+            stable = stable_feature_id(node.id)
+            if stable is not None:
+                current.add(stable)
+                ranks[stable] += rank
+        feature_sets.append(current)
+    shared = set.intersection(*feature_sets) if feature_sets else set()
+    return sorted(shared, key=lambda node_id: (ranks[node_id], node_id))
+
+
+def random_corruption_spec(
+    common: list[str], rng: random.Random
+) -> list[tuple[int, int, float]]:
+    maximum = min(MAX_CORRUPTION_NODES, 12, len(common))
+    if maximum < MIN_CORRUPTION_NODES:
+        return []
+    count = rng.randint(MIN_CORRUPTION_NODES, maximum)
+    selected = rng.sample(common, count)
+    return [
+        (*map(int, node_id.split("_")), round(2 ** rng.uniform(1.0, 3.0), 6))
+        for node_id in selected
     ]
-    request = Request(
-        NEURONPEDIA_FEATURES_URL,
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
-        method="POST",
+
+
+def all_changed(results: list[dict]) -> bool:
+    return bool(results) and all(
+        isinstance(result, dict)
+        and not result.get("rejected")
+        and result.get("changed_top_token") is True
+        for result in results
     )
-    with urlopen(request, timeout=30) as response:
-        records = json.load(response)
-    if not isinstance(records, list):
-        raise ValueError("unexpected Neuronpedia response")
-
-    labels = {}
-    for record in records:
-        descriptions = record.get("explanations") or []
-        label = next(
-            (
-                str(item.get("description", "")).strip()
-                for item in descriptions
-                if str(item.get("description", "")).strip()
-            ),
-            "",
-        )
-        if label:
-            layer = str(record["layer"]).split("-", 1)[0]
-            labels[f"{layer}_{record['index']}"] = label
-
-    count = 0
-    for node in graph_json.get("nodes", []):
-        node_id = str(node.get("node_id", node.get("id", "")))
-        if label := labels.get("_".join(node_id.split("_")[:2])):
-            node["label"] = label
-            count += 1
-    return count
-
-
-def is_clean(
-    graph_json: dict, max_error: float, max_features: int
-) -> tuple[bool, dict]:
-    """Screen on graph quality, not just on whether the answer was right.
-
-    Only about a quarter of prompts yield a graph whose circuit is mostly
-    explained rather than mostly error, and an unexplained graph teaches nothing
-    however well the policy reads it.
-    """
-    stats = graph_quality(load_graph_json(graph_json), max_features)
-    return stats["error"] <= max_error, stats
-
-
-def write_manifest(out: Path, rows: int, args, quality: list[dict]) -> Path:
-    """Pin what a split was built from, next to the split itself.
-
-    Attribution graphs are expensive enough that nobody rebuilds one to check a
-    result, so a split has to carry its own provenance: the subject model and
-    transcoders, the exporter thresholds, the screening that admitted a graph,
-    and a digest of the file itself.
-    """
-    from modal_app.attribution_restoration import (
-        EDGE_THRESHOLD,
-        MODEL_NAME,
-        NODE_THRESHOLD,
-        TRANSCODER_SET,
-    )
-
-    manifest = {
-        "dataset": out.name,
-        "rows": rows,
-        "sha256": file_sha256(out),
-        "subject_model": MODEL_NAME,
-        "transcoders": TRANSCODER_SET,
-        "node_threshold": NODE_THRESHOLD,
-        "edge_threshold": EDGE_THRESHOLD,
-        "reward_version": REWARD_VERSION,
-        "corruption_version": CORRUPTION_VERSION,
-        "screening": {
-            "clean_target_matches_family_sample": True,
-            "corruption_changes_top_token": True,
-            "all_corrupted_nodes_exported": True,
-            "blanket_visible_inverse_restoration_rejected": True,
-            "max_error_share": args.max_error_share,
-        },
-        "generator": {
-            "seed": args.seed,
-            "requested": args.n,
-            "families": sorted(args.families or []),
-        },
-        "graph_quality": {
-            "error_influence": (
-                sum(q["error"] for q in quality) / len(quality) if quality else None
-            ),
-            "displayed_feature_influence": (
-                sum(q["displayed"] for q in quality) / len(quality) if quality else None
-            ),
-        },
-    }
-    path = out.with_suffix(".manifest.json")
-    path.write_text(json.dumps(manifest, indent=2) + "\n")
-    return path
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--n", type=int, default=16)
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--families", nargs="*", help="restrict to these prompt families")
-    ap.add_argument("--out", default=str(DATA_DIR / "output-restoration.jsonl"))
-    ap.add_argument(
-        "--max-error-share",
-        type=float,
-        default=0.35,
-        help="reject graphs where error nodes carry more than this influence",
-    )
-    ap.add_argument(
-        "--neuronpedia-labels",
-        action="store_true",
-        help="label the 60 displayed features using one Neuronpedia batch request",
-    )
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n", type=int, default=480, help="candidate prompt count")
+    parser.add_argument("--tasks", type=int, default=16)
+    parser.add_argument("--cohort-size", type=int, default=5)
+    parser.add_argument("--heldout-size", type=int, default=5)
+    parser.add_argument("--attempts", type=int, default=32)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--split", choices=("train", "eval", "all"), default="all")
+    parser.add_argument("--families", nargs="*")
+    parser.add_argument("--out", default=str(DATA_DIR / "suppressed-features.jsonl"))
+    parser.add_argument("--max-error-share", type=float, default=0.35)
+    args = parser.parse_args()
+    if args.families is not None and args.split != "all":
+        parser.error("--families and an explicit --split are mutually exclusive")
+    if args.families is not None:
+        families = args.families
+    elif args.split == "train":
+        families = list(TRAIN_FAMILIES)
+    elif args.split == "eval":
+        families = list(EVAL_FAMILIES)
+    else:
+        families = list(FAMILIES)
 
-    samples = generate(args.n, seed=args.seed, families=args.families)
-    print(
-        f"Sampled {len(samples)} prompts across families:",
-        sorted({s.family for s in samples}),
-    )
-
+    samples = generate_pool(args.n, seed=args.seed, families=families)
     attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
-    sample_seeds = [
-        int.from_bytes(
-            hashlib.blake2b(
-                f"{args.seed}:{index}:{sample.prompt}".encode(), digest_size=8
-            ).digest(),
-            "big",
-        )
-        for index, sample in enumerate(samples)
-    ]
-    corrupted = list(
-        attributor.build_corrupted_sample.map(
-            [s.prompt for s in samples],
-            [s.target for s in samples],
-            sample_seeds,
-            order_outputs=True,
+    prepared, triage = prepare_samples(attributor, samples)
+    clean_graphs = list(
+        attributor.attribute_prompt.map(
+            [item.sample.prompt for item in prepared], order_outputs=True
         )
     )
 
+    by_family: dict[str, list[dict]] = defaultdict(list)
+    quality = []
+    for item, graph_json in zip(prepared, clean_graphs, strict=True):
+        if not graph_json:
+            continue
+        faithful, _ = is_faithful(graph_json, item.target_token)
+        stats = graph_quality(load_graph_json(graph_json), 60)
+        if not faithful or stats["error"] > args.max_error_share:
+            continue
+        quality.append(stats)
+        by_family[item.sample.family].append(
+            {
+                "sample": item.sample,
+                "target_token": item.target_token,
+                "sampling": {
+                    **item.sampling,
+                    "disposition": item.disposition,
+                    "attributed_target_token": item.target_token,
+                },
+                "clean_graph": graph_json,
+            }
+        )
+
+    rng = random.Random(args.seed)
+    group_size = args.cohort_size + args.heldout_size
+    candidate_groups = []
+    for family, records in sorted(by_family.items()):
+        rng.shuffle(records)
+        candidate_groups.extend(
+            (family, records[offset : offset + group_size])
+            for offset in range(0, len(records) - group_size + 1, group_size)
+        )
+    rng.shuffle(candidate_groups)
+
+    rows = []
+    for family, records in candidate_groups:
+        common = common_stable_features([record["clean_graph"] for record in records])
+        if len(common) < MIN_CORRUPTION_NODES:
+            continue
+        prompts = [record["sample"].prompt for record in records]
+        targets = [record["sample"].target for record in records]
+        selected_spec = None
+        for _ in range(args.attempts):
+            spec = random_corruption_spec(common, rng)
+            tested = list(
+                attributor.test_corruption_spec.map(
+                    prompts, targets, [spec] * len(records), order_outputs=True
+                )
+            )
+            if all_changed(tested):
+                selected_spec = spec
+                break
+        if selected_spec is None:
+            continue
+
+        corrupted = list(
+            attributor.build_corrupted_sample_from_spec.map(
+                prompts,
+                targets,
+                [selected_spec] * len(records),
+                order_outputs=True,
+            )
+        )
+        if not all_changed(corrupted) or any("graph" not in item for item in corrupted):
+            continue
+
+        examples = []
+        for record, result in zip(records, corrupted, strict=True):
+            examples.append(
+                {
+                    **record["sample"].to_row(),
+                    "target_token": result["target_token"],
+                    "sampling": record["sampling"],
+                    "graph": result["graph"],
+                    "corruption": result["corruption"],
+                    "corruption_id": result["corruption_id"],
+                    "corruption_version": CORRUPTION_VERSION,
+                }
+            )
+        rows.append(
+            {
+                "family": family,
+                "cohort": examples[: args.cohort_size],
+                "heldout": examples[args.cohort_size :],
+                "corruption_spec_id": hashlib.sha256(
+                    json.dumps(selected_spec, separators=(",", ":")).encode()
+                ).hexdigest()[:16],
+            }
+        )
+        if len(rows) == args.tasks:
+            break
+
+    if len(rows) < args.tasks:
+        raise SystemExit(
+            f"formed only {len(rows)}/{args.tasks} corruptible cohorts; increase "
+            "--n/--attempts or reduce cohort sizes"
+        )
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_suffix(out.suffix + ".tmp")
-    kept, stats, quality = 0, {}, []
-    with tmp.open("w") as f:
-        for s, result in zip(samples, corrupted, strict=True):
-            if result is None:
-                print(f"  ! corrupted attribution failed for {s.prompt!r}, skipping")
-                continue
-            if rejected := result.get("rejected"):
-                stats.setdefault(s.family, []).append(False)
-                print(f"  ! rejected [{s.family}] {s.prompt!r}: {rejected}")
-                continue
-            stats.setdefault(s.family, []).append(True)
-            graph = result["graph"]
-            clean, graph_stats = is_clean(graph, args.max_error_share, 60)
-            if not clean:
-                print(
-                    f"  ! low-quality graph [{s.family}] {s.prompt!r}: "
-                    f"error nodes carry {graph_stats['error']:.0%} of influence "
-                    "— skipping"
-                )
-                continue
-            quality.append(graph_stats)
-            if args.neuronpedia_labels:
-                try:
-                    labeled = add_neuronpedia_labels(graph)
-                    print(f"  + added {labeled} Neuronpedia feature labels")
-                except (OSError, ValueError) as exc:
-                    print(f"  ! Neuronpedia labels unavailable: {exc}")
-            row = s.to_row()
-            row["graph"] = graph
-            row["target_token"] = result["target_token"]
-            row["corruption"] = result["corruption"]
-            row["corruption_id"] = result["corruption_id"]
-            row["corruption_version"] = result["corruption_version"]
-            row["corruption_attempt"] = result["corruption_attempt"]
-            f.write(json.dumps(row) + "\n")
-            kept += 1
-    print(
-        "accepted corruptions by family:",
-        {k: f"{sum(v)}/{len(v)}" for k, v in sorted(stats.items())},
-    )
-    if quality:
-        print(
-            f"graph quality: error influence "
-            f"{sum(q['error'] for q in quality) / len(quality):.1%}, "
-            f"top-60 features cover "
-            f"{sum(q['displayed'] for q in quality) / len(quality):.1%}"
-            f" of feature influence"
-        )
-    if not kept:
-        tmp.unlink()
-        raise SystemExit("no faithful graphs generated; existing dataset preserved")
-    tmp.replace(out)
-    print(f"Wrote {kept} rows -> {out}")
-    print(f"Wrote manifest -> {write_manifest(out, kept, args, quality)}")
+    temporary = out.with_suffix(out.suffix + ".partial")
+    temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    temporary.replace(out)
+    manifest = {
+        "dataset": out.name,
+        "rows": len(rows),
+        "sha256": file_sha256(out),
+        "subject_backend": f"{MODAL_APP}/{MODAL_CLS}",
+        "reward_version": REWARD_VERSION,
+        "corruption_version": CORRUPTION_VERSION,
+        "maximal_graphs": True,
+        "generator": {
+            "seed": args.seed,
+            "candidates": args.n,
+            "families": families,
+            "cohort_size": args.cohort_size,
+            "heldout_size": args.heldout_size,
+            "corruption_attempts": args.attempts,
+            "corruption_nodes": [MIN_CORRUPTION_NODES, min(12, MAX_CORRUPTION_NODES)],
+            "answer_sampling": {
+                "max_new_tokens": MAX_NEW_TOKENS,
+                "triage": triage,
+            },
+        },
+        "mean_error_share": (
+            sum(item["error"] for item in quality) / len(quality) if quality else None
+        ),
+    }
+    manifest_path = out.with_suffix(".manifest.json")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"wrote {len(rows)} suppressed-feature cohorts to {out}")
+    print(f"wrote manifest to {manifest_path}")
 
 
 if __name__ == "__main__":

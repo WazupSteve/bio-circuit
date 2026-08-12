@@ -9,6 +9,7 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from .cohorts import expand_stable_interventions
 from .graphs import Graph
 from .interventions import (
     MAX_ABS_WEIGHT,
@@ -22,7 +23,7 @@ from .interventions import (
     validate_interventions,
 )
 
-REWARD_VERSION = "v3-persistent-corruption-verified-gated-kl"
+REWARD_VERSION = "v4-cohort-threshold-restoration"
 MODAL_APP = "circuit-supernodes-persistent-restoration"
 MODAL_CLS = "RestorationAttributor"
 RETRY_DELAYS = (1.0, 4.0, 15.0)
@@ -166,6 +167,42 @@ class RestorationScoring:
     def __init__(self) -> None:
         self._attributor = None
 
+    def _remote(self):
+        if self._attributor is None:
+            import modal
+
+            self._attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
+        return self._attributor
+
+    async def score_cohort(
+        self,
+        examples: Sequence[Mapping[str, Any]],
+        interventions: Sequence[tuple[str, float]],
+    ) -> list[dict[str, Any]]:
+        """Replay one stable proposal across independently corrupted prompts."""
+
+        if not examples:
+            raise ValueError("restoration cohort must not be empty")
+        attributor = self._remote()
+
+        async def score_one(example: Mapping[str, Any]) -> dict[str, Any]:
+            graph = load_graph_json_checked(example.get("graph"))
+            hidden = validate_corruption(example.get("corruption", []))
+            target_token = str(example.get("target_token", ""))
+            if not target_token:
+                raise ValueError("restoration cohort example has no target token")
+            result = await restore_with_retries(
+                attributor,
+                str(example.get("prompt", "")),
+                hidden,
+                restoration_interventions(graph, interventions, hidden),
+                target_token,
+            )
+            validate_replay_invariants(result, target_token)
+            return result
+
+        return list(await asyncio.gather(*(score_one(example) for example in examples)))
+
     async def score(
         self,
         prompt: str,
@@ -191,10 +228,7 @@ class RestorationScoring:
                 "reward_version": REWARD_VERSION,
             }
 
-        if self._attributor is None:
-            import modal
-
-            self._attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
+        self._remote()
         result = await restore_with_retries(
             self._attributor,
             prompt,
@@ -214,3 +248,41 @@ class RestorationScoring:
             "parse": True,
             "reward_version": REWARD_VERSION,
         }
+
+
+def load_graph_json_checked(value: object) -> Graph:
+    """Load a cohort graph without weakening the public Mapping annotation."""
+
+    from .graphs import load_graph_json
+
+    if not isinstance(value, dict):
+        raise ValueError("restoration cohort example has no graph object")
+    return load_graph_json(value)
+
+
+def restoration_interventions(
+    graph: Graph,
+    interventions: Sequence[tuple[str, float]],
+    corruption: Sequence[Intervention],
+) -> list[Intervention]:
+    """Map stable IDs to hidden-corruption positions without exposing them.
+
+    A proposal for a truly corrupted stable feature must compose at the exact
+    corrupted coordinate. Other proposed IDs use their ordinary highest-ranked
+    graph position and therefore remain testable without privileged retention in
+    any top-k view.
+    """
+
+    hidden_by_stable = {
+        f"{layer}_{feature}": (layer, feature, position)
+        for layer, feature, position, _ in corruption
+    }
+    expanded = []
+    unresolved = []
+    for node_id, weight in interventions:
+        if coordinate := hidden_by_stable.get(node_id):
+            expanded.append((*coordinate, weight))
+        else:
+            unresolved.append((node_id, weight))
+    expanded.extend(expand_stable_interventions(graph, unresolved))
+    return sorted(expanded)

@@ -1,4 +1,5 @@
 import pytest
+from circuit_supernodes.cohorts import threshold_score
 from circuit_supernodes.graphs import (
     Graph,
     GraphNode,
@@ -13,10 +14,12 @@ from circuit_supernodes.interventions import (
 from circuit_supernodes.restoration import (
     InvalidRestorationResult,
     parse_intervention_graph,
+    restoration_interventions,
     reward_from_restoration,
     validate_corruption,
     validate_intervention_graph,
 )
+from scripts.build_restoration_dataset import all_changed, common_stable_features
 
 
 def graph() -> Graph:
@@ -131,7 +134,7 @@ def test_hidden_corruption_is_compact_and_nonzero() -> None:
 
 
 def test_corruption_rejects_truncated_and_nonintegral_payloads() -> None:
-    with pytest.raises(ValueError, match="at least 40"):
+    with pytest.raises(ValueError, match="at least 4"):
         validate_corruption([[1, 2, 0, 2.0]])
     corruption = [[1, feature, 0, 2.0] for feature in range(MIN_CORRUPTION_NODES)]
     corruption[0][0] = 1.5
@@ -152,3 +155,48 @@ def test_corrupted_activation_survives_storage_and_rendering() -> None:
     restored = load_graph_json(graph_to_json(subject))
     assert restored.nodes["1_2_0"].activation == 0.125
     assert "+0.125" in render_graph(restored)
+
+
+def test_cohort_thresholds_are_strictly_greater_than_80_and_30_percent() -> None:
+    assert (
+        threshold_score(0.81, 0.31, discovery_threshold=0.8, heldout_threshold=0.3)[
+            "reward"
+        ]
+        == 1.0
+    )
+    assert (
+        threshold_score(0.8, 0.31, discovery_threshold=0.8, heldout_threshold=0.3)[
+            "reward"
+        ]
+        == 0.0
+    )
+    assert (
+        threshold_score(0.81, 0.3, discovery_threshold=0.8, heldout_threshold=0.3)[
+            "reward"
+        ]
+        == 0.0
+    )
+
+
+def test_stable_restoration_composes_at_exact_hidden_position() -> None:
+    subject = graph()
+    subject.nodes["1_2_1"] = GraphNode(
+        "1_2_1", "feature", 1, 1, "test", 0.1, share=10.0
+    )
+    assert restoration_interventions(subject, [("1_2", 0.5)], [(1, 2, 0, 2.0)]) == [
+        (1, 2, 0, 0.5)
+    ]
+
+
+def test_builder_intersects_stable_features_across_prompt_positions() -> None:
+    first = graph()
+    first.nodes["1_2_0"].activation = 0.2
+    second = graph()
+    second.nodes = {
+        "1_2_7": GraphNode("1_2_7", "feature", 1, 7, "test", 0.4, activation=0.2)
+    }
+    assert common_stable_features([graph_to_json(first), graph_to_json(second)]) == [
+        "1_2"
+    ]
+    assert all_changed([{"changed_top_token": True}, {"changed_top_token": True}])
+    assert not all_changed([{"changed_top_token": True}, {"changed_top_token": False}])

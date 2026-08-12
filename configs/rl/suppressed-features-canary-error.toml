@@ -1,4 +1,3 @@
-# Verify scoring exceptions are excluded from group statistics rather than zeroed.
 model = "Qwen/Qwen3.5-0.8B"
 max_steps = 3
 batch_size = 16
@@ -13,11 +12,11 @@ type = "zero_advantage"
 enforce = false
 
 [[env]]
-max_turns = 4
+max_turns = 8
 
 [env.taskset]
-id = "output-restoration"
-dataset_file = "output-restoration.jsonl"
+id = "suppressed-features"
+dataset_file = "suppressed-features.jsonl"
 reward_mode = "train"
 fault_rate = 0.125
 

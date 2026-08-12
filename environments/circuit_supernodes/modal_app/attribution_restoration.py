@@ -75,6 +75,14 @@ class RestorationAttributor:
             dtype=torch.bfloat16,
         )
 
+    @modal.method()
+    def sample_until_answer(self, request: dict) -> dict:
+        """Use the shared bounded answer-aware sampler before attribution."""
+
+        from circuit_supernodes.sampling import sample_until_answer
+
+        return sample_until_answer(self.model, request)
+
     def _tokens_and_target(self, prompt: str, target_token: str):
         token_ids = self.model.tokenizer.encode(target_token, add_special_tokens=False)
         if len(token_ids) != 1:
@@ -545,6 +553,117 @@ class RestorationAttributor:
                 shares.append((share, node_id, node))
         shares.sort(key=lambda item: (-item[0], item[1]))
         return [node for _, _, node in shares[:limit]]
+
+    def _corrupt_with_stable_spec(
+        self,
+        prompt: str,
+        expected_target: str,
+        stable_spec: list[tuple[int, int, float]],
+        *,
+        export_graph: bool,
+    ) -> dict:
+        """Apply one stable corruption spec at its top position in this prompt."""
+
+        import torch
+
+        clean_graph = self._attribute_graph(prompt)
+        candidates = self._visible_feature_nodes(clean_graph, MAX_FEATURE_NODES)
+        by_stable: dict[tuple[int, int], dict] = {}
+        for node in candidates:
+            layer, feature, _ = coordinate_from_feature_id(
+                str(node.get("node_id", node.get("id", "")))
+            )
+            by_stable.setdefault((layer, feature), node)
+
+        selected = []
+        for layer, feature, factor in stable_spec:
+            node = by_stable.get((int(layer), int(feature)))
+            if node is None:
+                continue
+            _, _, position = coordinate_from_feature_id(
+                str(node.get("node_id", node.get("id", "")))
+            )
+            selected.append((int(layer), int(feature), position, float(factor)))
+        if len(selected) < MIN_CORRUPTION_NODES:
+            return {"rejected": "too few stable corruption features in prompt"}
+        selected = selected[:MAX_CORRUPTION_NODES]
+
+        tokens = self.model.ensure_tokenized(prompt)
+        intervention_input = self._intervention_input(tokens)
+        with torch.no_grad():
+            clean_logits, clean_acts = self.model.get_activations(tokens)
+            clean_acts = self._normalize_acts(clean_acts)
+            clean_final = clean_logits.reshape(-1, clean_logits.shape[-1])[-1]
+            target_id = int(clean_final.argmax().item())
+            target_token = self.model.tokenizer.decode([target_id])
+            if not target_token.strip() or not expected_target.strip().startswith(
+                target_token.strip()
+            ):
+                return {"rejected": "clean target mismatch"}
+            absolute = [
+                (
+                    layer,
+                    position,
+                    feature,
+                    clean_acts[layer, position, feature].float().item() * factor,
+                )
+                for layer, feature, position, factor in selected
+            ]
+            corrupted_logits, _ = self.model.feature_intervention(
+                intervention_input,
+                absolute,
+                freeze_attention=False,
+                return_activations=False,
+            )
+            corrupted_final = corrupted_logits.reshape(-1, corrupted_logits.shape[-1])[
+                -1
+            ]
+            changed = int(corrupted_final.argmax().item()) != target_id
+
+        result = {
+            "changed_top_token": changed,
+            "target_token": target_token,
+            "corruption": selected,
+            "corruption_version": CORRUPTION_VERSION,
+        }
+        if not changed or not export_graph:
+            return result
+        graph = self._attribute_graph(prompt, absolute)
+        exported = {
+            str(node.get("node_id", node.get("id", "")))
+            for node in self._feature_nodes(graph)
+        }
+        hidden = {
+            f"{layer}_{feature}_{position}" for layer, feature, position, _ in selected
+        }
+        if not hidden.issubset(exported):
+            return {"rejected": "corruption features absent from corrupted graph"}
+        digest = hashlib.sha256(
+            json.dumps(selected, separators=(",", ":")).encode()
+        ).hexdigest()[:16]
+        return {**result, "graph": graph, "corruption_id": digest}
+
+    @modal.method()
+    def test_corruption_spec(
+        self,
+        prompt: str,
+        expected_target: str,
+        stable_spec: list[tuple[int, int, float]],
+    ) -> dict:
+        return self._corrupt_with_stable_spec(
+            prompt, expected_target, stable_spec, export_graph=False
+        )
+
+    @modal.method()
+    def build_corrupted_sample_from_spec(
+        self,
+        prompt: str,
+        expected_target: str,
+        stable_spec: list[tuple[int, int, float]],
+    ) -> dict:
+        return self._corrupt_with_stable_spec(
+            prompt, expected_target, stable_spec, export_graph=True
+        )
 
     @modal.method()
     def build_corrupted_sample(

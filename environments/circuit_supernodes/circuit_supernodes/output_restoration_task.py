@@ -1,3 +1,7 @@
+"""Cohort task for discovering and reversing persistent feature corruption."""
+
+from __future__ import annotations
+
 import hashlib
 import json
 from collections.abc import Iterator
@@ -7,54 +11,40 @@ from typing import Literal
 import verifiers.v1 as vf
 from pydantic import Field
 
-from .graphs import (
-    Graph,
-    graph_to_json,
-    load_graph_json,
-    render_graph,
-    slim_graph,
+from .cohorts import (
+    parse_weighted_nodes,
+    threshold_score,
+    validate_against_graphs,
 )
-from .interventions import CORRUPTION_VERSION, MIN_CORRUPTION_NODES
+from .graphs import load_graph_json
+from .interventions import CORRUPTION_VERSION
 from .output_restoration_experiments import (
     DEFAULT_BUDGET,
     CircuitState,
     RestorationTools,
 )
-from .restoration import (
-    REWARD_VERSION,
-    RestorationScoring,
-    parse_intervention_graph,
-    validate_corruption,
-)
+from .restoration import REWARD_VERSION, RestorationScoring
 
 DATA_DIR = Path(__file__).parent / "data" / "output_restoration"
 
 SYSTEM_PROMPT = """\
-You are given an attribution graph for a model response and the original next
-token that must be recovered. Construct a weighted intervention subgraph that
-makes that token the model's top next-token output. You may call
-circuit_run_restoration to test candidate weights.
+The subject model has the same persistent feature corruption across a cohort of
+generated prompts. Each stored attribution graph was captured under that
+corruption and is otherwise passed through unchanged. Call circuit_view_graph
+with a cohort index and feature count to choose an ordinary importance-ranked
+view of any maximal graph. Call circuit_run_restoration to test one weighted
+proposal across the visible discovery cohort.
 
-An intervention weight is a multiplicative factor on that FEATURE's activation.
-Weight 1 is a no-op, 0 ablates it, and other values scale or reverse it. Omitted
-features are unchanged. The graph is presented in the same format as an ordinary
-circuit-discovery task; infer the useful intervention from its nodes and edges.
+Submit stable `layer_feature` ids and multiplicative intervention factors. The
+final verifier replays the hidden corruption and requires the proposal to restore
+the desired token on more than 80% of discovery prompts and more than 30% of a
+separate corrupted held-out cohort. Held-out prompts and graphs are never shown.
 
-The score is zero unless the declared original token becomes top-1. Once it is
-top-1, the score is proportional to similarity with the original clean
-next-token distribution.
-
-Call `circuit_view_graph(feature_count)` to inspect an ordinary importance-ranked
-view of the complete exported graph. Views are free and never force the hidden
-corrupted features into the returned top-k slice.
-
-Use only inspected FEATURE ids, do not repeat ids, use at most 60 nodes, and use
-finite weights in [-8, 8]. Your final submission must be exactly one JSON code
-block and nothing else:
+Return one JSON object:
 ```json
 {
   "nodes": [
-    {"id": "<feature_id>", "intervention_weight": 1.0}
+    {"id": "<layer>_<feature>", "intervention_weight": 0.5}
   ]
 }
 ```"""
@@ -62,11 +52,12 @@ block and nothing else:
 
 class CircuitTaskData(vf.TaskData):
     family: str
-    subject_prompt: str
-    graph: dict
-    target_token: str
-    corruption: list[list[int | float]]
+    cohort: list[dict]
+    heldout: list[dict]
     experiment_budget: int = DEFAULT_BUDGET
+    discovery_threshold: float = 0.8
+    heldout_threshold: float = 0.3
+    max_view_features: int = 4096
     reward_mode: Literal["train", "eval"] = "eval"
     fault_rate: float = 0.0
 
@@ -75,65 +66,132 @@ _SCORER = RestorationScoring()
 
 
 def fails_injected_fault(rollout_id: str, rate: float) -> bool:
-    """Canary instrument (``fault_rate = 0`` everywhere else).
-
-    Whether a scoring exception makes the trainer drop the rollout or silently
-    contribute a zero is undocumented and decides whether this reward is safe to
-    train on at all, so the run that answers it needs a way to fail on demand.
-    Deterministic in the rollout id, so a canary is reproducible.
-    """
     if rate <= 0.0:
         return False
     draw = hashlib.blake2b(rollout_id.encode(), digest_size=4).digest()
     return int.from_bytes(draw, "big") / 2**32 < rate
 
 
+def restoration_prompt(cohort: list[dict], budget: int) -> str:
+    examples = "\n".join(
+        f"  [{index}] prompt={row['prompt']!r}; desired token={row['target_token']!r}"
+        for index, row in enumerate(cohort)
+    )
+    return (
+        f"Corrupted discovery cohort ({len(cohort)} prompts):\n{examples}\n\n"
+        f"Experiment budget: {budget}. Inspect graph subsets, test shared "
+        "multipliers, and submit the final restoration."
+    )
+
+
 class CircuitTask(vf.Task[CircuitTaskData, CircuitState]):
     tools = (RestorationTools,)
+
+    async def _score(self, trace: vf.Trace) -> dict:
+        cached = trace.info.get("restoration_score")
+        if isinstance(cached, dict):
+            return cached
+        if fails_injected_fault(trace.id, self.data.fault_rate):
+            raise RuntimeError("injected scoring failure (fault_rate canary)")
+        proposal, reason = parse_weighted_nodes(trace.last_reply)
+        if proposal is None:
+            result = {
+                "reward": 0.0,
+                "valid": False,
+                "error": reason,
+                "reward_version": REWARD_VERSION,
+            }
+            trace.info["restoration_score"] = result
+            return result
+        graphs = [load_graph_json(row["graph"]) for row in self.data.cohort]
+        valid, reason = validate_against_graphs(graphs, proposal)
+        if not valid:
+            result = {
+                "reward": 0.0,
+                "valid": False,
+                "error": reason,
+                "reward_version": REWARD_VERSION,
+            }
+            trace.info["restoration_score"] = result
+            return result
+
+        discovery = await _SCORER.score_cohort(self.data.cohort, proposal)
+        heldout = await _SCORER.score_cohort(self.data.heldout, proposal)
+        discovery_rate = sum(
+            bool(item.get("restored_target_is_top")) for item in discovery
+        ) / len(discovery)
+        heldout_rate = sum(
+            bool(item.get("restored_target_is_top")) for item in heldout
+        ) / len(heldout)
+        result = {
+            **threshold_score(
+                discovery_rate,
+                heldout_rate,
+                discovery_threshold=self.data.discovery_threshold,
+                heldout_threshold=self.data.heldout_threshold,
+            ),
+            "valid": True,
+            "discovery": discovery,
+            "heldout": heldout,
+            "proposal": proposal,
+            "reward_version": REWARD_VERSION,
+        }
+        trace.info["restoration_score"] = result
+        return result
 
     @vf.metric
     async def experiments_used(self, trace: vf.Trace) -> float:
         return float(trace.state.experiments_used)
 
+    @vf.metric
+    async def restoration_metrics(self, trace: vf.Trace) -> dict[str, float]:
+        result = await self._score(trace)
+        return {
+            "discovery_success_rate": float(result.get("discovery_success_rate", 0.0)),
+            "heldout_success_rate": float(result.get("heldout_success_rate", 0.0)),
+            "discovery_pass": float(bool(result.get("discovery_pass"))),
+            "heldout_pass": float(bool(result.get("heldout_pass"))),
+        }
+
     @vf.reward
-    async def output_restoration(self, trace: vf.Trace) -> float:
-        # Infra failures deliberately propagate: verifiers records a task error
-        # the trainer can drop, where a 0.0 would corrupt the group's advantages.
-        if fails_injected_fault(trace.id, self.data.fault_rate):
-            raise RuntimeError("injected scoring failure (fault_rate canary)")
-        proposal = parse_intervention_graph(trace.last_reply)
-        if proposal is None:
-            result = {
-                "reward": 0.0,
-                "gated": "missing weighted intervention graph JSON",
-                "parse": False,
-                "reward_version": REWARD_VERSION,
-            }
-        else:
-            result = await _SCORER.score(
-                self.data.subject_prompt,
-                load_graph_json(self.data.graph),
-                self.data.corruption,
-                self.data.target_token,
-                proposal,
-            )
-        trace.info["reward_components"] = result
-        return result["reward"]
+    async def suppressed_feature_restoration(self, trace: vf.Trace) -> float:
+        return float((await self._score(trace))["reward"])
 
 
 class CircuitTasksetConfig(vf.TasksetConfig):
-    dataset_file: str = "output-restoration.jsonl"
-    max_features: int = Field(60, ge=MIN_CORRUPTION_NODES, le=4096)
+    dataset_file: str = "suppressed-features.jsonl"
     experiment_budget: int = Field(DEFAULT_BUDGET, ge=0)
     experiment_budgets: list[int] | None = None
-    """Emit one task per budget from every graph, for the budget-curve arms.
-
-    Expanding at load time rather than in the file keeps one copy of each graph
-    on disk — the graph is by far the largest thing in a row — and keeps a GRPO
-    group homogeneous, since every rollout of a task shares its budget.
-    """
+    discovery_threshold: float = Field(0.8, ge=0.0, lt=1.0)
+    heldout_threshold: float = Field(0.3, ge=0.0, lt=1.0)
+    max_view_features: int = Field(4096, ge=1, le=4096)
     reward_mode: Literal["train", "eval"] = "eval"
     fault_rate: float = Field(0.0, ge=0.0, le=1.0)
+
+
+def _validate_examples(row: dict, key: str, row_index: int) -> list[dict]:
+    examples = row.get(key)
+    if not isinstance(examples, list) or not examples:
+        raise ValueError(f"restoration row {row_index} needs non-empty {key}")
+    for example_index, example in enumerate(examples):
+        if not isinstance(example, dict):
+            raise ValueError(f"{key} example {example_index} must be an object")
+        for field in ("prompt", "target_token", "graph", "corruption", "sampling"):
+            if field not in example:
+                raise ValueError(f"{key} example {example_index} lacks {field}")
+        if example.get("corruption_version") != CORRUPTION_VERSION:
+            raise ValueError(f"{key} example {example_index} has wrong corruption")
+        graph = load_graph_json(example["graph"])
+        exported = {node.id for node in graph.feature_nodes}
+        hidden = {
+            f"{int(layer)}_{int(feature)}_{int(position)}"
+            for layer, feature, position, _ in example["corruption"]
+        }
+        if not hidden or not hidden.issubset(exported):
+            raise ValueError(
+                f"{key} example {example_index} corruption is outside maximal graph"
+            )
+    return examples
 
 
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
@@ -141,68 +199,34 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
         path = DATA_DIR / self.config.dataset_file
         if not path.exists():
             raise FileNotFoundError(
-                f"{path} missing; run `uv run python "
-                "scripts/build_restoration_dataset.py`."
+                f"{path} missing; run scripts/build_restoration_dataset.py."
             )
-
-        idx = 0
+        task_index = 0
         with path.open() as rows:
-            for line in rows:
+            for row_index, line in enumerate(rows):
                 if not line.strip():
                     continue
                 row = json.loads(line)
-                if not row.get("corruption") or not row.get("target_token"):
-                    raise ValueError(
-                        f"{path} contains a legacy clean row; rebuild it with "
-                        "scripts/build_restoration_dataset.py to create persistent "
-                        "corruptions"
-                    )
-                if row.get("corruption_version") != CORRUPTION_VERSION:
-                    raise ValueError(
-                        f"{path} contains unsupported corruption version "
-                        f"{row.get('corruption_version')!r}; rebuild the dataset"
-                    )
-                corruption = validate_corruption(row["corruption"])
-                row["corruption"] = corruption
-                graph = load_graph_json(row["graph"])
-                graph_ids = {node.id for node in graph.feature_nodes}
-                corruption_ids = {
-                    f"{int(layer)}_{int(feature)}_{int(position)}"
-                    for layer, feature, position, _ in corruption
-                }
-                missing = corruption_ids - graph_ids
-                if missing:
-                    raise ValueError(
-                        f"{path} contains corruption coordinates absent from the "
-                        f"complete graph: {sorted(missing)}"
-                    )
+                cohort = _validate_examples(row, "cohort", row_index)
+                heldout = _validate_examples(row, "heldout", row_index)
                 budgets = self.config.experiment_budgets or [
                     int(row.get("experiment_budget", self.config.experiment_budget))
                 ]
                 for budget in budgets:
-                    yield self._task(idx, row, graph, budget)
-                    idx += 1
-
-    def _task(self, idx: int, row: dict, graph: Graph, budget: int) -> CircuitTask:
-        prompt = (
-            f"Subject prompt: {row['prompt']!r}\n"
-            f"Original next token to restore: {row['target_token']!r}\n\n"
-            f"{render_graph(slim_graph(graph, self.config.max_features))}\n\n"
-            f"Experiment budget: {budget}. "
-            "Submit the final weighted intervention graph when ready."
-        )
-        data = CircuitTaskData(
-            idx=idx,
-            name=f"{row['family']}-{idx}-b{budget}",
-            prompt=prompt,
-            system_prompt=SYSTEM_PROMPT,
-            family=row["family"],
-            subject_prompt=row["prompt"],
-            graph=graph_to_json(graph),
-            target_token=row["target_token"],
-            corruption=row["corruption"],
-            experiment_budget=budget,
-            reward_mode=self.config.reward_mode,
-            fault_rate=self.config.fault_rate,
-        )
-        return CircuitTask(data, self.config.task)
+                    data = CircuitTaskData(
+                        idx=task_index,
+                        name=f"suppressed-{row.get('family', 'mixed')}-{task_index}",
+                        prompt=restoration_prompt(cohort, budget),
+                        system_prompt=SYSTEM_PROMPT,
+                        family=str(row.get("family", "mixed")),
+                        cohort=cohort,
+                        heldout=heldout,
+                        experiment_budget=budget,
+                        discovery_threshold=self.config.discovery_threshold,
+                        heldout_threshold=self.config.heldout_threshold,
+                        max_view_features=self.config.max_view_features,
+                        reward_mode=self.config.reward_mode,
+                        fault_rate=self.config.fault_rate,
+                    )
+                    yield CircuitTask(data, self.config.task)
+                    task_index += 1

@@ -2,3 +2,4 @@
 # library needed by the exported environment in version control.
 circuit_supernodes/data/circuit_mdl/
 circuit_supernodes/data/output_restoration/
+circuit_supernodes/data/supernode_rediscovery/

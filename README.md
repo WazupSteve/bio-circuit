@@ -1,20 +1,19 @@
-# Bio-circuit environments
+# Bio-circuit tasks
 
-Three independent Verifiers 0.2.1 tasksets share graph, serialization,
-validation, and retry primitives without sharing task contracts:
+This integration implements the four requested changes as three independently
+loadable tasksets plus one graph-policy change shared by all of them:
 
-| Task | Plugin/taskset ID | Subject backend |
-| --- | --- | --- |
-| Causal circuit MDL | `circuit-supernodes` | Qwen attribution |
-| Promptless discovery | `supernode-rediscovery` | Gemma discovery |
-| Persistent output restoration | `output-restoration` | Qwen restoration |
+| Contract | Taskset/plugin |
+| --- | --- |
+| Vanilla causal circuit MDL with all train and sealed eval families | `circuit-supernodes` |
+| Hidden-prompt goal-supernode cohorts with specificity controls | `supernode-rediscovery` |
+| Shared suppressed-feature corruption with discovery and held-out restoration cohorts | `suppressed-features` |
+| Maximal stored graphs with policy-selected top-k views | shared by all three |
 
-Each task has dedicated eval/RL configs, a dataset namespace, a builder, and a
-Modal app/class pair. See
+All generated prompt families use the bounded answer-aware sampler introduced by
+the eval-family work. See
 [the environment guide](environments/circuit_supernodes/README.md) for exact
-clean-checkout generation, manifest, validation, and deployment commands.
-
-## Local setup
+contracts, builders, configs, deployment commands, and validation.
 
 ```bash
 cd environments/circuit_supernodes
@@ -22,10 +21,3 @@ uv sync --group dev
 uv run pytest
 uv run ruff check .
 ```
-
-The compact promptless rediscovery library and its manifest are checked in.
-Causal MDL and output-restoration datasets contain generated attribution graphs,
-are ignored by Git, and must be rebuilt as documented.
-
-Read [FINDINGS.md](environments/circuit_supernodes/FINDINGS.md) before training
-the causal task; it records the reward audit and accepted limitations.

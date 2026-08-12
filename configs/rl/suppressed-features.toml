@@ -1,4 +1,4 @@
-# prime train run configs/rl/output-restoration.toml
+# prime train run configs/rl/suppressed-features.toml
 model = "Qwen/Qwen3.5-4B"
 max_steps = 40
 batch_size = 128
@@ -17,12 +17,14 @@ type = "repetition"
 enforce = false
 
 [[env]]
-max_turns = 8
+max_turns = 16
 
 [env.taskset]
-id = "output-restoration"
-dataset_file = "output-restoration-train.jsonl"
-max_features = 60
+id = "suppressed-features"
+dataset_file = "suppressed-features-train.jsonl"
+discovery_threshold = 0.8
+heldout_threshold = 0.3
+max_view_features = 4096
 reward_mode = "train"
 
 [env.harness]
@@ -35,12 +37,14 @@ rollouts_per_example = 1
 eval_base_model = true
 
 [[eval.env]]
-max_turns = 8
+max_turns = 16
 
 [eval.env.taskset]
-id = "output-restoration"
-dataset_file = "output-restoration.jsonl"
-max_features = 60
+id = "suppressed-features"
+dataset_file = "suppressed-features.jsonl"
+discovery_threshold = 0.8
+heldout_threshold = 0.3
+max_view_features = 4096
 reward_mode = "eval"
 
 [eval.env.harness]

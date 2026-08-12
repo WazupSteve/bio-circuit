@@ -23,6 +23,7 @@ image = (
         "huggingface_hub[hf_transfer]",
     )
     .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
+    .add_local_python_source("circuit_supernodes")
 )
 
 hf_cache = modal.Volume.from_name("circuit-supernodes-hf-cache", create_if_missing=True)
@@ -82,6 +83,14 @@ class GemmaAttributor:
         if malformed:
             raise ValueError(f"malformed {name} coordinates: {malformed[:4]}")
         return sorted(set(map(tuple, coordinates)))
+
+    @modal.method()
+    def sample_until_answer(self, request: dict) -> dict:
+        """Use the same bounded answer-aware sampler as every task family."""
+
+        from circuit_supernodes.sampling import sample_until_answer
+
+        return sample_until_answer(self.model, request)
 
     @modal.method()
     def attribute_prompt(self, prompt: str) -> dict:
@@ -212,6 +221,85 @@ class GemmaAttributor:
                     ).item()
                 ),
             }
+
+    @modal.method()
+    def evaluate_intervention_cohort(
+        self, cohort: list[dict], controls: list[dict]
+    ) -> dict:
+        """Grade causal restoration on goal prompts and specificity controls."""
+
+        import torch
+
+        def evaluate(example: dict, *, control: bool) -> dict:
+            prompt = str(example["prompt"])
+            target_token = str(example["target_token"])
+            raw = example.get("interventions", [])
+            interventions = [
+                (int(layer), int(feature), int(position), float(weight))
+                for layer, feature, position, weight in raw
+            ]
+            tokens, target_id = self._tokens_and_target(prompt, target_token)
+            with torch.no_grad():
+                clean_logits, activations = self.model.get_activations(tokens)
+                activations = self._normalize_acts(activations)
+                layers, positions, features = activations.shape
+                coordinates = [item[:3] for item in interventions]
+                invalid = self._out_of_bounds(coordinates, layers, positions, features)
+                if invalid:
+                    raise ValueError(
+                        f"invalid cohort intervention coordinates: {invalid[:4]}"
+                    )
+
+                def run(
+                    weights: list[tuple[int, int, int, float]],
+                    base_activations=activations,
+                ):
+                    absolute = [
+                        (
+                            layer,
+                            position,
+                            feature,
+                            base_activations[layer, position, feature].float().item()
+                            * weight,
+                        )
+                        for layer, feature, position, weight in weights
+                    ]
+                    logits, _ = self.model.feature_intervention(
+                        tokens, absolute, return_activations=False
+                    )
+                    final = logits.reshape(-1, logits.shape[-1])[-1].float()
+                    probabilities = torch.softmax(final, dim=-1)
+                    return int(probabilities.argmax().item()), float(
+                        probabilities[target_id].item()
+                    )
+
+                intervened_top, intervened_probability = run(interventions)
+                result = {
+                    "target_token": target_token,
+                    "intervened_target_is_top": intervened_top == target_id,
+                    "intervened_target_probability": intervened_probability,
+                    "intervened_top_token": self.model.tokenizer.decode(
+                        [intervened_top]
+                    ),
+                }
+                if not control:
+                    ablated = [(*item[:3], 0.0) for item in interventions]
+                    baseline_top, baseline_probability = run(ablated)
+                    result.update(
+                        {
+                            "baseline_target_is_top": baseline_top == target_id,
+                            "baseline_target_probability": baseline_probability,
+                            "shifted_to_target": baseline_top != target_id
+                            and intervened_top == target_id,
+                        }
+                    )
+                del clean_logits, activations
+                return result
+
+        return {
+            "cohort": [evaluate(example, control=False) for example in cohort],
+            "controls": [evaluate(example, control=True) for example in controls],
+        }
 
     @staticmethod
     def _out_of_bounds(

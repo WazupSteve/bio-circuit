@@ -1,9 +1,0 @@
-{
-  "dataset": "rediscovery.jsonl",
-  "rows": 5,
-  "sha256": "e50410577da279509fc766b6af4728286c5d467bdd3f504ecd9c642a5e289b20",
-  "sources": [
-    "https://neuronpedia-attrib.s3.us-east-1.amazonaws.com/user-graphs/cmao6p1xd0000ypedw0qhlhob/gemma-fact-dallas-austin.json"
-  ],
-  "targets": null
-}

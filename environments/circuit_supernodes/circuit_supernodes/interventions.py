@@ -16,11 +16,11 @@ Intervention = tuple[int, int, int, float]
 
 MAX_INTERVENTIONS = 60
 MAX_ABS_WEIGHT = 8.0
-MIN_CORRUPTION_NODES = 40
+MIN_CORRUPTION_NODES = 4
 MAX_CORRUPTION_NODES = 60
 MIN_CORRUPTION_FACTOR = 2.0
 MAX_CORRUPTION_FACTOR = 8.0
-CORRUPTION_VERSION = "v1-multiplicative-persistent"
+CORRUPTION_VERSION = "v2-shared-stable-multiplicative-cohort"
 
 _FEATURE_ID = re.compile(r"^(\d+)_(\d+)_(\d+)$")
 

@@ -1,4 +1,4 @@
-"""Verifiers plugin entrypoint for persistent-corruption output restoration."""
+"""Verifiers plugin entrypoint for cohort suppressed-feature restoration."""
 
 from circuit_supernodes.output_restoration_task import CircuitTaskset
 
