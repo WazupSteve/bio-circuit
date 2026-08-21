@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import random
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,6 +68,16 @@ def start_build(
     return DatasetBuild(families, subject, prepared, triage)
 
 
+def mix_family_rows(
+    rows: Sequence[CircuitDatasetRow], *, seed: int
+) -> list[CircuitDatasetRow]:
+    """Return a reproducibly shuffled mixture of completed family rows."""
+
+    mixed = list(rows)
+    random.Random(seed).shuffle(mixed)
+    return mixed
+
+
 def finish_build(
     out: Path,
     rows: Sequence[CircuitDatasetRow],
@@ -77,13 +88,14 @@ def finish_build(
     generator: dict[str, Any],
     backend_details: dict[str, Any] | None = None,
 ) -> Path:
-    """Write a dataset and its standard provenance sidecar."""
+    """Randomly mix cohort families, then write data and provenance."""
 
     out.parent.mkdir(parents=True, exist_ok=True)
-    DatasetArtifacts.write(out, rows)
+    mixed_rows = mix_family_rows(rows, seed=int(generator["seed"]))
+    DatasetArtifacts.write(out, mixed_rows)
     sidecar = write_manifest(
         out,
-        rows=len(rows),
+        rows=len(mixed_rows),
         subject_backend=f"{SUBJECT.app_name}/{SUBJECT.class_name}",
         families=build.families,
         triage=build.triage,
@@ -92,7 +104,7 @@ def finish_build(
         generator=generator,
         backend_details=backend_details,
     )
-    print(f"wrote {len(rows)} cohort rows to {out}")
+    print(f"wrote {len(mixed_rows)} randomly mixed cohort rows to {out}")
     print(f"wrote manifest to {sidecar}")
     return sidecar
 

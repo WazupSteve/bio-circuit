@@ -12,7 +12,7 @@ from scripts.build_support import (
     open_text,
     write_jsonl_atomic,
 )
-from scripts.dataset_pipeline import write_manifest
+from scripts.dataset_pipeline import mix_family_rows, write_manifest
 
 
 def test_streaming_gzip_jsonl_round_trip(tmp_path):
@@ -98,3 +98,23 @@ def test_manifest_stores_schema_and_generation_provenance_once(tmp_path) -> None
     assert "reward_version" not in manifest
     assert manifest["sampler"]["triage"] == triage
     assert "answer_sampling" not in manifest["generator"]
+
+
+def test_family_rows_are_randomly_mixed_and_seed_deterministic() -> None:
+    rows = [
+        CircuitDatasetRow(
+            family=family,
+            example_prompts=[],
+            heldout_prompts=[],
+            control_prompts=[],
+        )
+        for family in ["a", "a", "a", "b", "b", "b", "c", "c", "c"]
+    ]
+
+    first = mix_family_rows(rows, seed=7)
+    second = mix_family_rows(rows, seed=7)
+
+    first_families = [row.family for row in first]
+    assert first_families == [row.family for row in second]
+    assert first_families != [row.family for row in rows]
+    assert sorted(first_families) == sorted(row.family for row in rows)
