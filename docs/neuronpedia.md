@@ -20,7 +20,7 @@ matching positional node's `label` field in the in-memory graph.
 Failures are deliberately non-fatal in the builder: they are logged and dataset
 generation continues without labels. The request has a 30-second timeout. There
 is no authentication, response cache, retry layer, rate-limit handling, or
-Gemma mapping in this repository.
+a second model mapping in this repository.
 
 At runtime, graph rendering displays `clerp` text before the optional label, so a
 Neuronpedia label is visible only when the exporter does not already provide a

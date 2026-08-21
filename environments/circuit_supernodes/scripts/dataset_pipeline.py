@@ -15,7 +15,7 @@ from circuit_supernodes.runtime.datasets import (
     GENERATION_POLICY,
 )
 from circuit_supernodes.runtime.graphs import MAX_FEATURE_NODES, graph_quality
-from circuit_supernodes.runtime.modal import ModalSubject
+from circuit_supernodes.runtime.modal import SUBJECT, ModalSubject
 from circuit_supernodes.runtime.sampling import MAX_NEW_TOKENS
 from scripts.build_support import DatasetArtifacts
 from scripts.prompt_generation import (
@@ -53,8 +53,6 @@ def start_build(
     requested_families: list[str] | None,
     split: FamilySplit | None,
     default_split: FamilySplit,
-    modal_app: str,
-    modal_cls: str,
 ) -> DatasetBuild:
     """Resolve families and perform the common sampling/preparation phase."""
 
@@ -64,7 +62,7 @@ def start_build(
         f"sampled {len(samples)} prompts across families:",
         sorted({sample.family for sample in samples}),
     )
-    subject = ModalSubject(modal_app, modal_cls)
+    subject = SUBJECT
     prepared, triage = prepare_candidates(subject, samples)
     return DatasetBuild(families, subject, prepared, triage)
 
@@ -74,8 +72,6 @@ def finish_build(
     rows: Sequence[CircuitDatasetRow],
     *,
     build: DatasetBuild,
-    modal_app: str,
-    modal_cls: str,
     max_error_share: float,
     quality: Sequence[dict[str, float | int]],
     generator: dict[str, Any],
@@ -88,7 +84,7 @@ def finish_build(
     sidecar = write_manifest(
         out,
         rows=len(rows),
-        subject_backend=f"{modal_app}/{modal_cls}",
+        subject_backend=f"{SUBJECT.app_name}/{SUBJECT.class_name}",
         families=build.families,
         triage=build.triage,
         max_error_share=max_error_share,

@@ -8,8 +8,6 @@ from pathlib import Path
 import verifiers.v1 as vf
 
 from ..grading.restoration import (
-    MODAL_APP,
-    MODAL_CLS,
     RestorationMetricEvaluator,
     cohort_clean_kl,
     cohort_clean_similarity,
@@ -19,15 +17,16 @@ from ..runtime import circuit_from_response
 from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows
 from ..runtime.graphs import weighted_nodes
-from ..runtime.modal import ModalSubject
-from .shared import CausalCircuitTask, CircuitTaskData
+from ..runtime.modal import subject_from_config
+from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "output_restoration"
 
 SYSTEM_PROMPT = """\
 The subject model has a persistent feature corruption. Attribute arbitrary
-prompts and transfer selected features to different prompts in intervention
-experiments to identify that mechanism.
+prompts to inspect clean feature structure; output logits and tokens are redacted.
+Transfer selected features to different prompts in intervention experiments,
+whose before/after outputs include the hidden corruption, to identify the mechanism.
 
 Submit stable `layer_feature` ids and multiplicative intervention
 factors. Find a shared intervention that reverses the persistent corruption
@@ -45,9 +44,6 @@ Return one JSON object:
   ]
 }
 ```"""
-
-
-_METRICS = RestorationMetricEvaluator(ModalSubject(MODAL_APP, MODAL_CLS))
 
 
 def restoration_prompt(family: str) -> str:
@@ -74,7 +70,10 @@ class CircuitTask(CausalCircuitTask):
                 "error": reason,
             }
         else:
-            replay = await _METRICS.score_cohort(
+            evaluator = RestorationMetricEvaluator(
+                subject_from_config(self.data.subject_config)
+            )
+            replay = await evaluator.score_cohort(
                 self.data.heldout_prompts, weighted_nodes(circuit)
             )
             similarity = cohort_clean_similarity(replay)
@@ -112,7 +111,7 @@ class CircuitTask(CausalCircuitTask):
         return float((await self.score_circuit(trace))["reward"])
 
 
-class CircuitTasksetConfig(vf.TasksetConfig):
+class CircuitTasksetConfig(SubjectTasksetConfig):
     dataset_file: str = "suppressed-features.jsonl"
 
 
@@ -132,11 +131,10 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 prompt=restoration_prompt(row.family),
                 system_prompt=SYSTEM_PROMPT,
                 family=row.family,
+                subject_config=self.config.subject,
                 example_prompts=row.example_prompts,
                 heldout_prompts=row.heldout_prompts,
                 control_prompts=row.control_prompts,
-                modal_app=MODAL_APP,
-                modal_cls=MODAL_CLS,
                 corruption_spec=[
                     (layer, feature, factor)
                     for layer, feature, _, factor in row.heldout_prompts[0].corruption

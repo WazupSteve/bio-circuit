@@ -67,7 +67,7 @@ uv run python scripts/build_visible_dataset.py --n 2400 --tasks 16 --seed 1 \
   --out circuit_supernodes/data/visible_dataset/heldout-cohorts.jsonl.gz
 ```
 
-Backend: `circuit-supernodes-attribution/Attributor` (Qwen3-4B).
+Backend: `circuit-supernodes/Attributor` (Qwen3-4B).
 
 ## Promptless rediscovery builder
 
@@ -84,7 +84,7 @@ uv run python scripts/build_promptless_dataset.py --seed 1 --split eval \
   --out circuit_supernodes/data/supernode_rediscovery/promptless-supernodes.jsonl.gz
 ```
 
-Backend: `circuit-supernodes-gemma-attribution/GemmaAttributor` (Gemma-2-2B).
+Backend: `circuit-supernodes/Attributor` (Qwen3-4B).
 
 ## Suppressed-feature builder
 
@@ -109,8 +109,7 @@ uv run python scripts/build_restoration_dataset.py --seed 1 --split eval \
   --out circuit_supernodes/data/output_restoration/suppressed-features.jsonl.gz
 ```
 
-Backend: `circuit-supernodes-persistent-restoration/RestorationAttributor`
-(Qwen3-4B).
+Backend: `circuit-supernodes/Attributor` (Qwen3-4B).
 
 ## Artifact format and provenance
 

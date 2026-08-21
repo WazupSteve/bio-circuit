@@ -13,11 +13,9 @@ from pydantic import Field
 from ..models import CircuitDatasetRow, DatasetExample
 from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows
-from .shared import CausalCircuitTask, CircuitTaskData
+from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "supernode_rediscovery"
-DEFAULT_MODAL_APP = "circuit-supernodes-gemma-attribution"
-DEFAULT_MODAL_CLS = "GemmaAttributor"
 
 
 SYSTEM_PROMPT = """\
@@ -82,12 +80,10 @@ class DiscoveryTask(CausalCircuitTask):
         return float((await self.score_circuit(trace))["reward"])
 
 
-class DiscoveryTasksetConfig(vf.TasksetConfig):
+class DiscoveryTasksetConfig(SubjectTasksetConfig):
     dataset_file: str = "promptless-supernodes.jsonl"
     min_cohort_success: float = Field(1.0, ge=0.0, le=1.0)
     max_control_activation: float = Field(0.0, ge=0.0, le=1.0)
-    modal_app: str = DEFAULT_MODAL_APP
-    modal_cls: str = DEFAULT_MODAL_CLS
 
 
 # ty currently treats Verifiers' specialized Task as incompatible with its bare,
@@ -110,13 +106,12 @@ class DiscoveryTaskset(vf.Taskset[DiscoveryTask, DiscoveryTasksetConfig]):
                 prompt=cohort_prompt(goal),
                 system_prompt=SYSTEM_PROMPT,
                 family=row.family,
+                subject_config=self.config.subject,
                 goal=goal,
                 example_prompts=row.example_prompts,
                 heldout_prompts=row.heldout_prompts,
                 control_prompts=row.control_prompts,
                 min_visible_success=self.config.min_cohort_success,
                 max_control_failure=self.config.max_control_activation,
-                modal_app=self.config.modal_app,
-                modal_cls=self.config.modal_cls,
             )
             yield DiscoveryTask(data, self.config.task)

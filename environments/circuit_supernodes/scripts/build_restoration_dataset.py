@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import typer
-from circuit_supernodes.grading.restoration import MODAL_APP, MODAL_CLS
 from circuit_supernodes.models import (
     CircuitDatasetRow,
     DatasetExample,
@@ -167,8 +166,6 @@ def main(
         requested_families=family,
         split=split,
         default_split="all",
-        modal_app=MODAL_APP,
-        modal_cls=MODAL_CLS,
     )
     generator = build.subject
     # Maximal graph JSON is large enough that one bulk Modal map can finish its
@@ -259,19 +256,8 @@ def main(
             )
             continue
 
-        corrupted_calls = [
-            generator.spawn(
-                "build_corrupted_sample_from_coordinates",
-                prompt,
-                target_token,
-                coordinates,
-            )
-            for prompt, target_token, coordinates in zip(
-                prompts, target_tokens, selected_coordinates, strict=True
-            )
-        ]
-        corrupted = [call.get() for call in corrupted_calls]
-        if not all_changed(corrupted) or any("graph" not in item for item in corrupted):
+        corrupted = tested
+        if not all_changed(corrupted):
             continue
 
         examples: list[DatasetExample] = []
@@ -284,7 +270,7 @@ def main(
                 DatasetExample(
                     prompt=record["sample"].prompt,
                     target_token=result["target_token"],
-                    graph=TracerGraphPayload.model_validate(result["graph"]),
+                    graph=record["clean_graph"],
                     corruption=result["corruption"],
                 )
             )
@@ -315,8 +301,6 @@ def main(
         out,
         rows,
         build=build,
-        modal_app=MODAL_APP,
-        modal_cls=MODAL_CLS,
         max_error_share=max_error_share,
         quality=quality,
         generator={

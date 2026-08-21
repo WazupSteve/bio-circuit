@@ -127,6 +127,7 @@ def render_graph(
     max_edges_per_node: int = 5,
     *,
     include_labels: bool = True,
+    include_outputs: bool = True,
 ) -> str:
     """Render prompt tokens, top logits, nodes, and weighted links as text."""
 
@@ -134,7 +135,7 @@ def render_graph(
     outputs = top_outputs(graph)
     deltas = influence_deltas(graph)
     lines = [f"PROMPT TOKENS: {' | '.join(tokens)}"]
-    if outputs:
+    if include_outputs and outputs:
         outputs = ", ".join(
             f"{token!r} (p={probability:.2f})" for token, probability in outputs[:5]
         )
@@ -188,6 +189,7 @@ def render_feature_view(
     feature_count: int,
     *,
     include_labels: bool = True,
+    include_outputs: bool = True,
 ) -> dict[str, int | str]:
     """Render the top-influence-delta features with visible/available counts."""
 
@@ -195,8 +197,22 @@ def render_feature_view(
     if not 1 <= feature_count <= available:
         raise ValueError(f"feature_count must be between 1 and {available}")
     view = select_features(graph, feature_count)
+    if not include_outputs:
+        logit_ids = {node.node_id for node in view.nodes if node_kind(node) == "logit"}
+        view = view.model_copy(
+            update={
+                "nodes": [node for node in view.nodes if node.node_id not in logit_ids],
+                "links": [
+                    edge
+                    for edge in view.links
+                    if edge.source not in logit_ids and edge.target not in logit_ids
+                ],
+            }
+        )
     return {
         "returned_feature_count": len(feature_nodes(view)),
         "available_feature_count": available,
-        "graph": render_graph(view, include_labels=include_labels),
+        "graph": render_graph(
+            view, include_labels=include_labels, include_outputs=include_outputs
+        ),
     }

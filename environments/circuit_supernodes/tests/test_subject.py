@@ -1,6 +1,7 @@
 from circuit_supernodes.models import SamplingResult
 from circuit_supernodes.runtime.answers import first_answer
 from circuit_supernodes.runtime.answers import first_answer as _first_answer
+from circuit_supernodes.runtime.modal import ModalSubject, SubjectConfig
 from circuit_supernodes.runtime.sampling import MAX_NEW_TOKENS
 from scripts.prompt_generation import CircuitSample
 from scripts.sample_preparation import (
@@ -111,3 +112,32 @@ def test_prepare_samples_keeps_correct_and_rejects_wrong_without_retry() -> None
     assert prepared[0].sample.prompt == "P1 which leads to"
     assert prepared[0].target_token == " S"
     assert len(generator.requests) == 1
+
+
+def test_modal_subject_instantiates_parameterized_backend(monkeypatch) -> None:
+    import sys
+    from types import SimpleNamespace
+
+    captured = {}
+
+    class RemoteClass:
+        def __call__(self, **kwargs):
+            captured.update(kwargs)
+            return object()
+
+    class Cls:
+        @staticmethod
+        def from_name(app_name, class_name):
+            assert (app_name, class_name) == ("circuit-supernodes", "Attributor")
+            return RemoteClass()
+
+    monkeypatch.setitem(sys.modules, "modal", SimpleNamespace(Cls=Cls))
+    config = SubjectConfig(
+        model_name="org/model",
+        transcoder_set="org/transcoders",
+        node_threshold=0.7,
+        edge_threshold=0.9,
+    )
+    subject = ModalSubject("circuit-supernodes", "Attributor", config)
+    subject._subject()
+    assert captured == config.model_dump()

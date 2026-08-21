@@ -3,7 +3,7 @@
 The core is a Verifiers multi-turn environment in which a policy model can
 attribute arbitrary text, inspect a bounded view of its attribution graph, apply
 multiplicative feature interventions, and finally submit a circuit. The actual
-subject-model computation runs in Modal GPU services; the local package provides
+subject-model computation runs in a Modal GPU service; the local package provides
 typed requests, graph manipulation, tool rendering, and remote clients.
 
 ## End-to-end flow
@@ -128,3 +128,22 @@ the prompt, target token, graph, and optional coordinate-level corruption.
 Relevant source modules are `runtime/circuit_tracer.py`, `runtime/graphs.py`,
 `runtime/responses.py`, `runtime/modal_backend.py`, `runtime/corruption.py`, and
 `models.py` under `environments/circuit_supernodes/circuit_supernodes`.
+
+### Run-configured subject backend
+
+Training and evaluation tasksets select the subject model and graph pruning in
+their own TOML configuration. The shared Modal app and `Attributor` class remain
+global; these values parameterize its container instance:
+
+```toml
+[taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
+```
+
+RL configurations use the corresponding `[env.taskset.subject]` and
+`[eval.env.taskset.subject]` tables. Model and transcoder changes produce a
+distinct parameterized Modal container, while tools and graders within the run
+share the same subject configuration.

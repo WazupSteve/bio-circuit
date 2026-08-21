@@ -8,12 +8,6 @@ from circuit_supernodes.models import (
     CircuitDatasetRow,
     DatasetExample,
 )
-from modal_app.attribution import (
-    EDGE_THRESHOLD,
-    MODEL_NAME,
-    NODE_THRESHOLD,
-    TRANSCODER_SET,
-)
 from scripts.dataset_pipeline import (
     clean_attributions,
     finish_build,
@@ -24,8 +18,6 @@ from scripts.neuronpedia import add_feature_labels
 DATA_DIR = (
     Path(__file__).parent.parent / "circuit_supernodes" / "data" / "visible_dataset"
 )
-MODAL_APP = "circuit-supernodes-attribution"
-MODAL_CLS = "Attributor"
 EXAMPLE_COUNT = 5
 HELDOUT_POSITIVE_COUNT = 25
 NEUTRAL_COUNT = 25
@@ -195,8 +187,6 @@ def main(
         requested_families=family,
         split=split,
         default_split="train",
-        modal_app=MODAL_APP,
-        modal_cls=MODAL_CLS,
     )
     records, quality = [], []
     retained_per_goal: dict[str, int] = defaultdict(int)
@@ -253,8 +243,6 @@ def main(
         out,
         rows,
         build=build,
-        modal_app=MODAL_APP,
-        modal_cls=MODAL_CLS,
         max_error_share=max_error_share,
         quality=quality,
         generator={
@@ -267,12 +255,6 @@ def main(
             "max_records_per_goal": max_records_per_goal,
             "positive_grouping": "shared semantic goal",
             "null_exclusion": "different semantic goal",
-        },
-        backend_details={
-            "subject_model": MODEL_NAME,
-            "transcoders": TRANSCODER_SET,
-            "node_threshold": NODE_THRESHOLD,
-            "edge_threshold": EDGE_THRESHOLD,
         },
     )
 

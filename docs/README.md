@@ -11,7 +11,7 @@ policy model
      -> causal ablation grader (discovery) or clean-KL replay (restoration)
 ```
 
-Dataset builders use the same subject-model services ahead of time to generate
+Dataset builders use the same subject-model service ahead of time to generate
 prompts, retain correct model answers, export maximal attribution graphs, and
 assemble the hidden cohorts consumed by the TaskSets.
 
@@ -32,7 +32,7 @@ assemble the hidden cohorts consumed by the TaskSets.
 ## Important terminology
 
 - **Subject model**: the remotely hosted model whose internal features are
-  attributed and patched (Qwen3-4B or Gemma-2-2B, depending on the task).
+  attributed and patched (Qwen3-4B for every task).
 - **Policy model**: the model solving a Verifiers task by calling tools and
   submitting circuit JSON.
 - **Feature node**: a transcoder feature at a layer and prompt position, exported
@@ -41,7 +41,7 @@ assemble the hidden cohorts consumed by the TaskSets.
   same learned feature can be transferred between prompts.
 - **Multiplier**: any finite factor selected by the policy and applied to a
   feature's clean activation; zero clamps it to zero.
-- **Corruption**: a stored positive multiplier applied before a restoration
+- **Corruption**: a stored signed multiplier applied before a restoration
   proposal in the suppressed-feature task.
 - **Ablation**: the reward grader negates the submitted multiplier and checks
   whether the original top token is displaced.
@@ -50,6 +50,6 @@ assemble the hidden cohorts consumed by the TaskSets.
 
 The root project supplies Prime/Verifiers runner configuration. The nested
 `environments/circuit_supernodes` project is the independently buildable TaskSet
-package and owns runtime code, builders, Modal services, and tests. Generated
+package and owns runtime code, builders, one Modal service, and tests. Generated
 datasets are mostly ignored by Git; the checked-in visible heldout artifact is an
 exception.

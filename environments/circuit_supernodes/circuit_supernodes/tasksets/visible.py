@@ -7,11 +7,9 @@ from pydantic import Field
 from ..models import Circuit, CircuitDatasetRow
 from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows
-from .shared import CausalCircuitTask, CircuitTaskData
+from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "visible_dataset"
-MODAL_APP = "circuit-supernodes-attribution"
-MODAL_CLS = "Attributor"
 
 
 SYSTEM_PROMPT = """\
@@ -81,7 +79,7 @@ class CircuitTask(CausalCircuitTask):
         return float((await self.score_circuit(trace))["reward"])
 
 
-class CircuitTasksetConfig(vf.TasksetConfig):
+class CircuitTasksetConfig(SubjectTasksetConfig):
     dataset_file: str = "circuit-cohorts.jsonl"
     min_evidence_success: float = Field(1.0, ge=0.0, le=1.0)
     min_holdout_success: float = Field(1.0, ge=0.0, le=1.0)
@@ -109,6 +107,7 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 prompt=evidence_prompt(examples),
                 system_prompt=SYSTEM_PROMPT,
                 family=row.family,
+                subject_config=self.config.subject,
                 goal=row.goal,
                 example_prompts=examples,
                 heldout_prompts=holdouts,
@@ -116,7 +115,5 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 min_visible_success=self.config.min_evidence_success,
                 min_heldout_success=self.config.min_holdout_success,
                 max_control_failure=self.config.max_null_failure,
-                modal_app=MODAL_APP,
-                modal_cls=MODAL_CLS,
             )
             yield CircuitTask(data, self.config.task)

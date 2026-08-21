@@ -53,7 +53,8 @@ Each row contains visible evidence and two cached grading sets:
 - Set 2 is hidden: twenty-five different-goal neutral holdouts. The same
   intervention must preserve every clean target.
 
-`circuit_attribute(prompt, feature_count)` attributes any prompt, while
+`circuit_attribute(prompt, feature_count)` attributes any prompt. In restoration
+tasks its clean output/logit information is redacted, while
 `circuit_intervene(source_prompt, node_id, prompt, intervention_weight)` maps a
 source feature onto another arbitrary prompt and reports its baseline and
 intervened top tokens. Stable `layer_feature` identities are remapped to their
@@ -66,12 +67,11 @@ Configs: `configs/{eval,rl}/visible-dataset.toml`.
 
 ### `supernode-rediscovery`: promptless goal supernodes
 
-Each row contains a positive cohort whose sampled answers share one explicit
-semantic goal key and a random different-answer control cohort. Goal keys split
-meaningful subfamilies such as analogy relations and antonym languages rather
-than grouping unrelated prompts merely because they emit the same label. Control
-answers and attributed first tokens must both differ from the desired outcome.
-Maximal Gemma graphs are stored for all prompts, but the policy receives neither
+Each row contains a varied-answer positive cohort sharing one explicit semantic
+goal key and a control cohort from different goals. Goal keys split meaningful
+subfamilies such as analogy relations and antonym languages rather than grouping
+unrelated prompts merely because they emit the same label.
+Maximal Qwen graphs are stored for all prompts, but the policy receives neither
 the subject prompts nor prompt, embedding, logit, or error nodes.
 It uses the same arbitrary-prompt attribution and intervention tools as every
 other taskset.
@@ -115,13 +115,11 @@ invert a feature activation.
 
 Configs: `configs/{eval,rl}/suppressed-features.toml`.
 
-## Modal services
+## Modal service
 
 | Purpose | App/class | Deploy command |
 | --- | --- | --- |
-| Vanilla Qwen attribution/cohort verifier | `circuit-supernodes-attribution/Attributor` | `uv run modal deploy modal_app/attribution.py` |
-| Promptless Gemma sampling/graphs/cohort verifier | `circuit-supernodes-gemma-attribution/GemmaAttributor` | `uv run modal deploy modal_app/attribution_gemma.py` |
-| Qwen sampling/corruption/restoration | `circuit-supernodes-persistent-restoration/RestorationAttributor` | `uv run modal deploy modal_app/attribution_restoration.py` |
+| All sampling, attribution, intervention, corruption, and restoration | `circuit-supernodes/Attributor` | `uv run modal deploy modal_app/attribution.py` |
 
 Deployments mutate external Modal state and are intentionally not part of local
 unit tests.

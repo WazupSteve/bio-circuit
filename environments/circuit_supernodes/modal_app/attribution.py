@@ -1,42 +1,8 @@
 import json
 
-import modal
-from modal_app.attribution_service import create_attributor_service
+from modal_app.backend import Attributor, app
 
-MODEL_NAME = "Qwen/Qwen3-4B"
-TRANSCODER_SET = "mwhanna/qwen3-4b-transcoders"
-NODE_THRESHOLD = 0.8
-EDGE_THRESHOLD = 0.98
-
-app = modal.App("circuit-supernodes-attribution")
-
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .apt_install("git")
-    .pip_install(
-        "circuit-tracer==0.5.0",
-        "huggingface_hub[hf_transfer]",
-    )
-    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
-    .add_local_python_source("circuit_supernodes", "modal_app")
-)
-
-hf_cache = modal.Volume.from_name("circuit-supernodes-hf-cache", create_if_missing=True)
-
-
-Attributor = create_attributor_service(
-    app=app,
-    class_name="Attributor",
-    image=image,
-    model_name=MODEL_NAME,
-    transcoder_set=TRANSCODER_SET,
-    node_threshold=NODE_THRESHOLD,
-    edge_threshold=EDGE_THRESHOLD,
-    volume=hf_cache,
-    max_containers=8,
-    scaledown_window=600,
-    forgive_attribution_errors=True,
-)
+__all__ = ["Attributor", "app"]
 
 
 @app.local_entrypoint()

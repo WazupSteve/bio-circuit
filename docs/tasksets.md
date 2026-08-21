@@ -9,7 +9,7 @@ require the policy to create their own experimental prompts.
 | TaskSet ID | Repository role | Subject | Hidden positives | Controls | Submission |
 | --- | --- | --- | --- | --- | --- |
 | `circuit-supernodes` | Shared-concept discovery from five visible examples | Qwen3-4B | 25 additional same-goal prompts | 25 different-goal prompts | Exactly one named supernode; omitted factors default to `1.0` |
-| `supernode-rediscovery` | Promptless goal rediscovery | Gemma-2-2B | Same goal, answer, and first token | Different answer and first token | One or more named weighted supernodes |
+| `supernode-rediscovery` | Promptless goal rediscovery | Qwen3-4B | Same goal with varied answers | Different-goal prompts | One or more named weighted supernodes |
 | `suppressed-features` | Persistent-corruption restoration | Qwen3-4B | Same-family prompts sharing one hidden corruption | Not reward-bearing | Flat or grouped weighted nodes |
 
 ## Vanilla discovery: `circuit-supernodes`
@@ -55,12 +55,11 @@ Each task represents a semantic family with a persistent hidden feature
 corruption. The builder first finds clean same-family prompts with the same
 target token, intersects their stable positive-activation features, and samples
 a shared 4–12-feature corruption with signed multipliers in `[-8, 8]`.
-It keeps
-the corruption only if every selected prompt changes top token, then attributes
-and stores the corrupted executions.
+It keeps the corruption only if every selected prompt changes top token, then
+stores the already-computed clean graphs for feature-coordinate resolution.
 
-At runtime, arbitrary tool prompts are attributed under the same stable
-corruption specification. The policy submits factors intended to identify and
+At runtime, arbitrary tool prompts receive ordinary clean feature attribution,
+with all clean output logits, output tokens, and output edges redacted. The policy submits factors intended to identify and
 reverse that mechanism. The accepted response can be a flat `nodes` list or
 named `supernodes`; every node requires a factor.
 
@@ -70,9 +69,8 @@ from other families. This preserves the shared example/holdout/control dataset
 shape while giving each field one consistent meaning.
 
 Grading replays the hidden factors server-side, composes submitted multipliers
-without negation, and rewards recovery of the clean distribution. The policy can
-observe corrupted graphs and experimental outcomes but never receives the hidden
-factor values. See [Graders](graders.md).
+without negation, and rewards recovery of the clean distribution. The policy can observe feature structure and corrupted before/after experimental
+outcomes, but receives neither clean output tokens nor hidden factor values. See [Graders](graders.md).
 
 Implementation: `tasksets/restoration.py`. Configurations:
 `configs/{eval,rl}/suppressed-features.toml`; a one-task external-model canary is

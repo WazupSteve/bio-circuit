@@ -2,6 +2,7 @@ import json
 
 import pytest
 from circuit_supernodes.runtime.graphs import feature_nodes
+from circuit_supernodes.runtime.modal import SUBJECT
 from circuit_supernodes.tasksets import rediscovery, restoration, visible
 
 
@@ -152,6 +153,11 @@ def test_old_rows_fail_clearly_instead_of_being_partially_loaded(
                 ).load()
             )
         )
+
+
+def test_all_tasksets_share_one_subject_backend() -> None:
+    assert SUBJECT.app_name == "circuit-supernodes"
+    assert SUBJECT.class_name == "Attributor"
 
 
 def test_all_plugin_entrypoints_remain_independent() -> None:

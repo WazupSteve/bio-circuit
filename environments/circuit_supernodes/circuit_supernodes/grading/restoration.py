@@ -19,9 +19,6 @@ from ..models import DatasetExample, StrictModel
 from ..runtime.graphs import resolve_interventions
 from ..runtime.modal import ModalSubject, retry_modal_call
 
-MODAL_APP = "circuit-supernodes-persistent-restoration"
-MODAL_CLS = "RestorationAttributor"
-
 
 class RestorationReplayResult(StrictModel):
     model_config = ConfigDict(extra="allow")

@@ -13,7 +13,6 @@ from circuit_supernodes.models import (
     DatasetExample,
 )
 from circuit_supernodes.runtime.answers import answer_key
-from circuit_supernodes.tasksets.rediscovery import DEFAULT_MODAL_APP, DEFAULT_MODAL_CLS
 from scripts.dataset_pipeline import (
     clean_attributions,
     finish_build,
@@ -155,8 +154,6 @@ def main(
         requested_families=family,
         split=split,
         default_split="all",
-        modal_app=DEFAULT_MODAL_APP,
-        modal_cls=DEFAULT_MODAL_CLS,
     )
     records = []
     quality = []
@@ -201,8 +198,6 @@ def main(
         out,
         rows,
         build=build,
-        modal_app=DEFAULT_MODAL_APP,
-        modal_cls=DEFAULT_MODAL_CLS,
         max_error_share=max_error_share,
         quality=quality,
         generator={

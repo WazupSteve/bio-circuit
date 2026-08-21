@@ -97,4 +97,4 @@ protocol mismatches raise errors rather than silently becoming low rewards.
 
 Primary implementation: `grading/ablation.py`, `grading/restoration.py`,
 `runtime/ablation_contract.py`, `runtime/corruption.py`, and
-`modal_app/restoration_backend.py`.
+`modal_app/backend/`.

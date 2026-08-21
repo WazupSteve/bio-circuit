@@ -23,6 +23,12 @@ max_turns = 16
 id = "suppressed-features"
 dataset_file = "suppressed-features-train.jsonl.gz"
 
+[env.taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
+
 [env.harness]
 id = "null"
 
@@ -38,6 +44,12 @@ max_turns = 16
 [eval.env.taskset]
 id = "suppressed-features"
 dataset_file = "suppressed-features.jsonl.gz"
+
+[eval.env.taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
 
 [eval.env.harness]
 id = "null"

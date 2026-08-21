@@ -77,6 +77,16 @@ def test_moved_graph_helpers_preserve_ranking_rendering_and_resolution() -> None
     assert "0_2_0" in rendered
 
 
+def test_feature_view_can_redact_clean_output_information() -> None:
+    payload = render_feature_view(
+        ranked_graph(), feature_count=3, include_outputs=False
+    )
+    rendered = str(payload["graph"])
+    assert "TOP OUTPUTS" not in rendered
+    assert "| logit |" not in rendered
+    assert "'y'" not in rendered
+
+
 def test_graph_view_enforces_exported_feature_budget() -> None:
     payload = render_feature_view(ranked_graph(), feature_count=3)
     assert payload["returned_feature_count"] == 3
@@ -256,6 +266,43 @@ def test_shared_tools_use_graph_helpers_for_arbitrary_prompts() -> None:
         assert attributed["returned_feature_count"] == 3
         result = await tools.intervene("source", "0_0_9", "target", -1.0)
         assert result["changed_top_token"] is True
+
+    asyncio.run(exercise())
+
+
+def test_restoration_tools_use_redacted_clean_graphs_and_corrupted_outcomes() -> None:
+    calls = []
+
+    class Subject:
+        async def call(self, method: str, *args):
+            calls.append(method)
+            if method == "attribute_prompt":
+                return ranked_graph().model_dump()
+            return {
+                "positives": [
+                    {
+                        "expected_token": "clean-secret",
+                        "baseline_top_token": "corrupted",
+                        "intervened_top_token": "changed",
+                    }
+                ],
+                "controls": [],
+            }
+
+    async def exercise() -> None:
+        tools = CircuitExperimentTools(vf.ToolsetConfig())
+        tools._subject = Subject()
+        tools._corruption_spec = [(0, 0, -2.0)]
+        attributed = await tools.attribute("source", 3)
+        assert "TOP OUTPUTS" not in attributed["graph"]
+        assert "clean-secret" not in attributed["graph"]
+        result = await tools.intervene("source", "0_0", "target", 0.5)
+        assert result == {
+            "baseline_top_token": "corrupted",
+            "intervened_top_token": "changed",
+            "changed_top_token": True,
+        }
+        assert "build_corrupted_sample_from_spec" not in calls
 
     asyncio.run(exercise())
 

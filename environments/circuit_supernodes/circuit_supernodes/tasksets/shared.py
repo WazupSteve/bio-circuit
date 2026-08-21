@@ -12,7 +12,11 @@ from ..grading.ablation import AblationHoldoutGrader
 from ..models import Circuit, DatasetExample
 from ..runtime import circuit_from_response
 from ..runtime.graphs import weighted_nodes
-from ..runtime.modal import ModalSubject
+from ..runtime.modal import SubjectConfig, subject_from_config
+
+
+class SubjectTasksetConfig(vf.TasksetConfig):
+    subject: SubjectConfig = Field(default_factory=SubjectConfig)
 
 
 class CircuitTaskData(vf.TaskData):
@@ -26,8 +30,7 @@ class CircuitTaskData(vf.TaskData):
     min_visible_success: float = Field(0.0, ge=0.0, le=1.0)
     min_heldout_success: float = Field(1.0, ge=0.0, le=1.0)
     max_control_failure: float = Field(0.0, ge=0.0, le=1.0)
-    modal_app: str
-    modal_cls: str
+    subject_config: SubjectConfig = Field(default_factory=SubjectConfig, exclude=True)
     corruption_spec: list[tuple[int, int, float]] = Field(
         default_factory=list, exclude=True
     )
@@ -71,9 +74,7 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
             return result
 
         visible, holdout, controls = self.grading_cohorts()
-        grader = AblationHoldoutGrader(
-            ModalSubject(self.data.modal_app, self.data.modal_cls)
-        )
+        grader = AblationHoldoutGrader(subject_from_config(self.data.subject_config))
         result = await grader.grade(
             circuit,
             visible,

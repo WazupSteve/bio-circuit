@@ -7,7 +7,7 @@ from pydantic import Field, FiniteFloat
 
 from ..models import StrictModel, TracerGraphPayload
 from .graphs import resolve_interventions, stable_feature_id, top_outputs
-from .modal import ModalSubject, retry_modal_call
+from .modal import ModalSubject, retry_modal_call, subject_from_config
 from .responses import render_feature_view
 
 
@@ -40,7 +40,7 @@ class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):
         self._corruption_spec: list[tuple[int, int, float]] = []
 
     async def setup_task(self, task) -> None:
-        self._subject = ModalSubject(task.modal_app, task.modal_cls)
+        self._subject = subject_from_config(task.subject_config)
         self._corruption_spec = list(task.corruption_spec)
 
     @retry_modal_call
@@ -53,28 +53,16 @@ class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):
         raw = await self._call("attribute_prompt", prompt)
         if raw is None:
             raise ValueError("Circuit Tracer could not attribute the prompt")
-        clean = TracerGraphPayload.model_validate(raw)
-        if not self._corruption_spec:
-            return clean
-        outputs = top_outputs(clean)
-        if not outputs:
-            raise ValueError("prompt has no attributable top token")
-        raw = await self._call(
-            "build_corrupted_sample_from_spec",
-            prompt,
-            outputs[0][0],
-            self._corruption_spec,
-        )
-        if not isinstance(raw, dict) or "graph" not in raw:
-            raise ValueError("Circuit Tracer could not apply the task corruption")
-        return TracerGraphPayload.model_validate(raw["graph"])
+        return TracerGraphPayload.model_validate(raw)
 
     @vf.tool(name="attribute")
     async def attribute(self, prompt: str, feature_count: int) -> dict:
         """Attribute any prompt and return an importance-ranked graph view."""
         try:
             graph = await self._graph(prompt)
-            return render_feature_view(graph, feature_count)
+            return render_feature_view(
+                graph, feature_count, include_outputs=not self._corruption_spec
+            )
         except Exception as exc:
             return {"error": validation_message(exc)}
 
@@ -128,6 +116,15 @@ class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):
                 ],
                 [],
             )
-            return raw["positives"][0]
+            result = raw["positives"][0]
+            if not self._corruption_spec:
+                return result
+            baseline = result["baseline_top_token"]
+            intervened = result["intervened_top_token"]
+            return {
+                "baseline_top_token": baseline,
+                "intervened_top_token": intervened,
+                "changed_top_token": baseline != intervened,
+            }
         except Exception as exc:
             return {"error": validation_message(exc)}

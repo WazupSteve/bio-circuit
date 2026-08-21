@@ -18,7 +18,7 @@ environments/circuit_supernodes/
     grading/                    discovery ablation and restoration KL reward
     runtime/                    schemas, graphs, sampling, tools, Modal clients
     tasksets/                   three Verifiers adapters
-  modal_app/                    GPU deployment definitions and backends
+  modal_app/                    GPU deployment and unified backend
   scripts/                      prompt and dataset generation
   tests/                        unit and contract tests
 docs/                           this documentation
@@ -26,23 +26,19 @@ docs/                           this documentation
 
 ## Modal deployment layer
 
-Three independently deployed services own expensive model execution:
+One deployed service owns all subject-model execution:
 
 | Service | Model/transcoders | Responsibilities |
 | --- | --- | --- |
-| `circuit-supernodes-attribution/Attributor` | Qwen3-4B / `mwhanna/qwen3-4b-transcoders` | sampling, clean attribution, clean ablation |
-| `circuit-supernodes-gemma-attribution/GemmaAttributor` | Gemma-2-2B / `mntss/gemma-scope-transcoders` | sampling, clean attribution, strict-token ablation |
-| `circuit-supernodes-persistent-restoration/RestorationAttributor` | Qwen3-4B / same Qwen transcoders | sampling, clean/corrupted attribution, corruption search, corrupted-baseline ablation, KL restoration replay |
+| `circuit-supernodes/Attributor` | Qwen3-4B / `mwhanna/qwen3-4b-transcoders` | sampling, clean and corrupted attribution, corruption search, clean and corrupted-baseline ablation, and KL restoration replay |
 
-They use A100-80GB GPUs, shared Hugging Face cache volumes, container scaling,
-and long timeouts. Deploying them changes external Modal state and is not part of
+It uses A100-80GB GPUs, shared Hugging Face cache volumes, container scaling,
+and long timeouts. Deploying it changes external Modal state and is not part of
 local tests.
 
 ```bash
 cd environments/circuit_supernodes
 uv run modal deploy modal_app/attribution.py
-uv run modal deploy modal_app/attribution_gemma.py
-uv run modal deploy modal_app/attribution_restoration.py
 ```
 
 ## Runner and packaging layer
@@ -64,7 +60,7 @@ The repository now owns more than a minimal attribution wrapper:
 - cumulative-influence-to-delta ranking;
 - graph quality accounting and error-node screening;
 - textual graph rendering and response-shape normalization;
-- model-specific tokenization, activation-shape, and logits adapters;
+- model tokenization, activation-shape, and logits adapters;
 - custom corrupted-attribution context construction that reaches into Circuit
   Tracer and NNSight internals;
 - pinned cloudpickle/Circuit Tracer variants for backend compatibility; and
@@ -85,7 +81,7 @@ the scientific task/grader contract.
 The test suite covers schemas, boundaries, graph views, sampling/data generation,
 builder support, visible cohort construction, rediscovery grouping, restoration,
 ablation wire contracts, and integration contracts. Tests mock or isolate remote
-behavior; they do not deploy Modal services.
+behavior; they do not deploy the Modal service.
 
 ```bash
 cd environments/circuit_supernodes
@@ -97,11 +93,6 @@ uv run pytest
 
 ## Known architectural seams
 
-- The universal dataset schema supports three cohorts even when adapters leave
-  one or two semantically empty.
-- Qwen ordinary and persistent-corruption execution live in separate Modal apps
-  to prevent account-global deployment replacement, at the cost of duplicated
-  model infrastructure.
 - Neuronpedia enrichment is Qwen-only, build-time-only, and best-effort.
 
 These seams should be considered before extending the system again: new work
