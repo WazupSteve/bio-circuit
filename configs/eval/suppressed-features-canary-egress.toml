@@ -8,8 +8,7 @@ max_tokens = 4096
 
 [taskset]
 id = "suppressed-features"
-dataset_file = "suppressed-features.jsonl"
-reward_mode = "eval"
+dataset_file = "suppressed-features.jsonl.gz"
 
 [harness]
 id = "null"

@@ -1,19 +1,31 @@
 # Bio-circuit tasks
 
-This integration implements the four requested changes as three independently
-loadable tasksets plus one graph-policy change shared by all of them:
+This integration exposes three independently analyzable TaskSets from one core
+package, plus one graph policy shared by all of them:
 
-| Contract | Taskset/plugin |
+| Contract | TaskSet ID |
 | --- | --- |
-| Vanilla causal circuit MDL with all train and sealed eval families | `circuit-supernodes` |
+| Arbitrary-prompt circuit discovery with 25 positive and 25 neutral holdouts | `circuit-supernodes` |
 | Hidden-prompt goal-supernode cohorts with specificity controls | `supernode-rediscovery` |
-| Shared suppressed-feature corruption with discovery and held-out restoration cohorts | `suppressed-features` |
+| Shared corruption with discovery/held-out positives and clean Qwen nulls | `suppressed-features` |
 | Maximal stored graphs with policy-selected top-k views | shared by all three |
 
 All generated prompt families use the bounded answer-aware sampler introduced by
-the eval-family work. See
+the eval-family work. All three TaskSets use the same negative-intervention
+ablation reward grader; restoration similarity is diagnostic only. See
+[the system documentation](docs/README.md) for the core runtime, TaskSets,
+graders, data generation, Neuronpedia support, and feature-creep inventory. See
 [the environment guide](environments/circuit_supernodes/README.md) for exact
-contracts, builders, configs, deployment commands, and validation.
+builder and deployment commands.
+
+## Project boundaries
+
+This repository deliberately has two Python projects. The root project is the
+Prime runner and repository-wide lint/type-check environment. The nested
+`environments/circuit_supernodes` project is the independently buildable
+Verifiers TaskSet package and owns its runtime, builders, tests, and Modal
+deployments. Each project has its own lock file; run environment commands from
+the nested directory unless a command explicitly targets the repository root.
 
 ```bash
 cd environments/circuit_supernodes

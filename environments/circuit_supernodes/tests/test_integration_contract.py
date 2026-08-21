@@ -1,116 +1,173 @@
 import json
 
-from circuit_supernodes import output_restoration_task as restoration_environment
-from circuit_supernodes.graphs import (
-    Graph,
-    GraphNode,
-    graph_to_json,
-    load_graph_json,
-    render_graph,
-    slim_graph,
-)
-from circuit_supernodes.interventions import CORRUPTION_VERSION
-from circuit_supernodes.output_restoration_task import (
-    CircuitTaskset as RestorationTaskset,
-)
-from circuit_supernodes.output_restoration_task import (
-    CircuitTasksetConfig as RestorationTasksetConfig,
-)
-from circuit_supernodes.restoration import validate_intervention_graph
+import pytest
+from circuit_supernodes.runtime.graphs import feature_nodes
+from circuit_supernodes.tasksets import rediscovery, restoration, visible
 
 
-def ranked_graph(count: int = 100) -> Graph:
-    graph = Graph(tokens=["x"], top_outputs=[(" clean", 0.9)])
-    for index in range(count):
-        node_id = f"0_{index}_0"
-        graph.nodes[node_id] = GraphNode(
-            id=node_id,
-            kind="feature",
-            layer=0,
-            ctx_idx=0,
-            token="x",
-            influence=float(index + 1),
-            share=float(count - index),
-            label="" if index % 2 else f"feature {index}",
-            activation=index / 10,
-        )
-    return graph
-
-
-def test_combined_graph_schema_round_trips_old_and_new_views() -> None:
-    legacy = {
-        "format": "slim",
-        "tokens": ["legacy"],
-        "top_outputs": [[" token", 0.5]],
+def graph(token: str = " output") -> dict:
+    return {
+        "metadata": {"prompt_tokens": ["prompt"]},
         "nodes": [
             {
-                "id": "1_2_0",
-                "kind": "feature",
-                "layer": 1,
+                "node_id": "1_2_0",
+                "feature_type": "feature",
                 "ctx_idx": 0,
-                "token": "legacy",
-                "influence": 0.2,
-                "share": 0.2,
-            }
+                "layer": 1,
+                "influence": 0.4,
+                "activation": 0.2,
+            },
+            {
+                "node_id": "logit",
+                "feature_type": "logit",
+                "ctx_idx": 0,
+                "layer": 2,
+                "influence": 0.4,
+                "clerp": token,
+                "token_prob": 0.9,
+            },
         ],
-        "edges": [],
+        "links": [],
     }
-    old_graph = load_graph_json(legacy)
-    assert old_graph.nodes["1_2_0"].activation == 0.0
-    assert old_graph.nodes["1_2_0"].label == ""
-
-    complete = ranked_graph()
-    round_tripped = load_graph_json(graph_to_json(complete))
-    assert len(round_tripped.feature_nodes) == 100
-    assert round_tripped.nodes["0_7_0"].activation == 0.7
-    rendered = render_graph(slim_graph(round_tripped, 3), include_labels=False)
-    assert "label" not in rendered
-
-    ordinary = slim_graph(round_tripped, 3)
-    retained = slim_graph(round_tripped, 3, {"0_99_0"})
-    assert "0_99_0" not in ordinary.nodes
-    assert "0_99_0" in retained.nodes
 
 
-def test_restoration_keeps_full_graph_without_forcing_corruption_into_top_k(
+def example(prompt: str, *, corruption=None) -> dict:
+    payload = {"prompt": prompt, "target_token": " output", "graph": graph()}
+    if corruption is not None:
+        payload["corruption"] = corruption
+    return payload
+
+
+def write_row(path, row: dict) -> None:
+    path.write_text(json.dumps(row) + "\n")
+
+
+def test_visible_taskset_loads_minimal_three_cohort_row(tmp_path, monkeypatch) -> None:
+    write_row(
+        tmp_path / "visible.jsonl",
+        {
+            "family": "family",
+            "goal": "semantic goal",
+            "example_prompts": [example("example")],
+            "heldout_prompts": [example("heldout")],
+            "control_prompts": [example("control")],
+        },
+    )
+    monkeypatch.setattr(visible, "DATA_DIR", tmp_path)
+    task = next(
+        iter(
+            visible.CircuitTaskset(
+                visible.CircuitTasksetConfig(dataset_file="visible.jsonl")
+            ).load()
+        )
+    )
+    assert task.data.goal == "semantic goal"
+    assert [row.prompt for row in task.data.example_prompts] == ["example"]
+    assert [row.prompt for row in task.data.heldout_prompts] == ["heldout"]
+    assert task.data.min_heldout_success == 1.0
+
+
+def test_rediscovery_derives_prompt_metadata_from_canonical_row(
     tmp_path, monkeypatch
 ) -> None:
-    graph = ranked_graph()
-    hidden_ids = {f"0_{index}_0" for index in range(60, 100)}
-    corruption = [[0, index, 0, 2.0] for index in range(60, 100)]
-    example = {
-        "family": "integration",
-        "prompt": "x",
-        "target": "clean",
-        "target_token": " clean",
-        "sampling": {"disposition": "keep_correct"},
-        "graph": graph_to_json(graph),
-        "corruption": corruption,
-        "corruption_version": CORRUPTION_VERSION,
+    write_row(
+        tmp_path / "rediscovery.jsonl",
+        {
+            "family": "family",
+            "goal": "capital-city",
+            "desired_answer": "Austin",
+            "example_prompts": [],
+            "heldout_prompts": [example("secret positive")],
+            "control_prompts": [example("secret control")],
+        },
+    )
+    monkeypatch.setattr(rediscovery, "DATA_DIR", tmp_path)
+    task = next(
+        iter(
+            rediscovery.DiscoveryTaskset(
+                rediscovery.DiscoveryTasksetConfig(dataset_file="rediscovery.jsonl")
+            ).load()
+        )
+    )
+    assert "capital-city" in task.data.prompt
+    assert "Austin" in task.data.prompt
+    assert "secret positive" not in task.data.prompt
+    assert task.data.goal == "capital-city"
+
+
+def test_restoration_uses_first_heldout_corruption_spec(tmp_path, monkeypatch) -> None:
+    first = [[1, 2, 0, 4.0], [1, 3, 0, 2.0]]
+    second = [[1, 2, 7, 4.0], [1, 3, 7, 2.0]]
+    write_row(
+        tmp_path / "restoration.jsonl",
+        {
+            "family": "family",
+            "example_prompts": [],
+            "heldout_prompts": [
+                example("heldout-one", corruption=first),
+                example("heldout-two", corruption=second),
+            ],
+            "control_prompts": [example("control")],
+        },
+    )
+    monkeypatch.setattr(restoration, "DATA_DIR", tmp_path)
+    task = next(
+        iter(
+            restoration.CircuitTaskset(
+                restoration.CircuitTasksetConfig(dataset_file="restoration.jsonl")
+            ).load()
+        )
+    )
+    assert task.data.corruption_spec == [(1, 2, 4.0), (1, 3, 2.0)]
+    assert len(feature_nodes(task.data.heldout_prompts[0].graph)) == 1
+
+
+def test_old_rows_fail_clearly_instead_of_being_partially_loaded(
+    tmp_path, monkeypatch
+) -> None:
+    old = {
+        "task_type": "visible",
+        "family": "family",
+        "goal": "goal",
+        "example_prompts": [],
+        "heldout_prompts": [
+            {
+                **example("heldout"),
+                "family": "family",
+                "sampling": {"disposition": "keep_correct"},
+            }
+        ],
+        "control_prompts": [example("control")],
     }
-    row = {"family": "integration", "cohort": [example], "heldout": [example]}
-    dataset = tmp_path / "suppressed-features.jsonl"
-    dataset.write_text(json.dumps(row) + "\n")
-    monkeypatch.setattr(restoration_environment, "DATA_DIR", tmp_path)
-
-    config = RestorationTasksetConfig(max_view_features=40)
-    task = next(iter(RestorationTaskset(config).load()))
-    loaded = load_graph_json(task.data.cohort[0]["graph"])
-    initial_view = slim_graph(loaded, 40)
-
-    assert len(loaded.feature_nodes) == 100
-    assert hidden_ids.isdisjoint(initial_view.nodes)
-    assert all(f"  {node_id} |" not in task.data.prompt for node_id in hidden_ids)
-
-    proposal = {"nodes": [{"id": "0_99_0", "intervention_weight": 0.5}]}
-    validated, error = validate_intervention_graph(proposal, loaded)
-    assert error == ""
-    assert validated == [("0_99_0", 0.5)]
+    write_row(tmp_path / "old.jsonl", old)
+    monkeypatch.setattr(visible, "DATA_DIR", tmp_path)
+    with pytest.raises(ValueError, match="Extra inputs are not permitted"):
+        next(
+            iter(
+                visible.CircuitTaskset(
+                    visible.CircuitTasksetConfig(dataset_file="old.jsonl")
+                ).load()
+            )
+        )
 
 
-def test_all_plugin_entrypoints_export_independent_tasksets() -> None:
-    from circuit_supernodes import CircuitTaskset as MdlTaskset
-    from supernode_rediscovery import DiscoveryTaskset as RediscoveryTaskset
-    from suppressed_features import CircuitTaskset as SuppressedFeaturesTaskset
+def test_all_plugin_entrypoints_remain_independent() -> None:
+    from circuit_supernodes import CircuitTaskset as VisibleTaskset
+    from circuit_supernodes.runtime.circuit_tracer import CircuitExperimentTools
 
-    assert len({MdlTaskset, RediscoveryTaskset, SuppressedFeaturesTaskset}) == 3
+    assert (
+        len(
+            {
+                VisibleTaskset,
+                rediscovery.DiscoveryTaskset,
+                restoration.CircuitTaskset,
+            }
+        )
+        == 3
+    )
+    assert (
+        visible.CircuitTask.tools
+        == rediscovery.DiscoveryTask.tools
+        == restoration.CircuitTask.tools
+        == (CircuitExperimentTools,)
+    )

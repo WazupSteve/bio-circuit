@@ -21,11 +21,9 @@ max_turns = 16
 
 [env.taskset]
 id = "suppressed-features"
-dataset_file = "suppressed-features-train.jsonl"
-discovery_threshold = 0.8
-heldout_threshold = 0.3
-max_view_features = 4096
-reward_mode = "train"
+dataset_file = "suppressed-features-train.jsonl.gz"
+min_heldout_success = 1.0
+max_control_failure = 0.0
 
 [env.harness]
 id = "null"
@@ -41,11 +39,9 @@ max_turns = 16
 
 [eval.env.taskset]
 id = "suppressed-features"
-dataset_file = "suppressed-features.jsonl"
-discovery_threshold = 0.8
-heldout_threshold = 0.3
-max_view_features = 4096
-reward_mode = "eval"
+dataset_file = "suppressed-features.jsonl.gz"
+min_heldout_success = 1.0
+max_control_failure = 0.0
 
 [eval.env.harness]
 id = "null"

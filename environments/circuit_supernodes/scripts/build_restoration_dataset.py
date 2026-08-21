@@ -2,60 +2,97 @@
 
 from __future__ import annotations
 
-import argparse
-import hashlib
-import json
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Annotated, Literal
 
-import modal
-from circuit_supernodes.cohorts import stable_feature_id
-from circuit_supernodes.datagen import (
-    EVAL_FAMILIES,
-    FAMILIES,
-    TRAIN_FAMILIES,
-    generate_pool,
+import typer
+from circuit_supernodes.grading.restoration import MODAL_APP, MODAL_CLS
+from circuit_supernodes.models import (
+    CircuitDatasetRow,
+    DatasetExample,
+    TracerGraphPayload,
 )
-from circuit_supernodes.graphs import graph_quality, load_graph_json
-from circuit_supernodes.interventions import (
+from circuit_supernodes.runtime.corruption import (
     CORRUPTION_VERSION,
     MAX_CORRUPTION_NODES,
     MIN_CORRUPTION_NODES,
 )
-from circuit_supernodes.restoration import MODAL_APP, MODAL_CLS, REWARD_VERSION
-from circuit_supernodes.sampling import MAX_NEW_TOKENS
-from scripts.build_mdl_dataset import is_faithful, prepare_samples
+from circuit_supernodes.runtime.graphs import (
+    MAX_FEATURE_NODES,
+    feature_nodes,
+    influence_deltas,
+    stable_feature_id,
+)
+from scripts.dataset_pipeline import (
+    clean_attributions,
+    finish_build,
+    start_build,
+)
 
 DATA_DIR = (
     Path(__file__).parent.parent / "circuit_supernodes" / "data" / "output_restoration"
 )
 
 
-def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def common_stable_features(graphs: list[dict], limit: int = 512) -> list[str]:
+def common_stable_features(
+    graphs: list[TracerGraphPayload], limit: int = MAX_FEATURE_NODES
+) -> list[str]:
     """Intersect ordinary top-k stable feature identities across clean prompts."""
 
     feature_sets = []
     ranks: dict[str, int] = defaultdict(int)
-    for graph_json in graphs:
-        graph = load_graph_json(graph_json)
+    for graph in graphs:
+        deltas = influence_deltas(graph)
         ordered = sorted(
-            (node for node in graph.feature_nodes if node.activation > 0.0),
-            key=lambda node: -node.share,
+            (node for node in feature_nodes(graph) if (node.activation or 0.0) > 0.0),
+            key=lambda node: -deltas[node.node_id],
         )[:limit]
         current = set()
         for rank, node in enumerate(ordered):
-            stable = stable_feature_id(node.id)
-            if stable is not None:
-                current.add(stable)
-                ranks[stable] += rank
+            try:
+                stable = stable_feature_id(node.node_id)
+            except Exception:
+                continue
+            current.add(stable)
+            ranks[stable] += rank
         feature_sets.append(current)
     shared = set.intersection(*feature_sets) if feature_sets else set()
     return sorted(shared, key=lambda node_id: (ranks[node_id], node_id))
+
+
+def stable_feature_positions(graph: TracerGraphPayload) -> dict[str, int]:
+    """Resolve each stable feature to its highest-delta stored graph position."""
+
+    deltas = influence_deltas(graph)
+    positions: dict[str, int] = {}
+    ordered = sorted(
+        (node for node in feature_nodes(graph) if (node.activation or 0.0) > 0.0),
+        key=lambda node: -deltas[node.node_id],
+    )[:MAX_FEATURE_NODES]
+    for node in ordered:
+        try:
+            stable = stable_feature_id(node.node_id)
+        except Exception:
+            continue
+        positions.setdefault(stable, int(node.node_id.rsplit("_", 1)[1]))
+    return positions
+
+
+def coordinate_specs(
+    stable_spec: list[tuple[int, int, float]],
+    position_maps: list[dict[str, int]],
+) -> list[list[tuple[int, int, int, float]]]:
+    """Expand one stable corruption into prompt-specific stored coordinates."""
+
+    return [
+        [
+            (layer, feature, positions[f"{layer}_{feature}"], factor)
+            for layer, feature, factor in stable_spec
+        ]
+        for positions in position_maps
+    ]
 
 
 def random_corruption_spec(
@@ -66,10 +103,11 @@ def random_corruption_spec(
         return []
     count = rng.randint(MIN_CORRUPTION_NODES, maximum)
     selected = rng.sample(common, count)
-    return [
-        (*map(int, node_id.split("_")), round(2 ** rng.uniform(1.0, 3.0), 6))
-        for node_id in selected
-    ]
+    corruption = []
+    for node_id in selected:
+        layer, feature = map(int, node_id.split("_"))
+        corruption.append((layer, feature, round(2 ** rng.uniform(1.0, 3.0), 6)))
+    return corruption
 
 
 def all_changed(results: list[dict]) -> bool:
@@ -81,171 +119,225 @@ def all_changed(results: list[dict]) -> bool:
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=480, help="candidate prompt count")
-    parser.add_argument("--tasks", type=int, default=16)
-    parser.add_argument("--cohort-size", type=int, default=5)
-    parser.add_argument("--heldout-size", type=int, default=5)
-    parser.add_argument("--attempts", type=int, default=32)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--split", choices=("train", "eval", "all"), default="all")
-    parser.add_argument("--families", nargs="*")
-    parser.add_argument("--out", default=str(DATA_DIR / "suppressed-features.jsonl"))
-    parser.add_argument("--max-error-share", type=float, default=0.35)
-    args = parser.parse_args()
-    if args.families is not None and args.split != "all":
-        parser.error("--families and an explicit --split are mutually exclusive")
-    if args.families is not None:
-        families = args.families
-    elif args.split == "train":
-        families = list(TRAIN_FAMILIES)
-    elif args.split == "eval":
-        families = list(EVAL_FAMILIES)
-    else:
-        families = list(FAMILIES)
-
-    samples = generate_pool(args.n, seed=args.seed, families=families)
-    attributor = modal.Cls.from_name(MODAL_APP, MODAL_CLS)()
-    prepared, triage = prepare_samples(attributor, samples)
-    clean_graphs = list(
-        attributor.attribute_prompt.map(
-            [item.sample.prompt for item in prepared], order_outputs=True
-        )
+def main(
+    n: Annotated[int, typer.Option(min=1, help="Candidate prompts to sample.")] = 480,
+    tasks: Annotated[
+        int, typer.Option(min=1, help="Corrupted cohort rows to produce.")
+    ] = 16,
+    cohort_size: Annotated[
+        int,
+        typer.Option(
+            min=1,
+            help="First contribution to the hidden positive cohort in each row.",
+        ),
+    ] = 5,
+    heldout_size: Annotated[
+        int,
+        typer.Option(
+            min=1,
+            help="Second contribution to the hidden positive cohort in each row.",
+        ),
+    ] = 5,
+    attempts: Annotated[
+        int,
+        typer.Option(min=1, help="Shared-corruption attempts per candidate cohort."),
+    ] = 32,
+    seed: Annotated[int, typer.Option(help="Deterministic sampling seed.")] = 0,
+    split: Annotated[
+        Literal["train", "eval", "all"],
+        typer.Option(help="Family split to build; 'all' includes train and eval."),
+    ] = "all",
+    family: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--family",
+            "--families",
+            help="Prompt family to include; repeat for multiple families.",
+        ),
+    ] = None,
+    out: Annotated[
+        Path, typer.Option(help="Destination JSONL or JSONL.GZ dataset path.")
+    ] = DATA_DIR / "suppressed-features.jsonl",
+    max_error_share: Annotated[
+        float,
+        typer.Option(
+            min=0.0,
+            max=1.0,
+            help="Reject graphs whose error nodes exceed this influence share.",
+        ),
+    ] = 0.35,
+) -> None:
+    """Build same-family cohorts with a verified shared multiplicative corruption."""
+    build = start_build(
+        candidates=n,
+        seed=seed,
+        requested_families=family,
+        split=split,
+        default_split="all",
+        modal_app=MODAL_APP,
+        modal_cls=MODAL_CLS,
     )
-
-    by_family: dict[str, list[dict]] = defaultdict(list)
+    generator = build.subject
+    # Maximal graph JSON is large enough that one bulk Modal map can finish its
+    # containers yet strand the client while buffering all results. Keep graph
+    # transfers bounded to one result at a time.
+    by_family_target: dict[tuple[str, str], list[dict]] = defaultdict(list)
     quality = []
-    for item, graph_json in zip(prepared, clean_graphs, strict=True):
-        if not graph_json:
-            continue
-        faithful, _ = is_faithful(graph_json, item.target_token)
-        stats = graph_quality(load_graph_json(graph_json), 60)
-        if not faithful or stats["error"] > args.max_error_share:
-            continue
-        quality.append(stats)
-        by_family[item.sample.family].append(
+    for attributed in clean_attributions(
+        generator,
+        build.prepared,
+        max_error_share=max_error_share,
+        batch_size=32,
+        concurrent_calls=True,
+    ):
+        item = attributed.prepared
+        quality.append(attributed.quality)
+        by_family_target[(item.sample.family, item.target_token)].append(
             {
                 "sample": item.sample,
                 "target_token": item.target_token,
-                "sampling": {
-                    **item.sampling,
-                    "disposition": item.disposition,
-                    "attributed_target_token": item.target_token,
-                },
-                "clean_graph": graph_json,
+                "clean_graph": attributed.graph,
             }
         )
 
-    rng = random.Random(args.seed)
-    group_size = args.cohort_size + args.heldout_size
-    candidate_groups = []
-    for family, records in sorted(by_family.items()):
+    rng = random.Random(seed)
+    group_size = cohort_size + heldout_size
+    print(
+        "answer sampling triage:",
+        build.triage,
+        "faithful graph records:",
+        {
+            f"{family}:{target_token!r}": len(records)
+            for (family, target_token), records in sorted(by_family_target.items())
+        },
+    )
+    candidate_groups: list[tuple[str, list[dict]]] = []
+    for (candidate_family, _target_token), records in sorted(by_family_target.items()):
         rng.shuffle(records)
         candidate_groups.extend(
-            (family, records[offset : offset + group_size])
+            (candidate_family, records[offset : offset + group_size])
             for offset in range(0, len(records) - group_size + 1, group_size)
         )
     rng.shuffle(candidate_groups)
 
     rows = []
-    for family, records in candidate_groups:
+    for cohort_family, records in candidate_groups:
+        control_candidates = [
+            record
+            for (other_family, _), family_records in by_family_target.items()
+            if other_family != cohort_family
+            for record in family_records
+        ]
+        if len(control_candidates) < group_size:
+            continue
         common = common_stable_features([record["clean_graph"] for record in records])
+        print(
+            f"testing {cohort_family} cohort of {len(records)} prompts with "
+            f"{len(common)} shared stable features"
+        )
         if len(common) < MIN_CORRUPTION_NODES:
             continue
         prompts = [record["sample"].prompt for record in records]
-        targets = [record["sample"].target for record in records]
+        target_tokens = [record["target_token"] for record in records]
+        position_maps = [
+            stable_feature_positions(record["clean_graph"]) for record in records
+        ]
         selected_spec = None
-        for _ in range(args.attempts):
+        selected_coordinates = None
+        for _ in range(attempts):
             spec = random_corruption_spec(common, rng)
+            coordinates = coordinate_specs(spec, position_maps)
             tested = list(
-                attributor.test_corruption_spec.map(
-                    prompts, targets, [spec] * len(records), order_outputs=True
+                generator.map(
+                    "test_corruption_coordinates",
+                    prompts,
+                    target_tokens,
+                    coordinates,
+                    order_outputs=True,
                 )
             )
             if all_changed(tested):
                 selected_spec = spec
+                selected_coordinates = coordinates
                 break
-        if selected_spec is None:
+        if selected_spec is None or selected_coordinates is None:
+            print(
+                f"  no shared corruption changed all {len(records)} prompts "
+                f"after {attempts} attempts"
+            )
             continue
 
-        corrupted = list(
-            attributor.build_corrupted_sample_from_spec.map(
-                prompts,
-                targets,
-                [selected_spec] * len(records),
-                order_outputs=True,
+        corrupted_calls = [
+            generator.spawn(
+                "build_corrupted_sample_from_coordinates",
+                prompt,
+                target_token,
+                coordinates,
             )
-        )
+            for prompt, target_token, coordinates in zip(
+                prompts, target_tokens, selected_coordinates, strict=True
+            )
+        ]
+        corrupted = [call.get() for call in corrupted_calls]
         if not all_changed(corrupted) or any("graph" not in item for item in corrupted):
             continue
 
-        examples = []
+        examples: list[DatasetExample] = []
         for record, result in zip(records, corrupted, strict=True):
+            if result["target_token"] != record["target_token"]:
+                raise RuntimeError(
+                    "corruption backend changed the sampled target token"
+                )
             examples.append(
-                {
-                    **record["sample"].to_row(),
-                    "target_token": result["target_token"],
-                    "sampling": record["sampling"],
-                    "graph": result["graph"],
-                    "corruption": result["corruption"],
-                    "corruption_id": result["corruption_id"],
-                    "corruption_version": CORRUPTION_VERSION,
-                }
+                DatasetExample(
+                    prompt=record["sample"].prompt,
+                    target_token=result["target_token"],
+                    graph=TracerGraphPayload.model_validate(result["graph"]),
+                    corruption=result["corruption"],
+                )
             )
         rows.append(
-            {
-                "family": family,
-                "cohort": examples[: args.cohort_size],
-                "heldout": examples[args.cohort_size :],
-                "corruption_spec_id": hashlib.sha256(
-                    json.dumps(selected_spec, separators=(",", ":")).encode()
-                ).hexdigest()[:16],
-            }
+            CircuitDatasetRow(
+                family=cohort_family,
+                example_prompts=[],
+                heldout_prompts=examples,
+                control_prompts=[
+                    DatasetExample(
+                        prompt=record["sample"].prompt,
+                        target_token=record["target_token"],
+                        graph=record["clean_graph"],
+                    )
+                    for record in rng.sample(control_candidates, group_size)
+                ],
+            )
         )
-        if len(rows) == args.tasks:
+        if len(rows) == tasks:
             break
 
-    if len(rows) < args.tasks:
+    if len(rows) < tasks:
         raise SystemExit(
-            f"formed only {len(rows)}/{args.tasks} corruptible cohorts; increase "
+            f"formed only {len(rows)}/{tasks} corruptible cohorts; increase "
             "--n/--attempts or reduce cohort sizes"
         )
-    out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    temporary = out.with_suffix(out.suffix + ".partial")
-    temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
-    temporary.replace(out)
-    manifest = {
-        "dataset": out.name,
-        "rows": len(rows),
-        "sha256": file_sha256(out),
-        "subject_backend": f"{MODAL_APP}/{MODAL_CLS}",
-        "reward_version": REWARD_VERSION,
-        "corruption_version": CORRUPTION_VERSION,
-        "maximal_graphs": True,
-        "generator": {
-            "seed": args.seed,
-            "candidates": args.n,
-            "families": families,
-            "cohort_size": args.cohort_size,
-            "heldout_size": args.heldout_size,
-            "corruption_attempts": args.attempts,
+    finish_build(
+        out,
+        rows,
+        build=build,
+        modal_app=MODAL_APP,
+        modal_cls=MODAL_CLS,
+        max_error_share=max_error_share,
+        quality=quality,
+        corruption_version=CORRUPTION_VERSION,
+        generator={
+            "seed": seed,
+            "candidates": n,
+            "cohort_size": cohort_size,
+            "heldout_size": heldout_size,
+            "corruption_attempts": attempts,
             "corruption_nodes": [MIN_CORRUPTION_NODES, min(12, MAX_CORRUPTION_NODES)],
-            "answer_sampling": {
-                "max_new_tokens": MAX_NEW_TOKENS,
-                "triage": triage,
-            },
         },
-        "mean_error_share": (
-            sum(item["error"] for item in quality) / len(quality) if quality else None
-        ),
-    }
-    manifest_path = out.with_suffix(".manifest.json")
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"wrote {len(rows)} suppressed-feature cohorts to {out}")
-    print(f"wrote manifest to {manifest_path}")
+    )
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

@@ -1,5 +1,5 @@
 import pytest
-from circuit_supernodes.datagen import (
+from scripts.prompt_generation import (
     EVAL_FAMILIES,
     FAMILIES,
     PROPERTIES,

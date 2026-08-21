@@ -21,10 +21,9 @@ max_turns = 16
 
 [env.taskset]
 id = "supernode-rediscovery"
-dataset_file = "promptless-supernodes-train.jsonl"
+dataset_file = "promptless-supernodes-train.jsonl.gz"
 min_cohort_success = 1.0
 max_control_activation = 0.0
-max_view_features = 4096
 
 [env.harness]
 id = "null"
@@ -40,10 +39,9 @@ max_turns = 16
 
 [eval.env.taskset]
 id = "supernode-rediscovery"
-dataset_file = "promptless-supernodes.jsonl"
+dataset_file = "promptless-supernodes.jsonl.gz"
 min_cohort_success = 1.0
 max_control_activation = 0.0
-max_view_features = 4096
 
 [eval.env.harness]
 id = "null"

@@ -1,5 +1,5 @@
 # prime eval run configs/eval/supernode-rediscovery.toml [--hosted]
-model = "moonshotai/kimi-k3"
+model = "Qwen/Qwen3.5-4B"
 num_tasks = 16
 num_rollouts = 1
 max_turns = 16
@@ -11,10 +11,9 @@ enable_thinking = false
 
 [taskset]
 id = "supernode-rediscovery"
-dataset_file = "promptless-supernodes.jsonl"
+dataset_file = "promptless-supernodes.jsonl.gz"
 min_cohort_success = 1.0
 max_control_activation = 0.0
-max_view_features = 4096
 
 [harness]
 id = "null"

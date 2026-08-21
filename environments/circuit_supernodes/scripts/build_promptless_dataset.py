@@ -2,24 +2,23 @@
 
 from __future__ import annotations
 
-import argparse
-import hashlib
-import json
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Annotated, Literal
 
-import modal
-from circuit_supernodes.datagen import (
-    EVAL_FAMILIES,
-    FAMILIES,
-    TRAIN_FAMILIES,
-    generate_pool,
+import typer
+from circuit_supernodes.models import (
+    CircuitDatasetRow,
+    DatasetExample,
 )
-from circuit_supernodes.graphs import graph_quality, load_graph_json
-from circuit_supernodes.rediscovery import DEFAULT_MODAL_APP, DEFAULT_MODAL_CLS
-from circuit_supernodes.sampling import MAX_NEW_TOKENS, answer_key
-from scripts.build_mdl_dataset import is_faithful, prepare_samples
+from circuit_supernodes.runtime.answers import answer_key
+from circuit_supernodes.tasksets.rediscovery import DEFAULT_MODAL_APP, DEFAULT_MODAL_CLS
+from scripts.dataset_pipeline import (
+    clean_attributions,
+    finish_build,
+    start_build,
+)
 
 DATA_DIR = (
     Path(__file__).parent.parent
@@ -29,10 +28,6 @@ DATA_DIR = (
 )
 
 
-def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def cohort_rows(
     records: list[dict],
     *,
@@ -40,12 +35,30 @@ def cohort_rows(
     cohort_size: int,
     control_size: int,
     seed: int,
-) -> list[dict]:
-    """Group same-answer examples and sample different-answer controls."""
+) -> list[CircuitDatasetRow]:
+    """Group examples by semantic goal and answer; sample safe controls.
 
-    grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    A shared answer token alone is not evidence of a shared mechanism: ``Yes``
+    from comparison and ``Yes`` from another family can have unrelated causal
+    features.  The goal key keeps positive cohorts within one generated task
+    mechanism. Controls must differ in both full answer and attributed first
+    token so the specificity gate is not impossible before any intervention.
+    """
+
+    grouped: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for record in records:
-        key = (answer_key(str(record["target"])), str(record["target_token"]))
+        goal = str(
+            record.get("goal")
+            or record.get("source_family")
+            or record.get("family", "")
+        ).strip()
+        if not goal:
+            continue
+        key = (
+            goal,
+            answer_key(str(record["target"])),
+            str(record["target_token"]),
+        )
         grouped[key].append(record)
 
     rng = random.Random(seed)
@@ -56,12 +69,13 @@ def cohort_rows(
     ]
     rng.shuffle(candidates)
     rows = []
-    for (_, target_token), positives in candidates:
+    for (goal, _, target_token), positives in candidates:
         desired_answer = str(positives[0]["target"]).strip()
         controls = [
             record
             for record in records
             if answer_key(str(record["target"])) != answer_key(desired_answer)
+            and str(record.get("target_token", "")) != target_token
         ]
         if len(controls) < control_size:
             continue
@@ -70,118 +84,135 @@ def cohort_rows(
         cohort_families = sorted({str(item["family"]) for item in selected_positive})
         family = cohort_families[0] if len(cohort_families) == 1 else "mixed"
         rows.append(
-            {
-                "family": family,
-                "target_concept": f"{family} goal for answer {desired_answer!r}",
-                "desired_answer": desired_answer,
-                "desired_target_token": target_token,
-                "cohort": selected_positive,
-                "controls": selected_controls,
-            }
+            CircuitDatasetRow(
+                family=family,
+                goal=goal,
+                desired_answer=desired_answer,
+                example_prompts=[],
+                heldout_prompts=[
+                    DatasetExample(
+                        prompt=item["prompt"],
+                        target_token=item["target_token"],
+                        graph=item["graph"],
+                    )
+                    for item in selected_positive
+                ],
+                control_prompts=[
+                    DatasetExample(
+                        prompt=item["prompt"],
+                        target_token=item["target_token"],
+                        graph=item["graph"],
+                    )
+                    for item in selected_controls
+                ],
+            )
         )
         if len(rows) == tasks:
             break
     return rows
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=480, help="candidate prompt count")
-    parser.add_argument("--tasks", type=int, default=16)
-    parser.add_argument("--cohort-size", type=int, default=4)
-    parser.add_argument("--control-size", type=int, default=4)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--split", choices=("train", "eval", "all"), default="all")
-    parser.add_argument("--families", nargs="*")
-    parser.add_argument("--out", default=str(DATA_DIR / "promptless-supernodes.jsonl"))
-    parser.add_argument("--max-error-share", type=float, default=0.35)
-    args = parser.parse_args()
-    if args.families is not None and args.split != "all":
-        parser.error("--families and an explicit --split are mutually exclusive")
-    if args.families is not None:
-        families = args.families
-    elif args.split == "train":
-        families = list(TRAIN_FAMILIES)
-    elif args.split == "eval":
-        families = list(EVAL_FAMILIES)
-    else:
-        families = list(FAMILIES)
-
-    samples = generate_pool(args.n, seed=args.seed, families=families)
-    attributor = modal.Cls.from_name(DEFAULT_MODAL_APP, DEFAULT_MODAL_CLS)()
-    prepared, triage = prepare_samples(attributor, samples)
-    graphs = list(
-        attributor.attribute_prompt.map(
-            [item.sample.prompt for item in prepared], order_outputs=True
-        )
+def main(
+    n: Annotated[int, typer.Option(min=1, help="Candidate prompts to sample.")] = 480,
+    tasks: Annotated[int, typer.Option(min=1, help="Cohort rows to produce.")] = 16,
+    cohort_size: Annotated[
+        int, typer.Option(min=1, help="Same-goal positive prompts in each row.")
+    ] = 4,
+    control_size: Annotated[
+        int, typer.Option(min=1, help="Different-answer controls in each row.")
+    ] = 4,
+    seed: Annotated[int, typer.Option(help="Deterministic sampling seed.")] = 0,
+    split: Annotated[
+        Literal["train", "eval", "all"],
+        typer.Option(help="Family split to build; 'all' includes train and eval."),
+    ] = "all",
+    family: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--family",
+            "--families",
+            help="Prompt family to include; repeat for multiple families.",
+        ),
+    ] = None,
+    out: Annotated[
+        Path, typer.Option(help="Destination JSONL or JSONL.GZ dataset path.")
+    ] = DATA_DIR / "promptless-supernodes.jsonl",
+    max_error_share: Annotated[
+        float,
+        typer.Option(
+            min=0.0,
+            max=1.0,
+            help="Reject graphs whose error nodes exceed this influence share.",
+        ),
+    ] = 0.35,
+) -> None:
+    """Build hidden-prompt goal-supernode cohorts and specificity controls."""
+    build = start_build(
+        candidates=n,
+        seed=seed,
+        requested_families=family,
+        split=split,
+        default_split="all",
+        modal_app=DEFAULT_MODAL_APP,
+        modal_cls=DEFAULT_MODAL_CLS,
     )
-
     records = []
     quality = []
-    for item, graph_json in zip(prepared, graphs, strict=True):
-        if not graph_json:
-            continue
-        faithful, _ = is_faithful(graph_json, item.target_token)
-        stats = graph_quality(load_graph_json(graph_json), 60)
-        if not faithful or stats["error"] > args.max_error_share:
-            continue
-        quality.append(stats)
+    rows = []
+    for attributed in clean_attributions(
+        build.subject,
+        build.prepared,
+        max_error_share=max_error_share,
+        batch_size=32,
+        concurrent_calls=True,
+    ):
+        item = attributed.prepared
+        quality.append(attributed.quality)
         records.append(
             {
                 **item.sample.to_row(),
                 "target_token": item.target_token,
-                "sampling": {
-                    **item.sampling,
-                    "disposition": item.disposition,
-                    "attributed_target_token": item.target_token,
-                },
-                "graph": graph_json,
+                "graph": attributed.graph,
             }
         )
-
-    rows = cohort_rows(
-        records,
-        tasks=args.tasks,
-        cohort_size=args.cohort_size,
-        control_size=args.control_size,
-        seed=args.seed,
+        rows = cohort_rows(
+            records,
+            tasks=tasks,
+            cohort_size=cohort_size,
+            control_size=control_size,
+            seed=seed,
+        )
+        if len(rows) >= tasks:
+            break
+    print(
+        "answer sampling triage:",
+        build.triage,
+        "faithful graph records:",
+        len(records),
     )
-    if len(rows) < args.tasks:
+    if len(rows) < tasks:
         raise SystemExit(
-            f"formed only {len(rows)}/{args.tasks} cohorts; increase --n or "
+            f"formed only {len(rows)}/{tasks} cohorts; increase --n or "
             "reduce cohort/control sizes"
         )
-    out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    temporary = out.with_suffix(out.suffix + ".partial")
-    temporary.write_text("".join(json.dumps(row) + "\n" for row in rows))
-    temporary.replace(out)
-    manifest = {
-        "dataset": out.name,
-        "rows": len(rows),
-        "sha256": file_sha256(out),
-        "subject_backend": f"{DEFAULT_MODAL_APP}/{DEFAULT_MODAL_CLS}",
-        "maximal_graphs": True,
-        "generator": {
-            "seed": args.seed,
-            "candidates": args.n,
-            "families": families,
-            "cohort_size": args.cohort_size,
-            "control_size": args.control_size,
-            "answer_sampling": {
-                "max_new_tokens": MAX_NEW_TOKENS,
-                "triage": triage,
-            },
+    finish_build(
+        out,
+        rows,
+        build=build,
+        modal_app=DEFAULT_MODAL_APP,
+        modal_cls=DEFAULT_MODAL_CLS,
+        max_error_share=max_error_share,
+        quality=quality,
+        generator={
+            "seed": seed,
+            "candidates": n,
+            "cohort_size": cohort_size,
+            "control_size": control_size,
+            "cohort_grouping": "goal+answer+target_token",
+            "control_exclusion": "desired_answer+desired_target_token",
         },
-        "mean_error_share": (
-            sum(item["error"] for item in quality) / len(quality) if quality else None
-        ),
-    }
-    manifest_path = out.with_suffix(".manifest.json")
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"wrote {len(rows)} promptless cohorts to {out}")
-    print(f"wrote manifest to {manifest_path}")
+    )
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

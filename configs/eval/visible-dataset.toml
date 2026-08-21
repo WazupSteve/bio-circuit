@@ -1,0 +1,18 @@
+# prime eval run configs/eval/visible-dataset.toml [--hosted]
+model = "Qwen/Qwen3.5-4B"
+num_tasks = 16
+num_rollouts = 1
+max_turns = 50
+
+[sampling]
+max_tokens = 16384
+enable_thinking = false
+
+[taskset]
+id = "circuit-supernodes"
+dataset_file = "heldout-cohorts.jsonl.gz"
+min_holdout_success = 1.0
+max_null_failure = 0.0
+
+[harness]
+id = "null"
