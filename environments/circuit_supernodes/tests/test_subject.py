@@ -140,4 +140,9 @@ def test_modal_subject_instantiates_parameterized_backend(monkeypatch) -> None:
     )
     subject = ModalSubject("circuit-supernodes", "Attributor", config)
     subject._subject()
-    assert captured == config.model_dump()
+    assert captured == {
+        "model_name": "org/model",
+        "transcoder_set": "org/transcoders",
+        "node_threshold": "0.7",
+        "edge_threshold": "0.9",
+    }

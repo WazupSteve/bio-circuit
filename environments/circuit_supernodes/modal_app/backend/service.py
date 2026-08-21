@@ -19,13 +19,18 @@ from .interventions import InterventionEvaluator
 class Attributor:
     model_name: str = modal.parameter()
     transcoder_set: str = modal.parameter()
-    node_threshold: float = modal.parameter()
-    edge_threshold: float = modal.parameter()
+    # Modal class parameters do not support floats, so thresholds cross the
+    # class boundary as strings and are converted when the container starts.
+    node_threshold: str = modal.parameter(default="0.8")
+    edge_threshold: str = modal.parameter(default="0.98")
 
     @modal.enter()
     def load(self):
         import torch
         from circuit_tracer import ReplacementModel
+
+        node_threshold = float(self.node_threshold)
+        edge_threshold = float(self.edge_threshold)
 
         self.model = ReplacementModel.from_pretrained(
             self.model_name,
@@ -35,7 +40,7 @@ class Attributor:
         )
         self.intervention_evaluator = InterventionEvaluator(self.model)
         self.attribution = AttributionEngine(
-            self.model, self.node_threshold, self.edge_threshold
+            self.model, node_threshold, edge_threshold
         )
         self.corruption = CorruptionEngine(self.model, self.intervention_evaluator)
 

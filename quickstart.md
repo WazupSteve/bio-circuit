@@ -28,7 +28,7 @@ uv run modal deploy modal_app/attribution.py
 Visible circuit discovery:
 
 ```bash
-uv run python scripts/build_visible_dataset.py \
+uv run scripts/build_visible_dataset.py \
   --n 2400 \
   --tasks 16 \
   --seed 1 \
@@ -39,7 +39,7 @@ uv run python scripts/build_visible_dataset.py \
 Promptless supernode discovery:
 
 ```bash
-uv run python scripts/build_promptless_dataset.py \
+uv run scripts/build_promptless_dataset.py \
   --n 480 \
   --tasks 16 \
   --seed 1 \
@@ -50,7 +50,7 @@ uv run python scripts/build_promptless_dataset.py \
 Suppressed-feature restoration:
 
 ```bash
-uv run python scripts/build_restoration_dataset.py \
+uv run scripts/build_restoration_dataset.py \
   --n 480 \
   --tasks 16 \
   --seed 1 \

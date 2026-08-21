@@ -45,8 +45,8 @@ class ModalSubject:
             self._instance = modal.Cls.from_name(self.app_name, self.class_name)(
                 model_name=self.config.model_name,
                 transcoder_set=self.config.transcoder_set,
-                node_threshold=self.config.node_threshold,
-                edge_threshold=self.config.edge_threshold,
+                node_threshold=str(self.config.node_threshold),
+                edge_threshold=str(self.config.edge_threshold),
             )
         return self._instance
 
