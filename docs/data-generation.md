@@ -99,8 +99,8 @@ family and target token. For each candidate cohort it:
    corrupted activations and graph structure; and
 6. adds equally many clean controls sampled from other families.
 
-The default `cohort_size=5` and `heldout_size=5` are combined into one ten-item
-`heldout_prompts` list in the stored row. They are not separate runtime gates.
+The default `heldout_size=10` produces one ten-item `heldout_prompts` list in the
+stored row. `example_prompts` remains empty for this TaskSet.
 
 ```bash
 uv run python scripts/build_restoration_dataset.py --split train \

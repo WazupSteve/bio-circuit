@@ -124,20 +124,13 @@ def main(
     tasks: Annotated[
         int, typer.Option(min=1, help="Corrupted cohort rows to produce.")
     ] = 16,
-    cohort_size: Annotated[
-        int,
-        typer.Option(
-            min=1,
-            help="First contribution to the hidden positive cohort in each row.",
-        ),
-    ] = 5,
     heldout_size: Annotated[
         int,
         typer.Option(
             min=1,
-            help="Second contribution to the hidden positive cohort in each row.",
+            help="Hidden corrupted positive prompts in each row.",
         ),
-    ] = 5,
+    ] = 10,
     attempts: Annotated[
         int,
         typer.Option(min=1, help="Shared-corruption attempts per candidate cohort."),
@@ -201,7 +194,6 @@ def main(
         )
 
     rng = random.Random(seed)
-    group_size = cohort_size + heldout_size
     print(
         "answer sampling triage:",
         build.triage,
@@ -215,8 +207,8 @@ def main(
     for (candidate_family, _target_token), records in sorted(by_family_target.items()):
         rng.shuffle(records)
         candidate_groups.extend(
-            (candidate_family, records[offset : offset + group_size])
-            for offset in range(0, len(records) - group_size + 1, group_size)
+            (candidate_family, records[offset : offset + heldout_size])
+            for offset in range(0, len(records) - heldout_size + 1, heldout_size)
         )
     rng.shuffle(candidate_groups)
 
@@ -228,7 +220,7 @@ def main(
             if other_family != cohort_family
             for record in family_records
         ]
-        if len(control_candidates) < group_size:
+        if len(control_candidates) < heldout_size:
             continue
         common = common_stable_features([record["clean_graph"] for record in records])
         print(
@@ -307,7 +299,7 @@ def main(
                         target_token=record["target_token"],
                         graph=record["clean_graph"],
                     )
-                    for record in rng.sample(control_candidates, group_size)
+                    for record in rng.sample(control_candidates, heldout_size)
                 ],
             )
         )
@@ -330,7 +322,6 @@ def main(
         generator={
             "seed": seed,
             "candidates": n,
-            "cohort_size": cohort_size,
             "heldout_size": heldout_size,
             "corruption_attempts": attempts,
             "corruption_nodes": [MIN_CORRUPTION_NODES, min(12, MAX_CORRUPTION_NODES)],

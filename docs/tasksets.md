@@ -64,11 +64,10 @@ corruption specification. The policy submits factors intended to identify and
 reverse that mechanism. The accepted response can be a flat `nodes` list or
 named `supernodes`; every node requires a factor.
 
-All stored corrupted examples are currently placed in `heldout_prompts` even
-though builder CLI names describe two contributions (`cohort_size` and
-`heldout_size`). Consequently the task's visible/evidence success rate is empty
-and the reward-bearing positive gate is the combined hidden cohort. Controls are
-clean prompts from other families.
+All corrupted positives are stored in `heldout_prompts`; `example_prompts` is
+empty because the policy creates its own experiments. Controls are clean prompts
+from other families. This preserves the shared example/holdout/control dataset
+shape while giving each field one consistent meaning.
 
 Grading replays the hidden factors server-side, composes submitted multipliers
 without negation, and rewards recovery of the clean distribution. The policy can

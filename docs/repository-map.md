@@ -97,8 +97,6 @@ uv run pytest
 
 ## Known architectural seams
 
-- The suppressed builder exposes `cohort_size` and `heldout_size`, but combines
-  both sets in the runtime holdout list.
 - The universal dataset schema supports three cohorts even when adapters leave
   one or two semantically empty.
 - Qwen ordinary and persistent-corruption execution live in separate Modal apps
