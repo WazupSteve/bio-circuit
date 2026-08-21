@@ -23,10 +23,6 @@ class FakeModalSubject:
         self.calls.append((method, args))
         return self.responses[method]
 
-    def call_sync(self, method: str, *args: Any) -> Any:
-        self.calls.append((method, args))
-        return self.responses[method]
-
     def map(self, method: str, *inputs: Any, order_outputs: bool = True):
         assert order_outputs
         self.calls.append((method, inputs))

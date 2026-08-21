@@ -621,8 +621,6 @@ EVAL_FAMILIES = (
     "boolean_composition",
 )
 
-SEALED_FAMILIES = EVAL_FAMILIES
-
 FAMILIES = {
     "two_hop": _two_hop,
     "agreement": _agreement,

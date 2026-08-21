@@ -61,9 +61,6 @@ class ModalSubject:
     async def call(self, method: str, *args: Any) -> Any:
         return await self._method(method).remote.aio(*args)
 
-    def call_sync(self, method: str, *args: Any) -> Any:
-        return self._method(method).remote(*args)
-
     def map(
         self,
         method: str,

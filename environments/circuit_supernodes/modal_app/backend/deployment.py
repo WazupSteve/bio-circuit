@@ -3,7 +3,6 @@
 import modal
 
 MODAL_APP = "circuit-supernodes"
-MODAL_CLS = "Attributor"
 
 app = modal.App(MODAL_APP)
 image = (
