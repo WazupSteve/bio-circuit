@@ -11,8 +11,6 @@ enable_thinking = false
 [taskset]
 id = "suppressed-features"
 dataset_file = "suppressed-features.jsonl.gz"
-min_heldout_success = 1.0
-max_control_failure = 0.0
 
 [harness]
 id = "null"

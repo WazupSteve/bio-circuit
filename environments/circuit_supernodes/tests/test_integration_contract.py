@@ -64,6 +64,8 @@ def test_visible_taskset_loads_minimal_three_cohort_row(tmp_path, monkeypatch) -
     assert task.data.goal == "semantic goal"
     assert [row.prompt for row in task.data.example_prompts] == ["example"]
     assert [row.prompt for row in task.data.heldout_prompts] == ["heldout"]
+    assert "prompt='example'" in task.data.prompt
+    assert "semantic goal" not in task.data.prompt
     assert task.data.min_heldout_success == 1.0
 
 
@@ -75,7 +77,6 @@ def test_rediscovery_derives_prompt_metadata_from_canonical_row(
         {
             "family": "family",
             "goal": "capital-city",
-            "desired_answer": "Austin",
             "example_prompts": [],
             "heldout_prompts": [example("secret positive")],
             "control_prompts": [example("secret control")],
@@ -90,7 +91,6 @@ def test_rediscovery_derives_prompt_metadata_from_canonical_row(
         )
     )
     assert "capital-city" in task.data.prompt
-    assert "Austin" in task.data.prompt
     assert "secret positive" not in task.data.prompt
     assert task.data.goal == "capital-city"
 
@@ -119,6 +119,9 @@ def test_restoration_uses_first_heldout_corruption_spec(tmp_path, monkeypatch) -
         )
     )
     assert task.data.corruption_spec == [(1, 2, 4.0), (1, 3, 2.0)]
+    assert "corruption_spec" not in task.data.model_dump()
+    assert "4.0" not in task.data.prompt
+    assert "2.0" not in task.data.prompt
     assert len(feature_nodes(task.data.heldout_prompts[0].graph)) == 1
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import verifiers.v1 as vf
-from pydantic import Field, model_validator
+from pydantic import Field, FiniteFloat
 
 from ..models import StrictModel, TracerGraphPayload
 from .graphs import resolve_interventions, stable_feature_id, top_outputs
@@ -26,13 +26,7 @@ class InterventionToolRequest(StrictModel):
     source_prompt: str = Field(min_length=1)
     node_id: str = Field(min_length=1)
     prompt: str = Field(min_length=1)
-    intervention_weight: float = Field(ge=-8.0, le=8.0)
-
-    @model_validator(mode="after")
-    def nonzero_weight(self) -> InterventionToolRequest:
-        if self.intervention_weight == 0.0:
-            raise ValueError("intervention_weight must be nonzero")
-        return self
+    intervention_weight: FiniteFloat
 
 
 class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):

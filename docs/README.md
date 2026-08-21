@@ -8,9 +8,7 @@ policy model
   -> CircuitExperimentTools
      -> Modal subject model (sample, attribute, intervene)
   -> final circuit JSON
-     -> shared causal grader
-        -> hidden positive and control replays
-        -> binary reward
+     -> causal ablation grader (discovery) or clean-KL replay (restoration)
 ```
 
 Dataset builders use the same subject-model services ahead of time to generate
@@ -23,8 +21,8 @@ assemble the hidden cohorts consumed by the TaskSets.
    graphs, stable feature identities, multiplicative patching, and tool calls.
 2. [TaskSets](tasksets.md) — the vanilla/visible discovery, promptless
    rediscovery, and suppressed-feature restoration contracts.
-3. [Graders](graders.md) — response parsing, intervention replay, gates, reward,
-   and restoration diagnostics.
+3. [Graders](graders.md) — response parsing, discovery ablation gates, and
+   clean-distribution restoration reward.
 4. [Data generation](data-generation.md) — prompt families, answer-aware
    sampling, graph screening, cohort construction, artifacts, and commands.
 5. [Neuronpedia](neuronpedia.md) — optional feature-label enrichment.
@@ -41,7 +39,8 @@ assemble the hidden cohorts consumed by the TaskSets.
   as `layer_feature_position`.
 - **Stable feature ID**: `layer_feature`. It deliberately omits position so the
   same learned feature can be transferred between prompts.
-- **Multiplier**: a nonzero factor applied to a feature's clean activation.
+- **Multiplier**: any finite factor selected by the policy and applied to a
+  feature's clean activation; zero clamps it to zero.
 - **Corruption**: a stored positive multiplier applied before a restoration
   proposal in the suppressed-feature task.
 - **Ablation**: the reward grader negates the submitted multiplier and checks

@@ -9,9 +9,8 @@ from ..models import CoordinateTuple, Intervention
 
 MIN_CORRUPTION_NODES = 4
 MAX_CORRUPTION_NODES = 60
-MIN_CORRUPTION_FACTOR = 2.0
+MIN_CORRUPTION_FACTOR = 0.0
 MAX_CORRUPTION_FACTOR = 8.0
-CORRUPTION_VERSION = "v2-shared-stable-multiplicative-cohort"
 
 
 class InterventionPayload(RootModel[list[Intervention]]):
@@ -44,10 +43,6 @@ class InterventionPayload(RootModel[list[Intervention]]):
                 f"{label} must contain at most {int(max_count)} interventions"
             )
         for *coordinate, factor in self.root:
-            if context.get("require_positive") and factor <= 0.0:
-                raise ValueError(
-                    f"{label} factor at {tuple(coordinate)} must be positive"
-                )
             if abs(factor) < min_factor:
                 raise ValueError(
                     f"{label} factor at {tuple(coordinate)} must have magnitude at "

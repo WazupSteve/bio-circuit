@@ -16,8 +16,6 @@ from ..models import (
 from ..runtime.graphs import resolve_interventions, top_outputs, weighted_nodes
 from ..runtime.modal import ModalSubject, retry_modal_call
 
-REWARD_VERSION = "v6-negated-intervention-ablation"
-
 
 class PositiveAblationResult(StrictModel):
     model_config = ConfigDict(extra="allow")
@@ -102,7 +100,6 @@ def ablation_score(
         "holdout_pass": holdout_pass,
         "controls_pass": controls_pass,
         "reward": float(visible_pass and holdout_pass and controls_pass),
-        "reward_version": REWARD_VERSION,
     }
 
 

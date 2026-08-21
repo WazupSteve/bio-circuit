@@ -5,14 +5,14 @@ package, plus one graph policy shared by all of them:
 
 | Contract | TaskSet ID |
 | --- | --- |
-| Arbitrary-prompt circuit discovery with 25 positive and 25 neutral holdouts | `circuit-supernodes` |
+| Five visible examples with 25 positive and 25 neutral holdouts | `circuit-supernodes` |
 | Hidden-prompt goal-supernode cohorts with specificity controls | `supernode-rediscovery` |
 | Shared corruption with discovery/held-out positives and clean Qwen nulls | `suppressed-features` |
 | Maximal stored graphs with policy-selected top-k views | shared by all three |
 
 All generated prompt families use the bounded answer-aware sampler introduced by
-the eval-family work. All three TaskSets use the same negative-intervention
-ablation reward grader; restoration similarity is diagnostic only. See
+the eval-family work. Discovery TaskSets use negative-intervention ablation;
+restoration is rewarded by gated clean-distribution KL similarity. See
 [the system documentation](docs/README.md) for the core runtime, TaskSets,
 graders, data generation, Neuronpedia support, and feature-creep inventory. See
 [the environment guide](environments/circuit_supernodes/README.md) for exact

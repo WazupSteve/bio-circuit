@@ -58,17 +58,20 @@ def test_promptless_is_a_separate_hidden_cohort_taskset() -> None:
     assert PackageCircuitTaskset is VisibleCircuitTaskset
     assert DiscoveryTask.tools == (CircuitExperimentTools,)
     assert DiscoveryTaskset is not VisibleCircuitTaskset
-    prompt = cohort_prompt("capital-city goal", "Austin")
+    prompt = cohort_prompt("capital-city goal")
     assert "capital-city goal" in prompt
-    assert "Austin" in prompt
+    assert "Desired answer" not in prompt
     assert "arbitrary prompts" in SYSTEM_PROMPT
     assert "verifier" not in f"{SYSTEM_PROMPT}\n{prompt}".casefold()
 
 
-def test_builder_separates_goals_answers_tokens_and_emits_minimal_examples() -> None:
-    positives = [record(f"positive {index}") for index in range(4)]
+def test_builder_groups_goals_with_varied_answers_and_minimal_examples() -> None:
+    positives = [
+        record(f"positive {index}", f"answer-{index % 2}") for index in range(4)
+    ]
     unrelated_same_answer = [
-        record(f"unrelated {index}", family="unrelated") for index in range(4)
+        record(f"unrelated {index}", f"answer-{index % 2}", family="unrelated")
+        for index in range(4)
     ]
     controls = [record(f"control {index}", "other") for index in range(4)]
     rows = cohort_rows(
@@ -80,7 +83,7 @@ def test_builder_separates_goals_answers_tokens_and_emits_minimal_examples() -> 
     )
     assert {row.goal for row in rows} == {"test", "unrelated"}
     for row in rows:
-        assert row.desired_answer == "answer"
+        assert len({item.target_token for item in row.heldout_prompts}) >= 2
         serialized = row.model_dump(exclude_defaults=True, exclude_none=True)
         assert all(
             set(example) == {"prompt", "target_token", "graph"}
@@ -89,20 +92,35 @@ def test_builder_separates_goals_answers_tokens_and_emits_minimal_examples() -> 
                 *serialized["control_prompts"],
             ]
         )
-        assert all(example.target_token != " answer" for example in row.control_prompts)
 
 
-def test_builder_excludes_control_with_colliding_first_token() -> None:
-    positives = [record(f"positive {index}") for index in range(3)]
+def test_builder_allows_other_goal_control_with_colliding_first_token() -> None:
+    positives = [record(f"positive {index}", f"answer-{index}") for index in range(3)]
     colliding = record(
         "colliding", "another", family="collision", target_token=" answer"
     )
-    safe = record("safe", "other", family="safe")
     row = cohort_rows(
-        [*positives, colliding, safe],
+        [*positives, colliding],
         tasks=1,
         cohort_size=3,
         control_size=1,
         seed=2,
     )[0]
-    assert [example.prompt for example in row.control_prompts] == ["safe"]
+    assert [example.prompt for example in row.control_prompts] == ["colliding"]
+
+
+def test_builder_rejects_single_answer_goal_cohort() -> None:
+    positives = [record(f"positive {index}", "same") for index in range(4)]
+    controls = [
+        record(f"control {index}", "other", family="control") for index in range(4)
+    ]
+    assert (
+        cohort_rows(
+            [*positives, *controls],
+            tasks=1,
+            cohort_size=4,
+            control_size=2,
+            seed=1,
+        )
+        == []
+    )

@@ -53,8 +53,8 @@ covered by the top 60 features.
 ## Vanilla/visible builder
 
 `scripts/build_visible_dataset.py` groups accepted records by semantic goal. A
-row contains no public examples, exactly 25 same-goal hidden positives, and
-exactly 25 randomly selected different-goal controls. The script enforces those
+row contains five visible examples, 25 additional same-goal hidden positives,
+and 25 randomly selected different-goal controls. The script enforces those
 contract sizes even though it exposes size options. It limits retained records
 per goal to bound memory and can optionally label top features through
 Neuronpedia.
@@ -71,10 +71,11 @@ Backend: `circuit-supernodes-attribution/Attributor` (Qwen3-4B).
 
 ## Promptless rediscovery builder
 
-`scripts/build_promptless_dataset.py` groups by semantic goal, normalized full
-answer, and attributed first token. Defaults select four positives. It samples
-four controls whose full answer and first token both differ, preventing an
-impossible specificity gate. Graph calls are spawned concurrently in batches.
+`scripts/build_promptless_dataset.py` groups by semantic goal and requires at
+least two distinct full answers in each positive cohort. Defaults select four
+positives, preferentially spanning answer groups, and four controls from other
+semantic goals. Controls may share output tokens with positives. Graph calls are
+spawned concurrently in batches.
 
 ```bash
 uv run python scripts/build_promptless_dataset.py --split train \
@@ -91,7 +92,7 @@ Backend: `circuit-supernodes-gemma-attribution/GemmaAttributor` (Gemma-2-2B).
 family and target token. For each candidate cohort it:
 
 1. intersects the top 4,096 positive-activation stable features across prompts;
-2. selects 4–12 shared IDs and positive log-uniform factors from 2 through 8;
+2. selects 4–12 shared IDs and signed uniform factors in `[-8, 8]`;
 3. resolves each ID to its prompt-specific position;
 4. retries up to `--attempts` until every prompt changes top token;
 5. attributes each execution under that shared corruption, retaining the real
@@ -117,8 +118,8 @@ Writers stream compact JSONL, optionally gzip-compressed at low compression, to
 a sibling `.partial` file and atomically rename it on success. This avoids both
 large in-memory serialization and partially written final artifacts.
 
-Every row uses `CircuitDatasetRow`. A sidecar `*.manifest.json` records dataset
-and reward schema versions, SHA-256, row count, subject backend, families,
+Every row uses `CircuitDatasetRow`. A sidecar `*.manifest.json` records the
+dataset schema, SHA-256, row count, subject backend, families,
 sampler triage, screening policy, maximal graph policy, generator parameters,
 quality summaries, and corruption provenance where applicable. Runtime loaders
 validate row and graph types but intentionally trust expensive semantic

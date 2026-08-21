@@ -26,11 +26,12 @@ corruption that changes every selected output. Loaders trust those generated
 semantic relationships and validate only the row and graph field types.
 
 Every builder emits the same `CircuitDatasetRow` shape with
-`example_prompts`, `heldout_prompts`, and `control_prompts`. All tasksets leave
-`example_prompts` empty: policies create arbitrary prompts through the shared
-Circuit Tracer tools. Hidden target and control prompts retain maximal graphs as
-an evaluation cache. Controls are selected during dataset generation, so every
-dataset is self-contained and every loader is single-pass.
+`example_prompts`, `heldout_prompts`, and `control_prompts`. Visible tasks expose
+five same-goal example prompts and continuations; the other tasksets leave
+`example_prompts` empty and require policies to create arbitrary prompts through
+the shared Circuit Tracer tools. Hidden target and control prompts retain maximal
+graphs as an evaluation cache. Controls are selected during dataset generation,
+so every dataset is self-contained and every loader is single-pass.
 
 The original six training families remain available alongside nine sealed eval
 families: two-hop recall, agreement, comparison, weekday arithmetic, path,
@@ -40,12 +41,15 @@ explicit, repeatable `--family` override (`--families` is retained as an alias).
 
 ## TaskSets
 
-### `circuit-supernodes`: arbitrary-prompt discovery with causal holdouts
+### `circuit-supernodes`: visible-example discovery with causal holdouts
 
-Each row contains two cached grading sets:
+Each row contains visible evidence and two cached grading sets:
 
-- Set 1 is hidden: twenty-five same-goal positive holdouts. The submitted
-  supernode and factor `-1` intervention must also break every example.
+- Five same-goal prompt/continuation examples are shown without the semantic goal
+  label. The policy must infer their shared concept.
+- Set 1 is hidden: twenty-five additional same-goal positive holdouts. The
+  submitted supernode and factor `-1` intervention must break every visible and
+  hidden example.
 - Set 2 is hidden: twenty-five different-goal neutral holdouts. The same
   intervention must preserve every clean target.
 
@@ -53,9 +57,10 @@ Each row contains two cached grading sets:
 `circuit_intervene(source_prompt, node_id, prompt, intervention_weight)` maps a
 source feature onto another arbitrary prompt and reports its baseline and
 intervened top tokens. Stable `layer_feature` identities are remapped to their
-highest-ranked prompt position in every graph. Reward is `1`
-only when both gates pass. The goal denotes the full semantic family rather than one answer
-label; a spatial-composition circuit must therefore cover all eight directions.
+highest-ranked prompt position in every graph. Reward is `1` only when the
+visible-evidence, hidden-holdout, and neutral-control gates all pass. The goal
+denotes the full semantic family rather than one answer label; a
+spatial-composition circuit must therefore cover all eight directions.
 
 Configs: `configs/{eval,rl}/visible-dataset.toml`.
 
@@ -86,12 +91,13 @@ original top token must remain unchanged.
 
 Configs: `configs/{eval,rl}/supernode-rediscovery.toml`.
 
-### `suppressed-features`: corruption circuit discovery
+### `suppressed-features`: corruption restoration
 
 Generated prompts are answer-sampled normally. Within each same-family cohort,
 the builder intersects stable features from the stored maximal clean graphs,
-samples one shared 4–12-node multiplicative corruption, and retries until that
-corruption changes the output for every hidden prompt. It then stores maximal
+samples one shared 4–12-node signed multiplicative corruption with factors in
+`[-8, 8]`, and retries until that corruption changes the output for every
+hidden prompt. It then stores maximal
 attribution graphs captured under the corruption.
 
 The builder ensures hidden examples share stable layer/feature identities and
@@ -100,13 +106,12 @@ graph changes its sampled clean output. Runtime loading intentionally does not
 repeat those expensive generation-time semantic checks.
 
 The policy creates its own prompts through the shared tools and submits stable
-feature IDs with multiplicative repair factors. Final reward negates those
-factors, composes them with each prompt's stored corruption, and requires the
-corrupted baseline top token to change on hidden positives. Clean, cross-family
-Qwen prompts supply controls; their baseline top token must remain unchanged.
-Trials and the
-`restoration_metrics` function still report clean similarity as
-`exp(-KL(clean || restored))`, but that value never gates reward.
+feature IDs with multiplicative repair factors. The hidden corruption factors
+are never rendered to the policy. Final grading composes submitted factors
+directly with each prompt's stored corruption, requires recovery of the clean top
+token, and rewards mean clean-distribution similarity
+`exp(-KL(clean || restored))`. The signed corruption can suppress, enhance, or
+invert a feature activation.
 
 Configs: `configs/{eval,rl}/suppressed-features.toml`.
 

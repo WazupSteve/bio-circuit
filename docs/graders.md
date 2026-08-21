@@ -1,8 +1,8 @@
 # Graders
 
-All reward-bearing tasks use the same `AblationHoldoutGrader`. The restoration
-module computes an additional diagnostic only. This separation is easy to miss
-because the suppressed-feature task is named “restoration.”
+The two discovery tasks share a negative-intervention causal grader. The
+restoration task has a separate reward that directly composes the submitted
+factors with a hidden corruption and measures KL divergence from clean behavior.
 
 ## Response parsing
 
@@ -23,89 +23,78 @@ duplicate feature IDs, duplicate case-insensitive group names, zero/non-finite
 or out-of-range factors, more than eight groups, more than 60 total nodes, and
 unknown fields. Invalid output receives reward zero without a remote replay.
 
-## Shared causal grading algorithm
+## Discovery ablation grading
 
-For every positive and control example:
+Vanilla visible discovery and promptless rediscovery use
+`AblationHoldoutGrader`. For every positive and control example it:
 
-1. Read the original top token from the stored graph. This, not the row's
-   generator answer string, is the replay's expected token.
-2. Flatten named groups into `(stable_feature_id, submitted_factor)` pairs.
-3. Negate every factor.
-4. Resolve each stable feature independently to its highest-influence occurrence
-   in that example's graph. Missing features simply produce no coordinate.
-5. Send the prompt, expected token, resolved interventions, and any stored
-   baseline corruption to the appropriate Modal backend.
-6. Rerun the model and compare baseline and intervened top tokens.
+1. Reads the original top token from the stored graph.
+2. Flattens named groups into `(stable_feature_id, submitted_factor)` pairs.
+3. Negates every factor.
+4. Resolves each stable feature to its highest-influence occurrence in that
+   example's graph.
+5. Reruns the prompt and compares baseline and intervened top tokens.
 
-The backend validates that the expected token is top under the relevant
-baseline. A positive succeeds when the intervention displaces it. A control
-succeeds when the intervention preserves it. The response envelope and expected
-token order are validated before rates are computed.
-
-The factor used by reward is therefore:
+A positive succeeds when the original top token is displaced. A control
+succeeds when it remains top. This tests whether a discovered mechanism is both
+necessary and specific. The discovery factor is:
 
 ```text
-ordinary task:          changed activation = clean activation * (-submitted)
-suppressed-feature task: changed activation = clean activation * corruption * (-submitted)
+changed activation = clean activation * (-submitted factor)
 ```
 
-This sign convention means a submitted `1.0` is tested as sign inversion, not
-zero ablation. It is intentional and versioned as
-`v6-negated-intervention-ablation`.
+This sign convention is part of the discovery grading contract.
 
-## Gates and reward
+The visible task separately grades its five shown evidence examples and 25
+hidden same-concept examples. Promptless treats its hidden positive cohort as
+the first gate. Both also enforce a control-failure ceiling. Default thresholds
+require every positive to change and every control to remain unchanged, yielding
+a binary reward.
 
-The grader splits positives into the task adapter's “visible” prefix and its
-remaining holdouts, then computes:
+## Restoration KL grading
+
+Suppressed-feature restoration does not use the ablation grader. Every dataset
+example contains a coordinate-level corruption, but those factors remain hidden
+in server-side task data. They are not rendered in the task prompt, graph view,
+or tool response.
+
+For clean activation `a`, hidden corruption `c`, and submitted restoration `r`,
+the backend executes:
 
 ```text
-visible_success_rate = changed visible positives / visible positives
-holdout_success_rate = changed holdouts / holdouts
-control_failure_rate = 1 - preserved controls / controls
-reward = float(visible_pass AND holdout_pass AND controls_pass)
+restored activation = a * c * r
 ```
 
-An empty visible partition has success rate `0`; an empty holdout partition
-passes with rate `1`; empty controls pass with zero failure. Threshold names are
-adapter-specific aliases over the same fields:
+The submitted factor is applied directly and is never negated. For a feature
+that is truly corrupted, its stable ID is mapped to the hidden prompt-specific
+coordinate server-side. Other submitted features use ordinary highest-ranked
+position resolution.
 
-| Task | Positive gates | Specificity gate |
-| --- | --- | --- |
-| Vanilla | no generated visible examples; hidden same-goal holdout threshold | maximum different-goal null failure |
-| Rediscovery | positive cohort is treated as the visible gate | maximum control activation/failure |
-| Suppressed features | combined corrupted cohort is the holdout gate | maximum clean cross-family control failure |
-
-Defaults are strict: required positive rate `1.0` and permitted control failure
-`0.0`. Reward is binary, even though detailed rates are exposed as metrics.
-
-## Restoration diagnostics
-
-For suppressed-feature tasks only, `RestorationMetricEvaluator` replays the
-stored corruption and composes the submitted factors without negating them:
+The backend computes `KL(clean || restored)` over the complete final-token
+distribution. An example's score is zero unless the original clean target token
+is restored to top-1; after that gate its score is:
 
 ```text
-restored activation = clean activation * corruption * submitted
+similarity = exp(-KL(clean || restored))
 ```
 
-It compares the restored final-token distribution with the clean distribution.
-If the clean target is not restored to top, similarity is zero. Otherwise:
+Final reward is the arithmetic mean of this gated similarity over the hidden
+corrupted cohort. Thus reward is continuous in `[0, 1]`, reaches one only at the
+clean distribution.
+Reported metrics include mean raw KL, mean similarity, and restored-target rate.
 
-```text
-clean_similarity = exp(-KL(clean || restored))
-```
+Clean cross-family controls remain in the universal dataset row for artifact
+compatibility but do not participate in restoration reward; clean-distribution
+KL on the corrupted target cohort is the grading objective.
 
-The cohort metric is the arithmetic mean. Current task wiring calculates this
-for `heldout_prompts`; `discovery_clean_similarity` is always reported as zero
-because there are no `example_prompts`. These values never gate reward.
+## Backend validation
 
-## Backend differences
-
-Ordinary Qwen and Gemma services use the shared clean-ablation backend. Gemma
-enforces a single, tokenizer-round-tripping expected token and validates the
-activation tensor shape. The persistent Qwen backend supports a corrupted
-baseline, coordinate-wise multiplier composition, NNSight intervention input
-round-tripping, and separate full-distribution restoration replay.
+Restoration replay requires the clean target to be top before corruption and the
+stored corruption to change it. Generated corruption multipliers lie in
+`[-8, 8]`; policy proposals may use any finite multiplier, including zero to
+clamp an activation. Backend
+protocol mismatches raise errors rather than silently becoming low rewards.
 
 Primary implementation: `grading/ablation.py`, `grading/restoration.py`,
-`runtime/ablation_contract.py`, `runtime/modal_backend.py`, and
+`runtime/ablation_contract.py`, `runtime/corruption.py`, and
 `modal_app/restoration_backend.py`.

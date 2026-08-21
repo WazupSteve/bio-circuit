@@ -82,10 +82,12 @@ proposal is effective only on prompts where the stable feature was attributed.
 
 For a clean activation `a` and submitted factor `w`, ordinary intervention writes
 the absolute activation `a * w` through Circuit Tracer's feature-intervention
-API, then reruns the model. Zero is forbidden; policy factors are finite and
-bounded to `[-8, 8]`.
+API, then reruns the model. Policy factors may be any finite float; zero is a
+valid multiplicative clamp. The `[-8, 8]` bound applies only when generating
+hidden dataset corruptions.
 
-The suppressed-feature backend additionally has a hidden corruption factor `c`.
+The suppressed-feature backend additionally has a hidden signed corruption
+factor `c`.
 A restoration replay composes factors coordinate-wise:
 
 ```text
@@ -93,8 +95,10 @@ executed activation = a * c * w
 ```
 
 Factors on coordinates not present in the other set implicitly multiply by one.
-The reward path uses the same composition machinery, but negates policy factors
-before composing them with the stored corruption; see [Graders](graders.md).
+The restoration reward path uses this direct composition without negating the
+policy factor; see [Graders](graders.md). Hidden corruption factors stay in task
+data and backend calls and are never included in policy-facing prompts or tool
+responses.
 
 ## Policy-facing tools
 
@@ -116,8 +120,8 @@ and 15 seconds.
 
 `models.py` is the main validation boundary. A final `Circuit` contains one to
 eight named supernodes, at most 60 unique stable features total, and one bounded
-nonzero factor per feature. Unknown fields are rejected. Dataset rows share one
-shape across all tasks: `family`, optional `goal` and `desired_answer`, plus
+factor per feature. Unknown fields are rejected. Dataset rows share one
+shape across all tasks: `family`, optional `goal`, plus
 `example_prompts`, `heldout_prompts`, and `control_prompts`. Each example stores
 the prompt, target token, graph, and optional coordinate-level corruption.
 

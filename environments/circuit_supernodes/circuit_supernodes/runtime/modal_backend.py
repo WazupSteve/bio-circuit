@@ -73,8 +73,6 @@ def evaluate_clean_ablation_cohort(
             (int(layer), int(feature), int(position), float(factor))
             for layer, feature, position, factor in example.get("interventions", [])
         ]
-        if any(factor == 0.0 for *_, factor in interventions):
-            raise ValueError("ablation interventions must be nonzero")
         tokens, target_id = tokens_and_target(
             model,
             prompt,

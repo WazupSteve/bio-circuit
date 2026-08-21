@@ -29,20 +29,18 @@ class RestorationReplayResult(StrictModel):
     standard_target_is_top: Literal[True]
     corruption_changed_top_token: Literal[True]
     restored_target_is_top: bool
-    restored_standard_kl: Annotated[FiniteFloat, Field(ge=-1e-6)] | None = None
+    restored_standard_kl: Annotated[FiniteFloat, Field(ge=-1e-6)]
 
     @model_validator(mode="after")
     def valid_replay(self, info: ValidationInfo) -> Self:
         expected_target = (info.context or {}).get("expected_target")
         if expected_target is not None and self.target_token != expected_target:
             raise ValueError("restoration result has the wrong target")
-        if self.restored_target_is_top and self.restored_standard_kl is None:
-            raise ValueError("restored result requires a numeric clean KL")
         return self
 
 
 def restoration_similarity(result: object, expected_target: str | None = None) -> float:
-    """Diagnostic clean-distribution similarity; never a reward function."""
+    """Gated clean-distribution similarity derived from replay KL."""
 
     data = (
         result.model_dump() if isinstance(result, RestorationReplayResult) else result
@@ -53,7 +51,6 @@ def restoration_similarity(result: object, expected_target: str | None = None) -
     if not parsed.restored_target_is_top:
         return 0.0
     divergence = parsed.restored_standard_kl
-    assert divergence is not None
     return math.exp(-max(0.0, divergence))
 
 
@@ -65,8 +62,20 @@ def cohort_clean_similarity(results: Sequence[object]) -> float:
     )
 
 
+def cohort_clean_kl(results: Sequence[object]) -> float:
+    """Return mean KL from the clean distribution to restored outputs."""
+
+    if not results:
+        raise ValueError("restoration results must not be empty")
+    divergences = []
+    for result in results:
+        parsed = RestorationReplayResult.model_validate(result)
+        divergences.append(max(0.0, parsed.restored_standard_kl))
+    return math.fsum(divergences) / len(divergences)
+
+
 class RestorationMetricEvaluator:
-    """Compute restoration diagnostics without participating in reward grading."""
+    """Replay hidden corruption and score clean-distribution restoration."""
 
     def __init__(self, subject: ModalSubject) -> None:
         self.subject = subject

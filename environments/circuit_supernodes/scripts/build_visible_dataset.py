@@ -26,6 +26,7 @@ DATA_DIR = (
 )
 MODAL_APP = "circuit-supernodes-attribution"
 MODAL_CLS = "Attributor"
+EXAMPLE_COUNT = 5
 HELDOUT_POSITIVE_COUNT = 25
 NEUTRAL_COUNT = 25
 
@@ -34,6 +35,7 @@ def cohort_rows(
     records: list[dict],
     *,
     tasks: int,
+    example_size: int,
     holdout_size: int,
     null_size: int,
     seed: int,
@@ -45,8 +47,9 @@ def cohort_rows(
         goal = str(record.get("goal", "")).strip()
         if goal:
             grouped[goal].append(record)
+    positive_size = example_size + holdout_size
     eligible = [
-        goal for goal, examples in grouped.items() if len(examples) >= holdout_size
+        goal for goal, examples in grouped.items() if len(examples) >= positive_size
     ]
     rng = random.Random(seed)
     rng.shuffle(eligible)
@@ -57,7 +60,7 @@ def cohort_rows(
         for goal in eligible:
             positives = grouped[goal]
             offset = holdout_offsets[goal]
-            if offset + holdout_size > len(positives):
+            if offset + positive_size > len(positives):
                 continue
             null_candidates = [
                 record
@@ -67,14 +70,23 @@ def cohort_rows(
             ]
             if len(null_candidates) < null_size:
                 continue
-            holdout = positives[offset : offset + holdout_size]
-            holdout_offsets[goal] += holdout_size
+            selected = positives[offset : offset + positive_size]
+            examples = selected[:example_size]
+            holdout = selected[example_size:]
+            holdout_offsets[goal] += positive_size
             nulls = rng.sample(null_candidates, null_size)
             rows.append(
                 CircuitDatasetRow(
                     family=holdout[0]["family"],
                     goal=goal,
-                    example_prompts=[],
+                    example_prompts=[
+                        DatasetExample(
+                            prompt=item["prompt"],
+                            target_token=item["target_token"],
+                            graph=item["graph"],
+                        )
+                        for item in examples
+                    ],
                     heldout_prompts=[
                         DatasetExample(
                             prompt=item["prompt"],
@@ -110,6 +122,10 @@ def main(
         int,
         typer.Option(min=1, help="Number of cohort rows to produce."),
     ] = 16,
+    example_size: Annotated[
+        int,
+        typer.Option(min=1, help="Visible same-goal examples in each row."),
+    ] = EXAMPLE_COUNT,
     holdout_size: Annotated[
         int,
         typer.Option(min=1, help="Hidden same-goal positives in each row."),
@@ -158,18 +174,19 @@ def main(
     ] = False,
 ) -> None:
     """Build visible-circuit cohorts with hidden same-goal and control caches."""
-    requested_sizes = (holdout_size, null_size)
-    required_sizes = (HELDOUT_POSITIVE_COUNT, NEUTRAL_COUNT)
+    requested_sizes = (example_size, holdout_size, null_size)
+    required_sizes = (EXAMPLE_COUNT, HELDOUT_POSITIVE_COUNT, NEUTRAL_COUNT)
     if requested_sizes != required_sizes:
         raise typer.BadParameter(
             "the circuit-supernodes contract requires exactly "
-            f"{HELDOUT_POSITIVE_COUNT} hidden positive and {NEUTRAL_COUNT} "
-            "control examples per rollout",
-            param_hint="--holdout-size/--null-size",
+            f"{EXAMPLE_COUNT} visible, {HELDOUT_POSITIVE_COUNT} hidden positive, "
+            f"and {NEUTRAL_COUNT} control examples per rollout",
+            param_hint="--example-size/--holdout-size/--null-size",
         )
-    if max_records_per_goal < holdout_size:
+    if max_records_per_goal < example_size + holdout_size:
         raise typer.BadParameter(
-            "must be at least --holdout-size", param_hint="--max-records-per-goal"
+            "must cover --example-size plus --holdout-size",
+            param_hint="--max-records-per-goal",
         )
 
     build = start_build(
@@ -212,6 +229,7 @@ def main(
         rows = cohort_rows(
             records,
             tasks=tasks,
+            example_size=example_size,
             holdout_size=holdout_size,
             null_size=null_size,
             seed=seed,
@@ -243,7 +261,7 @@ def main(
             "seed": seed,
             "candidates": n,
             "tasks": tasks,
-            "example_prompt_count": 0,
+            "example_prompt_count": example_size,
             "holdout_size": holdout_size,
             "null_size": null_size,
             "max_records_per_goal": max_records_per_goal,

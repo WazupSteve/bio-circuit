@@ -15,17 +15,16 @@ MODAL_CLS = "Attributor"
 
 
 SYSTEM_PROMPT = """\
-Identify one supernode of stable FEATURE identities for the requested semantic
-goal. You may attribute arbitrary prompts and transfer a selected feature to a
-different arbitrary prompt for an intervention experiment.
+Infer the semantic concept shared by the provided examples, then identify one
+supernode of stable FEATURE identities for that concept. You may attribute
+arbitrary prompts and transfer a selected feature to a different arbitrary
+prompt for an intervention experiment.
 
 Use `layer_feature` identities so a feature denotes the same learned mechanism
 regardless of its token position. Find features that are necessary for the
 original top token throughout the examples while remaining specific to the
-shared semantic goal rather than capturing generic language behavior. The goal
-is the full semantic task family, not one answer label: for spatial composition,
-examples may have any of the eight direction answers, so discover the general
-direction-computation mechanism.
+shared semantic concept rather than capturing generic language behavior. The
+concept is the full semantic task family, not one answer label.
 
 Keep analysis concise and reserve enough output budget to emit the required JSON.
 If the remaining budget is uncertain, submit the JSON immediately.
@@ -36,6 +35,18 @@ Return exactly one JSON object:
   "supernodes": [{"name": "<semantic role>", "nodes": ["<layer>_<feature>", "..."]}]
 }
 ```"""
+
+
+def evidence_prompt(examples) -> str:
+    rendered = "\n".join(
+        f"  [{index}] prompt={row.prompt!r}; continuation={row.target_token!r}"
+        for index, row in enumerate(examples)
+    )
+    return (
+        f"Visible examples ({len(examples)}):\n{rendered}\n\n"
+        "Infer their shared semantic concept, run circuit experiments, and submit "
+        "one supernode."
+    )
 
 
 class CircuitTask(CausalCircuitTask):
@@ -72,6 +83,7 @@ class CircuitTask(CausalCircuitTask):
 
 class CircuitTasksetConfig(vf.TasksetConfig):
     dataset_file: str = "circuit-cohorts.jsonl"
+    min_evidence_success: float = Field(1.0, ge=0.0, le=1.0)
     min_holdout_success: float = Field(1.0, ge=0.0, le=1.0)
     max_null_failure: float = Field(0.0, ge=0.0, le=1.0)
 
@@ -86,20 +98,22 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
             )
         rows = load_jsonl_rows(path, CircuitDatasetRow)
         for task_index, row in enumerate(rows):
-            prompt = (
-                f"Semantic goal: {row.goal!r}. Attribute prompts and run "
-                "interventions with the circuit tools, then submit one supernode."
-            )
+            examples = row.example_prompts
+            holdouts = row.heldout_prompts
+            # Compatibility for datasets built before visible evidence was stored.
+            if not examples and len(holdouts) >= 5:
+                examples, holdouts = holdouts[:5], holdouts[5:]
             data = CircuitTaskData(
                 idx=task_index,
                 name=f"circuit-{row.goal}-{task_index}",
-                prompt=prompt,
+                prompt=evidence_prompt(examples),
                 system_prompt=SYSTEM_PROMPT,
                 family=row.family,
                 goal=row.goal,
-                example_prompts=row.example_prompts,
-                heldout_prompts=row.heldout_prompts,
+                example_prompts=examples,
+                heldout_prompts=holdouts,
                 control_prompts=row.control_prompts,
+                min_visible_success=self.config.min_evidence_success,
                 min_heldout_success=self.config.min_holdout_success,
                 max_control_failure=self.config.max_null_failure,
                 modal_app=MODAL_APP,

@@ -24,7 +24,7 @@ SYSTEM_PROMPT = """\
 Discover the requested goal supernode by attributing arbitrary prompts and
 transferring selected features to different prompts in intervention experiments.
 
-Submit named supernodes and a nonzero multiplicative intervention for every
+Submit named supernodes and a multiplicative intervention for every
 member. Find features whose negative intervention removes the goal answer while
 remaining specific to that semantic mechanism rather than generic language
 behavior.
@@ -46,13 +46,12 @@ budget is uncertain, submit the JSON immediately. Return one JSON object:
 ```"""
 
 
-def cohort_prompt(goal: str, desired_answer: str) -> str:
+def cohort_prompt(goal: str) -> str:
     return (
         f"Goal supernode: {goal!r}\n"
-        f"Desired answer: {desired_answer!r}\n"
         "Attribute prompts and run interventions with the circuit tools, then submit "
-        "the "
-        "weighted semantic supernodes whose negation removes the goal answer."
+        "the weighted semantic supernodes whose negation disrupts that mechanism "
+        "across varied outputs."
     )
 
 
@@ -103,17 +102,15 @@ class DiscoveryTaskset(vf.Taskset[DiscoveryTask, DiscoveryTasksetConfig]):
         rows = load_jsonl_rows(source, CircuitDatasetRow)
         for index, row in enumerate(rows):
             goal = row.goal
-            desired_answer = row.desired_answer
-            if goal is None or desired_answer is None:
-                raise ValueError("rediscovery rows require goal and desired_answer")
+            if goal is None:
+                raise ValueError("rediscovery rows require a goal")
             data = CircuitTaskData(
                 idx=index,
                 name=f"promptless-{row.family}-{index}",
-                prompt=cohort_prompt(goal, desired_answer),
+                prompt=cohort_prompt(goal),
                 system_prompt=SYSTEM_PROMPT,
                 family=row.family,
                 goal=goal,
-                desired_answer=desired_answer,
                 example_prompts=row.example_prompts,
                 heldout_prompts=row.heldout_prompts,
                 control_prompts=row.control_prompts,

@@ -6,12 +6,12 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import verifiers.v1 as vf
-from pydantic import Field
 
 from ..grading.restoration import (
     MODAL_APP,
     MODAL_CLS,
     RestorationMetricEvaluator,
+    cohort_clean_kl,
     cohort_clean_similarity,
 )
 from ..models import CircuitDatasetRow
@@ -29,10 +29,10 @@ The subject model has a persistent feature corruption. Attribute arbitrary
 prompts and transfer selected features to different prompts in intervention
 experiments to identify that mechanism.
 
-Submit stable `layer_feature` ids and nonzero multiplicative intervention
+Submit stable `layer_feature` ids and multiplicative intervention
 factors. Find a shared intervention that reverses the persistent corruption
-without capturing unrelated language behavior. Clean-distribution similarity
-is reported as a diagnostic.
+without capturing unrelated language behavior. Reward requires the original
+clean top token and measures `KL(clean || restored)` across the hidden cohort.
 
 Keep analysis concise and reserve enough output budget to emit the required JSON.
 If the remaining budget is uncertain, submit the JSON immediately.
@@ -62,39 +62,47 @@ class CircuitTask(CausalCircuitTask):
     score_cache_key = "restoration_score"
     parse_options = {"require_supernodes": False}
 
+    async def score_circuit(self, trace: vf.Trace[CircuitTaskData, vf.State]) -> dict:
+        cached = trace.info.get(self.score_cache_key)
+        if isinstance(cached, dict):
+            return cached
+        circuit, reason = circuit_from_response(trace.last_reply)
+        if circuit is None:
+            result = {
+                "reward": 0.0,
+                "valid": False,
+                "error": reason,
+            }
+        else:
+            replay = await _METRICS.score_cohort(
+                self.data.heldout_prompts, weighted_nodes(circuit)
+            )
+            similarity = cohort_clean_similarity(replay)
+            result = {
+                "reward": similarity,
+                "valid": True,
+                "heldout_clean_similarity": similarity,
+                "heldout_clean_kl": cohort_clean_kl(replay),
+                "restored_target_rate": sum(
+                    item.get("restored_target_is_top") is True for item in replay
+                )
+                / len(replay),
+                "proposal": weighted_nodes(circuit),
+            }
+        trace.info[self.score_cache_key] = result
+        return result
+
     @vf.metric
     async def restoration_metrics(
         self, trace: vf.Trace[CircuitTaskData, vf.State]
     ) -> dict[str, float]:
         score = await self.score_circuit(trace)
-        cached = trace.info.get("restoration_metrics")
-        if not isinstance(cached, dict):
-            circuit, _ = circuit_from_response(trace.last_reply)
-            if circuit is None or not score.get("valid"):
-                cached = {}
-            else:
-                heldout = await _METRICS.score_cohort(
-                    self.data.heldout_prompts, weighted_nodes(circuit)
-                )
-                cached = {
-                    "discovery_clean_similarity": 0.0,
-                    "heldout_clean_similarity": cohort_clean_similarity(heldout),
-                }
-            trace.info["restoration_metrics"] = cached
         return {
-            "discovery_clean_similarity": float(
-                cached.get("discovery_clean_similarity", 0.0)
-            ),
             "heldout_clean_similarity": float(
-                cached.get("heldout_clean_similarity", 0.0)
+                score.get("heldout_clean_similarity", 0.0)
             ),
-            "discovery_ablation_success_rate": float(
-                score.get("visible_success_rate", 0.0)
-            ),
-            "heldout_ablation_success_rate": float(
-                score.get("holdout_success_rate", 0.0)
-            ),
-            "control_failure_rate": float(score.get("control_failure_rate", 1.0)),
+            "heldout_clean_kl": float(score.get("heldout_clean_kl", 0.0)),
+            "restored_target_rate": float(score.get("restored_target_rate", 0.0)),
         }
 
     @vf.reward
@@ -106,8 +114,6 @@ class CircuitTask(CausalCircuitTask):
 
 class CircuitTasksetConfig(vf.TasksetConfig):
     dataset_file: str = "suppressed-features.jsonl"
-    min_heldout_success: float = Field(1.0, ge=0.0, le=1.0)
-    max_control_failure: float = Field(0.0, ge=0.0, le=1.0)
 
 
 # See the matching note in rediscovery.py about Verifiers' invariant TaskT bound.
@@ -129,8 +135,6 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
                 example_prompts=row.example_prompts,
                 heldout_prompts=row.heldout_prompts,
                 control_prompts=row.control_prompts,
-                min_heldout_success=self.config.min_heldout_success,
-                max_control_failure=self.config.max_control_failure,
                 modal_app=MODAL_APP,
                 modal_cls=MODAL_CLS,
                 corruption_spec=[

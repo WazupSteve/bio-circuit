@@ -94,6 +94,7 @@ def test_manifest_stores_schema_and_generation_provenance_once(tmp_path) -> None
     assert manifest["generation_policy"] == "maximal-circuit-tracer-export-v1"
     assert manifest["maximal_graphs"] is True
     assert manifest["max_feature_nodes"] == 4096
-    assert manifest["corruption_version"] is None
+    assert "corruption_version" not in manifest
+    assert "reward_version" not in manifest
     assert manifest["sampler"]["triage"] == triage
     assert "answer_sampling" not in manifest["generator"]

@@ -8,7 +8,7 @@ from typing import Any
 import verifiers.v1 as vf
 from pydantic import Field
 
-from ..grading.ablation import REWARD_VERSION, AblationHoldoutGrader
+from ..grading.ablation import AblationHoldoutGrader
 from ..models import Circuit, DatasetExample
 from ..runtime import circuit_from_response
 from ..runtime.graphs import weighted_nodes
@@ -20,7 +20,6 @@ class CircuitTaskData(vf.TaskData):
 
     family: str
     goal: str | None = None
-    desired_answer: str | None = None
     example_prompts: list[DatasetExample]
     heldout_prompts: list[DatasetExample]
     control_prompts: list[DatasetExample]
@@ -29,7 +28,9 @@ class CircuitTaskData(vf.TaskData):
     max_control_failure: float = Field(0.0, ge=0.0, le=1.0)
     modal_app: str
     modal_cls: str
-    corruption_spec: list[tuple[int, int, float]] = Field(default_factory=list)
+    corruption_spec: list[tuple[int, int, float]] = Field(
+        default_factory=list, exclude=True
+    )
 
 
 class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
@@ -65,7 +66,6 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
                 "reward": 0.0,
                 "valid": False,
                 "error": reason,
-                "reward_version": REWARD_VERSION,
             }
             trace.info[self.score_cache_key] = result
             return result

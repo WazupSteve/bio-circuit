@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Annotated, Literal, Self
 
 from pydantic import (
-    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -38,17 +37,9 @@ GroupName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1
 StableFeatureId = Annotated[str, StringConstraints(pattern=r"^\d+_\d+$")]
 
 
-def _nonzero_weight(weight: float) -> float:
-    if weight == 0.0:
-        raise ValueError("intervention_weight must be nonzero")
-    return weight
-
-
-BoundedWeight = Annotated[
-    FiniteFloat, Field(ge=-8.0, le=8.0), AfterValidator(_nonzero_weight)
-]
+InterventionWeight = FiniteFloat
 SupernodeWeights = Annotated[
-    dict[StableFeatureId, BoundedWeight], Field(min_length=1, max_length=60)
+    dict[StableFeatureId, InterventionWeight], Field(min_length=1, max_length=60)
 ]
 
 
@@ -135,7 +126,6 @@ class CircuitDatasetRow(StrictModel):
 
     family: str = Field(min_length=1)
     goal: str | None = None
-    desired_answer: str | None = None
     example_prompts: list[DatasetExample]
     heldout_prompts: list[DatasetExample]
     control_prompts: list[DatasetExample]

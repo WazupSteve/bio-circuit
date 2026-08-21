@@ -142,15 +142,19 @@ def test_response_parser_accepts_every_supported_wire_shape(
     ]
 
 
+def test_response_parser_accepts_zero_multiplier_as_a_clamp() -> None:
+    circuit, error = circuit_from_response(
+        '{"nodes": [{"id": "1_2", "intervention_weight": 0.0}]}'
+    )
+    assert error == ""
+    assert circuit is not None
+    assert circuit.supernodes == {"submitted": {"1_2": 0.0}}
+
+
 @pytest.mark.parametrize(
     ("payload", "message"),
     [
         ({"nodes": [{"id": "bad", "intervention_weight": 1.0}]}, "invalid FEATURE"),
-        ({"nodes": [{"id": "1_2", "intervention_weight": 0.0}]}, "nonzero"),
-        (
-            {"nodes": [{"id": "1_2", "intervention_weight": 9.0}]},
-            "less than or equal to 8",
-        ),
         (
             {
                 "supernodes": [

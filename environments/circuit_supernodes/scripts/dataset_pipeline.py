@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 import typer
-from circuit_supernodes.grading.ablation import REWARD_VERSION
 from circuit_supernodes.models import CircuitDatasetRow, TracerGraphPayload
 from circuit_supernodes.runtime.datasets import (
     DATASET_SCHEMA_VERSION,
@@ -80,7 +79,6 @@ def finish_build(
     max_error_share: float,
     quality: Sequence[dict[str, float | int]],
     generator: dict[str, Any],
-    corruption_version: str | None = None,
     backend_details: dict[str, Any] | None = None,
 ) -> Path:
     """Write a dataset and its standard provenance sidecar."""
@@ -96,7 +94,6 @@ def finish_build(
         max_error_share=max_error_share,
         quality=quality,
         generator=generator,
-        corruption_version=corruption_version,
         backend_details=backend_details,
     )
     print(f"wrote {len(rows)} cohort rows to {out}")
@@ -196,7 +193,6 @@ def write_manifest(
     max_error_share: float,
     quality: Sequence[dict[str, float | int]],
     generator: dict[str, Any],
-    corruption_version: str | None = None,
     backend_details: dict[str, Any] | None = None,
 ) -> Path:
     """Write the provenance schema shared by every generated dataset."""
@@ -208,8 +204,6 @@ def write_manifest(
         "sha256": DatasetArtifacts.sha256(out),
         "subject_backend": subject_backend,
         **(backend_details or {}),
-        "reward_version": REWARD_VERSION,
-        "corruption_version": corruption_version,
         "maximal_graphs": True,
         "max_feature_nodes": MAX_FEATURE_NODES,
         "generation_policy": GENERATION_POLICY,

@@ -8,7 +8,6 @@
   "edge_threshold": 0.98,
   "maximal_graphs": true,
   "max_feature_nodes": 4096,
-  "reward_version": "v6-negated-intervention-ablation",
   "screening": {
     "exact_first_token": true,
     "max_error_share": 0.35
@@ -32,7 +31,6 @@
   },
   "dataset_schema_version": "runtime-minimal-v2",
   "generation_policy": "maximal-circuit-tracer-export-v1",
-  "corruption_version": null,
   "sampler": {
     "max_new_tokens": 50,
     "triage": {

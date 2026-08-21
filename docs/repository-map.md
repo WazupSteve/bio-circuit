@@ -15,7 +15,7 @@ configs/
 environments/circuit_supernodes/
   circuit_supernodes/
     data/                       generated/checked-in dataset artifacts
-    grading/                    causal reward and restoration diagnostics
+    grading/                    discovery ablation and restoration KL reward
     runtime/                    schemas, graphs, sampling, tools, Modal clients
     tasksets/                   three Verifiers adapters
   modal_app/                    GPU deployment definitions and backends
@@ -97,9 +97,6 @@ uv run pytest
 
 ## Known architectural seams
 
-- TaskSet naming is historical: “visible” has no stored visible examples,
-  “promptless” still reveals goal and desired answer, and “restoration” is graded
-  by negative ablation while clean restoration is diagnostic.
 - The suppressed builder exposes `cohort_size` and `heldout_size`, but combines
   both sets in the runtime holdout list.
 - The universal dataset schema supports three cohorts even when adapters leave

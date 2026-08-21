@@ -11,6 +11,7 @@ enable_thinking = false
 [taskset]
 id = "circuit-supernodes"
 dataset_file = "heldout-cohorts.jsonl.gz"
+min_evidence_success = 1.0
 min_holdout_success = 1.0
 max_null_failure = 0.0
 

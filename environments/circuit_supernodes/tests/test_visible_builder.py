@@ -35,9 +35,20 @@ def test_visible_builder_separates_goals_and_emits_minimal_examples() -> None:
         for family, goal in (("a", "goal-a"), ("b", "goal-b"))
         for index in range(4)
     ]
-    rows = cohort_rows(records, tasks=2, holdout_size=2, null_size=2, seed=4)
+    rows = cohort_rows(
+        records,
+        tasks=2,
+        example_size=1,
+        holdout_size=2,
+        null_size=2,
+        seed=4,
+    )
     assert len(rows) == 2
     for row in rows:
+        assert len(row.example_prompts) == 1
+        assert all(
+            example.prompt.startswith(row.goal) for example in row.example_prompts
+        )
         assert all(
             example.prompt.startswith(row.goal) for example in row.heldout_prompts
         )
@@ -48,6 +59,7 @@ def test_visible_builder_separates_goals_and_emits_minimal_examples() -> None:
         assert all(
             set(example) == {"prompt", "target_token", "graph"}
             for example in [
+                *serialized["example_prompts"],
                 *serialized["heldout_prompts"],
                 *serialized["control_prompts"],
             ]

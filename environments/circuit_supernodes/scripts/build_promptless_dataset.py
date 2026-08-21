@@ -36,50 +36,53 @@ def cohort_rows(
     control_size: int,
     seed: int,
 ) -> list[CircuitDatasetRow]:
-    """Group examples by semantic goal and answer; sample safe controls.
+    """Group varied-answer examples by semantic goal and sample other-goal controls.
 
-    A shared answer token alone is not evidence of a shared mechanism: ``Yes``
-    from comparison and ``Yes`` from another family can have unrelated causal
-    features.  The goal key keeps positive cohorts within one generated task
-    mechanism. Controls must differ in both full answer and attributed first
-    token so the specificity gate is not impossible before any intervention.
+    Positive cohorts deliberately contain at least two distinct full answers, so
+    a proposal must describe the goal mechanism rather than one output token.
+    Controls come from different semantic goals; their answer may overlap.
     """
 
-    grouped: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
-    for record in records:
-        goal = str(
+    def record_goal(record: dict) -> str:
+        return str(
             record.get("goal")
             or record.get("source_family")
             or record.get("family", "")
         ).strip()
+
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for record in records:
+        goal = record_goal(record)
         if not goal:
             continue
-        key = (
-            goal,
-            answer_key(str(record["target"])),
-            str(record["target_token"]),
-        )
-        grouped[key].append(record)
+        grouped[goal].append(record)
 
     rng = random.Random(seed)
     candidates = [
-        (key, values)
-        for key, values in sorted(grouped.items())
+        (goal, values)
+        for goal, values in sorted(grouped.items())
         if len(values) >= cohort_size
+        and len({answer_key(str(item["target"])) for item in values}) >= 2
     ]
     rng.shuffle(candidates)
     rows = []
-    for (goal, _, target_token), positives in candidates:
-        desired_answer = str(positives[0]["target"]).strip()
-        controls = [
-            record
-            for record in records
-            if answer_key(str(record["target"])) != answer_key(desired_answer)
-            and str(record.get("target_token", "")) != target_token
-        ]
+    for goal, positives in candidates:
+        by_answer: dict[str, list[dict]] = defaultdict(list)
+        for record in positives:
+            by_answer[answer_key(str(record["target"]))].append(record)
+        answer_groups = list(by_answer.values())
+        rng.shuffle(answer_groups)
+        for group in answer_groups:
+            rng.shuffle(group)
+        selected_positive = [group.pop() for group in answer_groups]
+        remaining = [record for group in answer_groups for record in group]
+        rng.shuffle(remaining)
+        selected_positive.extend(remaining[: cohort_size - len(selected_positive)])
+        selected_positive = selected_positive[:cohort_size]
+
+        controls = [record for record in records if record_goal(record) != goal]
         if len(controls) < control_size:
             continue
-        selected_positive = rng.sample(positives, cohort_size)
         selected_controls = rng.sample(controls, control_size)
         cohort_families = sorted({str(item["family"]) for item in selected_positive})
         family = cohort_families[0] if len(cohort_families) == 1 else "mixed"
@@ -87,7 +90,6 @@ def cohort_rows(
             CircuitDatasetRow(
                 family=family,
                 goal=goal,
-                desired_answer=desired_answer,
                 example_prompts=[],
                 heldout_prompts=[
                     DatasetExample(
@@ -119,7 +121,7 @@ def main(
         int, typer.Option(min=1, help="Same-goal positive prompts in each row.")
     ] = 4,
     control_size: Annotated[
-        int, typer.Option(min=1, help="Different-answer controls in each row.")
+        int, typer.Option(min=1, help="Different-goal controls in each row.")
     ] = 4,
     seed: Annotated[int, typer.Option(help="Deterministic sampling seed.")] = 0,
     split: Annotated[
@@ -208,8 +210,8 @@ def main(
             "candidates": n,
             "cohort_size": cohort_size,
             "control_size": control_size,
-            "cohort_grouping": "goal+answer+target_token",
-            "control_exclusion": "desired_answer+desired_target_token",
+            "cohort_grouping": "goal with at least two distinct answers",
+            "control_exclusion": "different semantic goal",
         },
     )
 

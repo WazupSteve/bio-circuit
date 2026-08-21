@@ -74,10 +74,12 @@ def test_circuit_is_the_single_weighted_representation() -> None:
         Circuit(supernodes={"a": {"1_2": 1.0}, "b": {"1_2": -1.0}})
     with pytest.raises(ValidationError):
         Circuit(supernodes={"role": {"not-a-feature": 1.0}})
-    with pytest.raises(ValidationError):
-        Circuit(supernodes={"role": {"1_2": 9.0}})
-    with pytest.raises(ValidationError):
-        Circuit(supernodes={"role": {"1_2": 0.0}})
+    assert Circuit(supernodes={"role": {"1_2": 1e100}}).supernodes == {
+        "role": {"1_2": 1e100}
+    }
+    assert Circuit(supernodes={"role": {"1_2": 0.0}}).supernodes == {
+        "role": {"1_2": 0.0}
+    }
 
 
 def test_dataset_row_contains_only_runtime_fields() -> None:
@@ -90,7 +92,6 @@ def test_dataset_row_contains_only_runtime_fields() -> None:
         {
             "family": "test",
             "goal": "goal",
-            "desired_answer": None,
             "example_prompts": [],
             "heldout_prompts": [example],
             "control_prompts": [],

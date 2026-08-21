@@ -15,7 +15,6 @@ from circuit_supernodes.models import (
     TracerGraphPayload,
 )
 from circuit_supernodes.runtime.corruption import (
-    CORRUPTION_VERSION,
     MAX_CORRUPTION_NODES,
     MIN_CORRUPTION_NODES,
 )
@@ -106,7 +105,8 @@ def random_corruption_spec(
     corruption = []
     for node_id in selected:
         layer, feature = map(int, node_id.split("_"))
-        corruption.append((layer, feature, round(2 ** rng.uniform(1.0, 3.0), 6)))
+        factor = round(rng.uniform(-8.0, 8.0), 6)
+        corruption.append((layer, feature, factor))
     return corruption
 
 
@@ -327,7 +327,6 @@ def main(
         modal_cls=MODAL_CLS,
         max_error_share=max_error_share,
         quality=quality,
-        corruption_version=CORRUPTION_VERSION,
         generator={
             "seed": seed,
             "candidates": n,

@@ -14,7 +14,6 @@ from circuit_supernodes.runtime.ablation_contract import (
     evaluate_cohorts,
 )
 from circuit_supernodes.runtime.corruption import (
-    CORRUPTION_VERSION,
     MAX_CORRUPTION_FACTOR,
     MAX_CORRUPTION_NODES,
     MIN_CORRUPTION_FACTOR,
@@ -34,7 +33,6 @@ TRANSCODER_SET = "mwhanna/qwen3-4b-transcoders"
 NODE_THRESHOLD = 0.8
 EDGE_THRESHOLD = 0.98
 MAX_INTERVENTIONS = 60
-MAX_ABS_WEIGHT = 8.0
 
 
 # Keep the persistent-corruption backend isolated from legacy attribution
@@ -150,7 +148,6 @@ class RestorationAttributor:
                     "max_count": MAX_CORRUPTION_NODES,
                     "min_factor": MIN_CORRUPTION_FACTOR,
                     "max_abs_factor": MAX_CORRUPTION_FACTOR,
-                    "require_positive": True,
                 },
             ).root
         )
@@ -160,7 +157,6 @@ class RestorationAttributor:
                 context={
                     "label": "restoration",
                     "max_count": MAX_INTERVENTIONS,
-                    "max_abs_factor": MAX_ABS_WEIGHT,
                 },
             ).root
         )
@@ -261,7 +257,6 @@ class RestorationAttributor:
                             "max_count": MAX_CORRUPTION_NODES,
                             "min_factor": MIN_CORRUPTION_FACTOR,
                             "max_abs_factor": MAX_CORRUPTION_FACTOR,
-                            "require_positive": True,
                         },
                     ).root
                 )
@@ -274,13 +269,9 @@ class RestorationAttributor:
                     context={
                         "label": "ablation intervention",
                         "max_count": MAX_INTERVENTIONS,
-                        "max_abs_factor": MAX_ABS_WEIGHT,
                     },
                 ).root
             )
-            if any(factor == 0.0 for *_, factor in interventions):
-                raise ValueError("ablation interventions must be nonzero")
-
             tokens, expected_id = self._tokens_and_target(prompt, expected_token)
             intervention_input = self._intervention_input(tokens)
             with torch.no_grad():
@@ -710,10 +701,20 @@ class RestorationAttributor:
 
         import torch
 
-        selected = [
-            (int(layer), int(feature), int(position), float(factor))
-            for layer, feature, position, factor in coordinate_spec
-        ][:MAX_CORRUPTION_NODES]
+        selected = list(
+            InterventionPayload.model_validate(
+                [
+                    (int(layer), int(feature), int(position), float(factor))
+                    for layer, feature, position, factor in coordinate_spec
+                ][:MAX_CORRUPTION_NODES],
+                context={
+                    "label": "corruption",
+                    "min_count": MIN_CORRUPTION_NODES,
+                    "max_count": MAX_CORRUPTION_NODES,
+                    "max_abs_factor": MAX_CORRUPTION_FACTOR,
+                },
+            ).root
+        )
         if len(selected) < MIN_CORRUPTION_NODES:
             return {"rejected": "too few corruption coordinates in prompt"}
 
@@ -751,7 +752,6 @@ class RestorationAttributor:
             "changed_top_token": changed,
             "target_token": target_token,
             "corruption": selected,
-            "corruption_version": CORRUPTION_VERSION,
         }
         if not changed or not export_graph:
             return result
