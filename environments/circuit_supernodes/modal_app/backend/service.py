@@ -39,9 +39,7 @@ class Attributor:
             dtype=torch.bfloat16,
         )
         self.intervention_evaluator = InterventionEvaluator(self.model)
-        self.attribution = AttributionEngine(
-            self.model, node_threshold, edge_threshold
-        )
+        self.attribution = AttributionEngine(self.model, node_threshold, edge_threshold)
         self.corruption = CorruptionEngine(self.model, self.intervention_evaluator)
 
     def _logits(self, tokens):

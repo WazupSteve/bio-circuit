@@ -211,6 +211,13 @@ def write_manifest(
         "rows": rows,
         "sha256": DatasetArtifacts.sha256(out),
         "subject_backend": subject_backend,
+        "subject": {
+            "model": SUBJECT.config.model_name,
+            "transcoder_set": SUBJECT.config.transcoder_set,
+            "node_threshold": SUBJECT.config.node_threshold,
+            "edge_threshold": SUBJECT.config.edge_threshold,
+            "backend": subject_backend,
+        },
         **(backend_details or {}),
         "maximal_graphs": True,
         "max_feature_nodes": MAX_FEATURE_NODES,

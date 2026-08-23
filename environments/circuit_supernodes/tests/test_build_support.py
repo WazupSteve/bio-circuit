@@ -90,6 +90,13 @@ def test_manifest_stores_schema_and_generation_provenance_once(tmp_path) -> None
         },
     )
     manifest = json.loads(sidecar.read_text())
+    assert manifest["subject"] == {
+        "model": "Qwen/Qwen3-4B",
+        "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+        "node_threshold": 0.8,
+        "edge_threshold": 0.98,
+        "backend": "test/Subject",
+    }
     assert manifest["dataset_schema_version"] == "runtime-minimal-v2"
     assert manifest["generation_policy"] == "maximal-circuit-tracer-export-v1"
     assert manifest["maximal_graphs"] is True
