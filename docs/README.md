@@ -12,6 +12,7 @@
 - [Quickstart](../quickstart.md): the shipped one-row path
 - [Data generation](data-generation.md): build absent datasets
 - [Operations](operations.md): local/hosted evaluation, deployment, RL, and teardown
+- [Local / self-hosted subject](local.md): run the subject model on your own GPU instead of Modal with one script
 - [Troubleshooting](troubleshooting.md)
 
 ## Operate

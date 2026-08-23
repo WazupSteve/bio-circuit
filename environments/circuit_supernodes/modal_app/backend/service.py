@@ -1,11 +1,9 @@
-"""Thin Modal RPC surface for the unified backend."""
+"""Thin Modal RPC surface over the shared SubjectBackend."""
 
 import modal
 
-from .attribution import AttributionEngine
-from .corruption import CorruptionEngine
 from .deployment import app, hf_cache, image
-from .interventions import InterventionEvaluator
+from .subject import SubjectBackend
 
 
 @app.cls(
@@ -26,54 +24,35 @@ class Attributor:
 
     @modal.enter()
     def load(self):
-        import torch
-        from circuit_tracer import ReplacementModel
-
-        node_threshold = float(self.node_threshold)
-        edge_threshold = float(self.edge_threshold)
-
-        self.model = ReplacementModel.from_pretrained(
+        self.backend = SubjectBackend(
             self.model_name,
             self.transcoder_set,
-            backend="nnsight",
-            dtype=torch.bfloat16,
+            float(self.node_threshold),
+            float(self.edge_threshold),
         )
-        self.intervention_evaluator = InterventionEvaluator(self.model)
-        self.attribution = AttributionEngine(self.model, node_threshold, edge_threshold)
-        self.corruption = CorruptionEngine(self.model, self.intervention_evaluator)
-
-    def _logits(self, tokens):
-        batch = tokens.unsqueeze(0) if tokens.dim() == 1 else tokens
-        return self.model._model(input_ids=batch).logits
 
     @modal.method()
     def sample_until_answer(self, request: dict) -> dict:
-        from circuit_supernodes.runtime.sampling import sample_until_answer
-
-        return sample_until_answer(self.model, request, logits_fn=self._logits)
+        return self.backend.sample_until_answer(request)
 
     @modal.method()
     def restore_output(self, prompt, corruption, restorations, target_token):
-        return self.intervention_evaluator.restore_output(
+        return self.backend.restore_output(
             prompt, corruption, restorations, target_token
         )
 
     @modal.method()
     def evaluate_ablation_cohort(self, positives, controls):
-        return self.intervention_evaluator.evaluate_ablation_cohort(positives, controls)
+        return self.backend.evaluate_ablation_cohort(positives, controls)
 
     @modal.method()
     def test_corruption_coordinates(
         self, prompt, expected_target_token, coordinate_spec
     ):
-        return self.corruption.corrupt_with_coordinate_spec(
+        return self.backend.test_corruption_coordinates(
             prompt, expected_target_token, coordinate_spec
         )
 
     @modal.method()
     def attribute_prompt(self, prompt):
-        try:
-            return self.attribution.attribute_graph(prompt)
-        except Exception as exc:
-            print(f"attribution failed for {prompt!r}: {exc}")
-            return None
+        return self.backend.attribute_prompt(prompt)

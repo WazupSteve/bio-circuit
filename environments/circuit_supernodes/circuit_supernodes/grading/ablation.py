@@ -14,7 +14,7 @@ from ..models import (
     TracerGraphPayload,
 )
 from ..runtime.graphs import resolve_interventions, top_outputs, weighted_nodes
-from ..runtime.modal import ModalSubject, retry_modal_call
+from ..runtime.modal import Subject, retry_modal_call
 
 
 class PositiveAblationResult(StrictModel):
@@ -106,7 +106,7 @@ def ablation_score(
 class AblationHoldoutGrader:
     """Grade only whether the negated proposal is necessary and specific."""
 
-    def __init__(self, subject: ModalSubject) -> None:
+    def __init__(self, subject: Subject) -> None:
         self.subject = subject
 
     async def grade(

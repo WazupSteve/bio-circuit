@@ -17,7 +17,7 @@ from pydantic import (
 
 from ..models import DatasetExample, StrictModel
 from ..runtime.graphs import resolve_interventions
-from ..runtime.modal import ModalSubject, retry_modal_call
+from ..runtime.modal import Subject, retry_modal_call
 
 
 class RestorationReplayResult(StrictModel):
@@ -74,7 +74,7 @@ def cohort_clean_kl(results: Sequence[object]) -> float:
 class RestorationMetricEvaluator:
     """Replay hidden corruption and score clean-distribution restoration."""
 
-    def __init__(self, subject: ModalSubject) -> None:
+    def __init__(self, subject: Subject) -> None:
         self.subject = subject
 
     @retry_modal_call

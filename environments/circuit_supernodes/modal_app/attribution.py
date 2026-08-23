@@ -1,7 +1,7 @@
 import json
 
 from circuit_supernodes.runtime.modal import SubjectConfig
-from modal_app.backend import Attributor, app
+from modal_app.backend.service import Attributor, app
 
 __all__ = ["Attributor", "app"]
 

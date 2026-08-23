@@ -10,7 +10,7 @@ from circuit_supernodes.models import (
 )
 from circuit_supernodes.runtime.answers import answer_key
 from circuit_supernodes.runtime.graphs import top_outputs
-from circuit_supernodes.runtime.modal import ModalSubject
+from circuit_supernodes.runtime.modal import Subject
 from circuit_supernodes.runtime.sampling import MAX_NEW_TOKENS
 from pydantic import Field
 from scripts.prompt_generation import CircuitSample
@@ -72,7 +72,7 @@ def classify_result(
 
 
 def _sample_answers(
-    generator: ModalSubject, samples: list[CircuitSample]
+    generator: Subject, samples: list[CircuitSample]
 ) -> list[SamplingResult]:
     requests = [
         sampling_request(sample.prompt, sample.possible_answers) for sample in samples
@@ -105,7 +105,7 @@ def _prepared(
 
 
 def prepare_samples(
-    generator: ModalSubject, samples: list[CircuitSample]
+    generator: Subject, samples: list[CircuitSample]
 ) -> tuple[list[PreparedSample], dict[str, int]]:
     """Keep correct answers and record, but reject, all other outcomes."""
 

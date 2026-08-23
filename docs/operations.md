@@ -23,6 +23,10 @@ uv run modal run modal_app/attribution.py --help
 
 The `Attributor` runs on an A100-80GB, has a one-hour timeout, up to eight containers, and a ten-minute scale-down window. Model assets use a persistent Hugging Face cache volume. Use `uv run modal app stop circuit-supernodes` to stop the deployment; confirm the current Modal CLI syntax before teardown.
 
+## Self-hosted GPU (no Modal)
+
+See [local.md](local.md): `scripts/subject.sh up` brings up a GPU host, serves the subject, and tunnels it; `export SUBJECT_URL=http://localhost:8000` switches every client off Modal.
+
 ## Hosted publication and evaluation
 
 Hosted evaluation is a separate workflow. Publish each TaskSet environment under an owner slug, publish its required dataset, then invoke Prime's hosted evaluation interface with that published identifier. The local Verifiers-v1 TOMLs in `configs/eval/` are not claimed to work with `prime eval run --hosted`.

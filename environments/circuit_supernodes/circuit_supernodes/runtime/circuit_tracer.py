@@ -7,7 +7,7 @@ from pydantic import Field, FiniteFloat
 
 from ..models import StrictModel, TracerGraphPayload
 from .graphs import resolve_interventions, stable_feature_id, top_outputs
-from .modal import ModalSubject, retry_modal_call, subject_from_config
+from .modal import Subject, retry_modal_call, subject_from_config
 from .responses import render_feature_view
 
 
@@ -36,7 +36,7 @@ class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):
 
     def __init__(self, config: vf.ToolsetConfig) -> None:
         super().__init__(config)
-        self._subject: ModalSubject | None = None
+        self._subject: Subject | None = None
         self._corruption_spec: list[tuple[int, int, float]] = []
 
     async def setup_task(self, task) -> None:

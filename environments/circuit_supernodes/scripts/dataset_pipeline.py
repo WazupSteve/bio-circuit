@@ -16,7 +16,7 @@ from circuit_supernodes.runtime.datasets import (
     GENERATION_POLICY,
 )
 from circuit_supernodes.runtime.graphs import MAX_FEATURE_NODES, graph_quality
-from circuit_supernodes.runtime.modal import SUBJECT, ModalSubject
+from circuit_supernodes.runtime.modal import SUBJECT, Subject
 from circuit_supernodes.runtime.sampling import MAX_NEW_TOKENS
 from scripts.build_support import DatasetArtifacts
 from scripts.prompt_generation import (
@@ -42,7 +42,7 @@ class DatasetBuild:
     """Shared initialized state for a dataset-builder command."""
 
     families: list[str]
-    subject: ModalSubject
+    subject: Subject
     prepared: list[PreparedSample]
     triage: dict[str, int]
 
@@ -132,7 +132,7 @@ def resolve_families(
 
 
 def prepare_candidates(
-    subject: ModalSubject, samples: Sequence[Any]
+    subject: Subject, samples: Sequence[Any]
 ) -> tuple[list[PreparedSample], dict[str, int]]:
     prepared, triage = prepare_samples(subject, list(samples))
     print("answer sampling triage:", triage)
@@ -142,7 +142,7 @@ def prepare_candidates(
 
 
 def clean_attributions(
-    subject: ModalSubject,
+    subject: Subject,
     prepared: Sequence[PreparedSample],
     *,
     max_error_share: float,

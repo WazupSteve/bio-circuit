@@ -1,11 +1,14 @@
-"""Modal-only access to subject-model services."""
+"""Subject-model clients: Modal by default, any HTTP server via SUBJECT_URL."""
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterable, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from functools import lru_cache
 from typing import Any
 
+import httpx
 from pydantic import BaseModel, ConfigDict, Field
 from tenacity import retry, stop_after_attempt, wait_chain, wait_fixed
 
@@ -84,8 +87,69 @@ class ModalSubject:
         return self.spawn("attribute_prompt", prompt)
 
 
+class _Spawned:
+    """Minimal stand-in for a Modal function call handle."""
+
+    def __init__(self, future: Future) -> None:
+        self._future = future
+
+    def get(self) -> Any:
+        return self._future.result()
+
+
+class HttpSubject:
+    """Client for a self-hosted ``modal_app.server`` (e.g. over an SSH tunnel)."""
+
+    app_name = "http"
+
+    def __init__(
+        self, url: str, config: SubjectConfig | None = None, workers: int = 4
+    ) -> None:
+        self.url = url.rstrip("/")
+        self.class_name = self.url
+        self.config = config or SubjectConfig()
+        self._sync = httpx.Client(base_url=self.url, timeout=None)
+        self._async = httpx.AsyncClient(base_url=self.url, timeout=None)
+        self._pool = ThreadPoolExecutor(max_workers=workers)
+
+    def _call(self, method: str, *args: Any) -> Any:
+        response = self._sync.post(f"/{method}", json=list(args))
+        response.raise_for_status()
+        return response.json()
+
+    async def call(self, method: str, *args: Any) -> Any:
+        response = await self._async.post(f"/{method}", json=list(args))
+        response.raise_for_status()
+        return response.json()
+
+    def map(
+        self,
+        method: str,
+        *inputs: Iterable[Any],
+        order_outputs: bool = True,
+    ) -> Iterable[Any]:
+        return self._pool.map(
+            lambda args: self._call(method, *args), zip(*inputs, strict=True)
+        )
+
+    def spawn(self, method: str, *args: Any) -> Any:
+        return _Spawned(self._pool.submit(self._call, method, *args))
+
+    sample_answers = ModalSubject.sample_answers
+    attribution_graphs = ModalSubject.attribution_graphs
+    spawn_attribution_graph = ModalSubject.spawn_attribution_graph
+
+
+Subject = ModalSubject | HttpSubject
+
+
 @lru_cache
-def subject_from_config(config: SubjectConfig) -> ModalSubject:
+def subject_from_config(config: SubjectConfig) -> Subject:
+    """Pick the subject client: ``SUBJECT_URL`` if set, otherwise the Modal app."""
+
+    url = os.environ.get("SUBJECT_URL")
+    if url:
+        return HttpSubject(url, config)
     return ModalSubject("circuit-supernodes", "Attributor", config)
 
 
