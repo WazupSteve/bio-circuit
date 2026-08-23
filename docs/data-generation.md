@@ -95,8 +95,7 @@ family and target token. For each candidate cohort it:
 2. selects 4–12 shared IDs and signed uniform factors in `[-8, 8]`;
 3. resolves each ID to its prompt-specific position;
 4. retries up to `--attempts` until every prompt changes top token;
-5. attributes each execution under that shared corruption, retaining the real
-   corrupted activations and graph structure; and
+5. retains the clean attribution graph, with output nodes and edges redacted; corruption is applied only during experiments and grading replay; and
 6. adds equally many clean controls sampled from other families.
 
 The default `heldout_size=10` produces one ten-item `heldout_prompts` list in the
@@ -117,10 +116,10 @@ Writers stream compact JSONL, optionally gzip-compressed at low compression, to
 a sibling `.partial` file and atomically rename it on success. This avoids both
 large in-memory serialization and partially written final artifacts.
 
-Every row uses `CircuitDatasetRow`. A sidecar `*.manifest.json` records the
+Every row uses `CircuitDatasetRow`. The checked-in fixture uses a supported legacy manifest shape. A sidecar `*.manifest.json` records the
 dataset schema, SHA-256, row count, subject backend, families,
 sampler triage, screening policy, maximal graph policy, generator parameters,
-quality summaries, and corruption provenance where applicable. Runtime loaders
+quality summaries, and corruption provenance where applicable. Manifests are provenance only and are not automatically checked. Runtime loaders
 validate row and graph types but intentionally trust expensive semantic
 relationships established by the builders.
 

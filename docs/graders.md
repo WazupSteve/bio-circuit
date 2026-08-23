@@ -19,9 +19,9 @@ parse ends latest. It accepts exactly one of these top-level shapes:
 
 Task adapters decide whether a flat list is allowed, whether exactly one group
 is required, and whether omitted weights receive a default. Validation rejects
-duplicate feature IDs, duplicate case-insensitive group names, zero/non-finite
-or out-of-range factors, more than eight groups, more than 60 total nodes, and
-unknown fields. Invalid output receives reward zero without a remote replay.
+duplicate feature IDs, duplicate case-insensitive group names, non-finite factors,
+more than eight groups, and more than 60 total nodes. Incoming normalization tolerates
+unrelated extra fields; canonical models reject extras. Invalid output receives reward zero without a remote replay.
 
 ## Discovery ablation grading
 
@@ -90,7 +90,7 @@ KL on the corrupted target cohort is the grading objective.
 ## Backend validation
 
 Restoration replay requires the clean target to be top before corruption and the
-stored corruption to change it. Generated corruption multipliers lie in
+stored corruption to change it. Builder-generated corruption multipliers lie in
 `[-8, 8]`; policy proposals may use any finite multiplier, including zero to
 clamp an activation. Backend
 protocol mismatches raise errors rather than silently becoming low rewards.

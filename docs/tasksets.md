@@ -79,7 +79,5 @@ in `configs/eval/suppressed-features-canary-egress.toml`.
 ## Loading and discovery
 
 Each adapter streams JSONL or gzip-compressed JSONL through strict Pydantic
-validation and yields Verifiers tasks. The root package lazily exports the
-vanilla `CircuitTaskset`; the other TaskSet IDs rely on the runner/plugin
-discovery conventions. Missing data files fail with the builder command needed
+validation and yields Verifiers tasks. Each public ID has an importable top-level package exporting exactly one TaskSet subclass through `__all__`; tests resolve all three with the Verifiers v1 loader. Missing data files fail with the builder command needed
 to create them.

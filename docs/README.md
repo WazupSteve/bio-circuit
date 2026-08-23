@@ -1,55 +1,26 @@
-# Bio-circuit system documentation
+# BioCircuit documentation
 
-This directory documents the repository as it exists today. The shortest useful
-mental model is:
+## Understand
 
-```text
-policy model
-  -> CircuitExperimentTools
-     -> Modal subject model (sample, attribute, intervene)
-  -> final circuit JSON
-     -> causal ablation grader (discovery) or clean-KL replay (restoration)
-```
+- [Core environment](core-environment.md): tools, stable identities, graph views, and response normalization
+- [TaskSets](tasksets.md): visible discovery, promptless rediscovery, and restoration
+- [Graders](graders.md): necessity, specificity, and restoration similarity
+- [How BioCircuit works](blog/how-biocircuit-works.md): narrative introduction
 
-Dataset builders use the same subject-model service ahead of time to generate
-prompts, retain correct model answers, export maximal attribution graphs, and
-assemble the hidden cohorts consumed by the TaskSets.
+## Run
 
-## Reading order
+- [Quickstart](../quickstart.md): the shipped one-row path
+- [Data generation](data-generation.md): build absent datasets
+- [Operations](operations.md): local/hosted evaluation, deployment, RL, and teardown
+- [Troubleshooting](troubleshooting.md)
 
-1. [Core environment](core-environment.md) — model sampling, Circuit Tracer
-   graphs, stable feature identities, multiplicative patching, and tool calls.
-2. [TaskSets](tasksets.md) — the vanilla/visible discovery, promptless
-   rediscovery, and suppressed-feature restoration contracts.
-3. [Graders](graders.md) — response parsing, discovery ablation gates, and
-   clean-distribution restoration reward.
-4. [Data generation](data-generation.md) — prompt families, answer-aware
-   sampling, graph screening, cohort construction, artifacts, and commands.
-5. [Neuronpedia](neuronpedia.md) — optional feature-label enrichment.
-6. [Repository map and feature-creep inventory](repository-map.md) — deployment,
-   configuration, packaging, tests, and systems outside the requested core.
+## Operate
 
-## Important terminology
+- [Reference](reference.md): schemas, tool/RPC contracts, files, configs, and stability
+- [Neuronpedia](neuronpedia.md): optional feature labels
+- [Ownership and module map](repository-map.md)
 
-- **Subject model**: the remotely hosted model whose internal features are
-  attributed and patched (Qwen3-4B for every task).
-- **Policy model**: the model solving a Verifiers task by calling tools and
-  submitting circuit JSON.
-- **Feature node**: a transcoder feature at a layer and prompt position, exported
-  as `layer_feature_position`.
-- **Stable feature ID**: `layer_feature`. It deliberately omits position so the
-  same learned feature can be transferred between prompts.
-- **Multiplier**: any finite factor selected by the policy and applied to a
-  feature's clean activation; zero clamps it to zero.
-- **Corruption**: a stored signed multiplier applied before a restoration
-  proposal in the suppressed-feature task.
-- **Ablation**: the reward grader negates the submitted multiplier and checks
-  whether the original top token is displaced.
+## Extend
 
-## Source boundaries
-
-The root project supplies Prime/Verifiers runner configuration. The nested
-`environments/circuit_supernodes` project is the independently buildable TaskSet
-package and owns runtime code, builders, one Modal service, and tests. Generated
-datasets are mostly ignored by Git; the checked-in visible heldout artifact is an
-exception.
+- [Contributing](../CONTRIBUTING.md)
+- [Nested package commands](../environments/circuit_supernodes/README.md)

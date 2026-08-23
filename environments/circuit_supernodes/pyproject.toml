@@ -26,6 +26,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build]
 include = [
     "circuit_supernodes/**",
+    "supernode_rediscovery/**",
+    "suppressed_features/**",
     "pyproject.toml",
 ]
 

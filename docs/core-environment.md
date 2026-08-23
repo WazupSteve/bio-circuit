@@ -104,9 +104,7 @@ responses.
 
 All three TaskSets install `CircuitExperimentTools`:
 
-- `circuit_attribute(prompt, feature_count)` attributes any prompt. For a
-  suppressed-feature task, the task's persistent corruption is applied before
-  attribution, so the returned graph represents corrupted execution.
+- `circuit_attribute(prompt, feature_count)` returns clean graph structure. In restoration, output nodes and edges are redacted; hidden corruption is applied only during interventions and grading replay.
 - `circuit_intervene(source_prompt, node_id, prompt, intervention_weight)` checks
   that the stable node exists in the source graph, resolves it independently on
   the target graph, reruns the target with the multiplier, and returns baseline
@@ -120,7 +118,7 @@ and 15 seconds.
 
 `models.py` is the main validation boundary. A final `Circuit` contains one to
 eight named supernodes, at most 60 unique stable features total, and one bounded
-factor per feature. Unknown fields are rejected. Dataset rows share one
+factor per feature. Incoming response normalization tolerates unrelated extra fields; the canonical `Circuit` is strict. Dataset rows share one
 shape across all tasks: `family`, optional `goal`, plus
 `example_prompts`, `heldout_prompts`, and `control_prompts`. Each example stores
 the prompt, target token, graph, and optional coordinate-level corruption.
