@@ -1,5 +1,11 @@
+from collections import defaultdict
+
 from circuit_supernodes.models import TracerGraphPayload, TracerNode
-from scripts.build_visible_dataset import cohort_rows
+from scripts.build_visible_dataset import (
+    _attribution_batch,
+    cohort_capacity,
+    cohort_rows,
+)
 
 
 def graph() -> TracerGraphPayload:
@@ -64,3 +70,32 @@ def test_visible_builder_separates_goals_and_emits_minimal_examples() -> None:
                 *serialized["control_prompts"],
             ]
         )
+
+
+def test_capacity_counts_disjoint_positive_blocks_and_available_controls() -> None:
+    assert cohort_capacity({"a": 60, "b": 24}, positive_size=30, null_size=25) == 0
+    assert cohort_capacity({"a": 60, "b": 25}, positive_size=30, null_size=25) == 2
+    assert (
+        cohort_capacity(
+            {f"goal-{index}": 60 for index in range(9)},
+            positive_size=30,
+            null_size=25,
+        )
+        == 18
+    )
+
+
+def test_attribution_batch_skips_work_beyond_each_goals_remaining_cap() -> None:
+    a_items = [object() for _ in range(10)]
+    b_items = [object() for _ in range(10)]
+    queues = {"a": list(a_items), "b": list(b_items)}
+    selected = _attribution_batch(
+        queues,
+        defaultdict(int, {"a": 9}),
+        max_records_per_goal=10,
+        batch_size=10,
+    )
+
+    assert len(selected) == 10
+    assert sum(item in a_items for item in selected) == 1
+    assert sum(item in b_items for item in selected) == 9

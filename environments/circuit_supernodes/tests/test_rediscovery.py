@@ -94,6 +94,30 @@ def test_builder_groups_goals_with_varied_answers_and_minimal_examples() -> None
         )
 
 
+def test_builder_forms_multiple_disjoint_cohorts_from_one_goal() -> None:
+    positives = [
+        record(f"positive {index}", f"answer-{index % 2}") for index in range(8)
+    ]
+    controls = [
+        record(f"control {index}", "other", family="control") for index in range(4)
+    ]
+    rows = cohort_rows(
+        [*positives, *controls],
+        tasks=2,
+        cohort_size=4,
+        control_size=2,
+        seed=3,
+    )
+
+    assert len(rows) == 2
+    assert [row.goal for row in rows] == ["test", "test"]
+    prompts = [{example.prompt for example in row.heldout_prompts} for row in rows]
+    assert prompts[0].isdisjoint(prompts[1])
+    assert all(
+        len({item.target_token for item in row.heldout_prompts}) >= 2 for row in rows
+    )
+
+
 def test_builder_allows_other_goal_control_with_colliding_first_token() -> None:
     positives = [record(f"positive {index}", f"answer-{index}") for index in range(3)]
     colliding = record(
