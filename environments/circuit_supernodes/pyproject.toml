@@ -1,18 +1,25 @@
 [project]
 name = "circuit-supernodes"
-description = "Identify supernodes and circuits in Qwen3-4B attribution graphs built from per-layer transcoders"
-tags = ["multi-turn", "interpretability", "train", "eval"]
+description = "Evidence/holdout causal-circuit, rediscovery, and restoration tasksets"
+tags = ["multi-turn", "interpretability", "tool-use", "train", "eval"]
 version = "0.1.0"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "verifiers==0.2.1",
     "modal>=1.5",
     "pydantic>=2.12.3",
+    "httpx>=0.28.1",
+    "tenacity>=9.1.2",
+    "typer>=0.27.0",
+    "fastapi>=0.141.1",
+    "torch>=2.13.0",
+    "nnsight>=0.7.0",
+    "circuit-tracer>=0.5.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8",
+    "pytest>=8.3",
     "ruff>=0.15",
 ]
 
@@ -21,4 +28,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-include = ["circuit_supernodes/**", "pyproject.toml"]
+include = [
+    "circuit_supernodes/**",
+    "supernode_rediscovery/**",
+    "suppressed_features/**",
+    "pyproject.toml",
+]
+
+[tool.ty.src]
+# Tests intentionally construct invalid Pydantic payloads, while modal_app is
+# installed and checked in its separate GPU image with torch/circuit-tracer.
+exclude = ["tests", "modal_app"]

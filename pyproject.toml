@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "modal>=1.5.1",
+    "prime>=0.6.20",
     "verifiers==0.2.1",
 ]
 
@@ -20,3 +21,10 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ty.src]
+include = ["environments/circuit_supernodes/circuit_supernodes"]
+
+[tool.pytest.ini_options]
+testpaths = ["environments/circuit_supernodes/tests"]
+pythonpath = ["environments/circuit_supernodes"]

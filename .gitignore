@@ -1,3 +1,6 @@
+# Internal planning; not part of the published environment
+/STEPS.md
+
 # Lab generated artifacts
 .env
 /AGENTS.md
@@ -19,4 +22,10 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.venv/
 uv.lock
+
+# prime eval / prime train local run artifacts
+/outputs/
+/environments/*/outputs/
+.subject.*

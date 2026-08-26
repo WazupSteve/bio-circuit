@@ -1,0 +1,22 @@
+# prime eval run configs/eval/suppressed-features.toml [--hosted]
+model = "Qwen/Qwen3.5-4B"
+num_tasks = 16
+num_rollouts = 1
+max_turns = 16
+
+[sampling]
+max_tokens = 16384
+enable_thinking = false
+
+[taskset]
+id = "suppressed-features"
+dataset_file = "suppressed-features.jsonl.gz"
+
+[taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
+
+[harness]
+id = "null"

@@ -1,0 +1,60 @@
+{
+  "dataset": "suppressed-features.jsonl.gz",
+  "dataset_schema_version": "runtime-minimal-v2",
+  "rows": 16,
+  "sha256": "9471db59aedac6417c284bc71aa44a2d61e5f2a0c9d4bcd175bd801f8c715b27",
+  "subject_backend": "http/http://127.0.0.1:8000",
+  "subject": {
+    "model": "Qwen/Qwen3-4B",
+    "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+    "node_threshold": 0.8,
+    "edge_threshold": 0.98,
+    "backend": "http/http://127.0.0.1:8000"
+  },
+  "maximal_graphs": true,
+  "max_feature_nodes": 2048,
+  "generation_policy": "maximal-circuit-tracer-export-v1",
+  "sampler": {
+    "max_new_tokens": 50,
+    "triage": {
+      "keep_correct": 490,
+      "keep_incorrect": 267,
+      "reject": 11
+    }
+  },
+  "screening": {
+    "exact_first_token": true,
+    "max_error_share": 0.35
+  },
+  "generator": {
+    "seed": 0,
+    "candidates": 4000,
+    "candidates_sampled": 768,
+    "candidates_attributed": 430,
+    "candidate_groups_tested": 19,
+    "tasks": 16,
+    "heldout_size": 10,
+    "corruption_attempts": 32,
+    "answer_batch_size": 128,
+    "attribution_batch_size": 8,
+    "corruption_nodes": [
+      4,
+      12
+    ],
+    "families": [
+      "two_hop",
+      "agreement",
+      "comparison",
+      "weekday",
+      "path_composition",
+      "modular_arithmetic",
+      "rule_composition",
+      "spatial_composition",
+      "boolean_composition"
+    ]
+  },
+  "graph_quality": {
+    "error_influence": 0.20757827939658652,
+    "displayed_feature_influence": 0.4021215686427945
+  }
+}

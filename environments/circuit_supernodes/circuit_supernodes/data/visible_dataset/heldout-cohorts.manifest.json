@@ -1,0 +1,59 @@
+{
+  "dataset": "heldout-cohorts-v2.jsonl.gz",
+  "dataset_schema_version": "runtime-minimal-v2",
+  "rows": 16,
+  "sha256": "d2204ca5aadaab6ecbebd24993897e0f965726b9b487f5810f734b2a94705d35",
+  "subject_backend": "http/http://127.0.0.1:8000",
+  "subject": {
+    "model": "Qwen/Qwen3-4B",
+    "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+    "node_threshold": 0.8,
+    "edge_threshold": 0.98,
+    "backend": "http/http://127.0.0.1:8000"
+  },
+  "maximal_graphs": true,
+  "max_feature_nodes": 2048,
+  "generation_policy": "maximal-circuit-tracer-export-v1",
+  "sampler": {
+    "max_new_tokens": 50,
+    "triage": {
+      "keep_correct": 597,
+      "keep_incorrect": 832,
+      "reject": 8
+    }
+  },
+  "screening": {
+    "exact_first_token": true,
+    "max_error_share": 0.35
+  },
+  "generator": {
+    "seed": 1,
+    "candidates": 8000,
+    "candidates_sampled": 1437,
+    "candidates_attributed": 502,
+    "tasks": 16,
+    "example_prompt_count": 5,
+    "holdout_size": 25,
+    "null_size": 25,
+    "max_records_per_goal": 60,
+    "answer_batch_size": 256,
+    "attribution_batch_size": 64,
+    "positive_grouping": "shared semantic goal",
+    "null_exclusion": "different semantic goal",
+    "families": [
+      "two_hop",
+      "agreement",
+      "comparison",
+      "weekday",
+      "path_composition",
+      "modular_arithmetic",
+      "rule_composition",
+      "spatial_composition",
+      "boolean_composition"
+    ]
+  },
+  "graph_quality": {
+    "error_influence": 0.2100070896917681,
+    "displayed_feature_influence": 0.3916559672617111
+  }
+}

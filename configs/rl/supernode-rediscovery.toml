@@ -1,0 +1,59 @@
+# prime train run configs/rl/supernode-rediscovery.toml
+model = "Qwen/Qwen3.5-4B"
+max_steps = 40
+batch_size = 128
+rollouts_per_example = 8
+
+[sampling]
+max_tokens = 16384
+enable_thinking = false
+
+[[pre_batch_filters]]
+type = "zero_advantage"
+enforce = true
+
+[[post_batch_filters]]
+type = "repetition"
+enforce = false
+
+[[env]]
+max_turns = 16
+
+[env.taskset]
+id = "supernode-rediscovery"
+dataset_file = "promptless-supernodes-train.jsonl.gz"
+min_cohort_success = 1.0
+max_control_activation = 0.0
+
+[env.taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
+
+[env.harness]
+id = "null"
+
+[eval]
+interval = 10
+num_examples = 16
+rollouts_per_example = 1
+eval_base_model = true
+
+[[eval.env]]
+max_turns = 16
+
+[eval.env.taskset]
+id = "supernode-rediscovery"
+dataset_file = "promptless-supernodes.jsonl.gz"
+min_cohort_success = 1.0
+max_control_activation = 0.0
+
+[eval.env.taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
+
+[eval.env.harness]
+id = "null"
