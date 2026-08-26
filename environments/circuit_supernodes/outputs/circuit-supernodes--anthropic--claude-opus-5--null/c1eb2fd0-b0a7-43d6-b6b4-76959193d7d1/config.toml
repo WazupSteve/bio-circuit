@@ -1,0 +1,66 @@
+max_turns = 50
+model = "anthropic/claude-opus-5"
+num_tasks = 1
+num_rollouts = 1
+shuffle = false
+max_concurrent = 1
+verbose = false
+dry_run = false
+rich = true
+server = false
+push = false
+
+[taskset]
+id = "circuit-supernodes"
+dataset_file = "heldout-cohorts.jsonl.gz"
+min_evidence_success = 1.0
+min_holdout_success = 1.0
+max_null_failure = 0.0
+
+[taskset.task]
+judges = []
+
+[taskset.subject]
+model_name = "Qwen/Qwen3-4B"
+transcoder_set = "mwhanna/qwen3-4b-transcoders"
+node_threshold = 0.8
+edge_threshold = 0.98
+
+[harness]
+id = "null"
+forward_env = []
+
+[harness.runtime]
+type = "subprocess"
+
+[harness.env]
+
+[timeout]
+
+[retries.rollout]
+max_retries = 0
+include = []
+exclude = []
+
+[interception]
+type = "elastic"
+multiplex = 32
+
+[args]
+
+[extra_env_kwargs]
+
+[pool]
+type = "elastic"
+multiplex = 128
+
+[client]
+base_url = "https://api.pinference.ai/api/v1"
+api_key_var = "PRIME_API_KEY"
+type = "eval"
+
+[client.headers]
+
+[sampling]
+max_tokens = 16384
+enable_thinking = false

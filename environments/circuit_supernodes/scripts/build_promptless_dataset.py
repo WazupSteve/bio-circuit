@@ -17,7 +17,7 @@ from scripts.dataset_pipeline import (
     finish_build,
     resolve_families,
 )
-from scripts.prompt_generation import generate_pool
+from scripts.prompt_generation import iter_pool_batches
 from scripts.sample_preparation import PreparedSample, prepare_samples
 
 DATA_DIR = (
@@ -189,32 +189,13 @@ def main(
     """Build hidden-prompt goal-supernode cohorts and specificity controls."""
 
     families = resolve_families(family, split, default_split="all")
-    samples = generate_pool(n, seed=seed, families=families)
-    print(
-        f"sampled {len(samples)} candidate prompts across families:",
-        sorted({sample.family for sample in samples}),
-    )
-    raw_by_goal: dict[str, list[dict]] = defaultdict(list)
-    for sample in samples:
-        raw_by_goal[sample_goal(sample)].append({"target": sample.target})
-    maximum_tasks = cohort_capacity(
-        raw_by_goal, cohort_size=cohort_size, control_size=control_size
-    )
-    if maximum_tasks < tasks:
-        raise typer.BadParameter(
-            f"candidate pool can form at most {maximum_tasks} varied-answer cohorts; "
-            "increase --n, select more goals, or reduce --tasks",
-            param_hint="--n/--tasks",
-        )
-
     records_by_goal: dict[str, list[dict]] = defaultdict(list)
     quality: list[dict[str, float | int]] = []
     triage = {"keep_correct": 0, "keep_incorrect": 0, "reject": 0}
     sampled_candidates = 0
     attributed_candidates = 0
 
-    for start in range(0, len(samples), answer_batch_size):
-        candidates = samples[start : start + answer_batch_size]
+    for candidates in iter_pool_batches(n, seed, families, answer_batch_size):
         prepared, batch_triage = prepare_samples(SUBJECT, candidates)
         sampled_candidates += len(candidates)
         for disposition, count in batch_triage.items():

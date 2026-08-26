@@ -16,7 +16,7 @@ from scripts.dataset_pipeline import (
     resolve_families,
 )
 from scripts.neuronpedia import add_feature_labels
-from scripts.prompt_generation import generate_pool
+from scripts.prompt_generation import iter_pool_batches
 from scripts.sample_preparation import PreparedSample, prepare_samples
 
 DATA_DIR = (
@@ -251,31 +251,7 @@ def main(
         )
 
     families = resolve_families(family, split, default_split="train")
-    samples = generate_pool(n, seed=seed, families=families)
-    print(
-        f"sampled {len(samples)} candidate prompts across families:",
-        sorted({sample.family for sample in samples}),
-    )
-    candidate_counts: dict[str, int] = defaultdict(int)
-    for sample in samples:
-        candidate_counts[sample_goal(sample)] += 1
     positive_size = example_size + holdout_size
-    bounded_candidate_counts = {
-        goal: min(count, max_records_per_goal)
-        for goal, count in candidate_counts.items()
-    }
-    maximum_tasks = cohort_capacity(
-        bounded_candidate_counts,
-        positive_size=positive_size,
-        null_size=null_size,
-    )
-    if len(candidate_counts) < 2 or maximum_tasks < tasks:
-        raise typer.BadParameter(
-            f"configuration can form at most {maximum_tasks} cohorts from "
-            f"{len(candidate_counts)} goals; increase --max-records-per-goal, "
-            "select more goals, or reduce --tasks",
-            param_hint="--tasks/--max-records-per-goal",
-        )
 
     records_by_goal: dict[str, list[dict]] = defaultdict(list)
     quality = []
@@ -284,10 +260,10 @@ def main(
     sampled_candidates = 0
     attributed_candidates = 0
 
-    for start in range(0, len(samples), answer_batch_size):
+    for sample_batch in iter_pool_batches(n, seed, families, answer_batch_size):
         candidates = [
             sample
-            for sample in samples[start : start + answer_batch_size]
+            for sample in sample_batch
             if retained_per_goal[sample_goal(sample)] < max_records_per_goal
         ]
         if not candidates:

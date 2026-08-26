@@ -91,7 +91,7 @@ Backend: `circuit-supernodes/Attributor` (Qwen3-4B).
 `scripts/build_restoration_dataset.py` first groups faithful clean graphs by
 family and target token. For each candidate cohort it:
 
-1. intersects the top 4,096 positive-activation stable features across prompts;
+1. intersects the top 2,048 positive-activation stable features across prompts;
 2. selects 4–12 shared IDs and signed uniform factors in `[-8, 8]`;
 3. resolves each ID to its prompt-specific position;
 4. retries up to `--attempts` until every prompt changes top token;

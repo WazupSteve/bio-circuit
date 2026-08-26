@@ -1,0 +1,2 @@
+# Evaluation traces can be very large; store them outside the regular Git object database.
+outputs/**/traces.jsonl filter=lfs diff=lfs merge=lfs -text

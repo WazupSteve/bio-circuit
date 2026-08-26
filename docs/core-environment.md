@@ -12,7 +12,7 @@ typed requests, graph manipulation, tool rendering, and remote clients.
 arbitrary prompt
   -> optional bounded answer sampling
   -> subject-model forward pass
-  -> Circuit Tracer attribution (up to 4,096 feature nodes)
+  -> Circuit Tracer attribution (up to 2,048 feature nodes)
   -> exported graph JSON
   -> top-k textual view for the policy model
   -> stable feature selection (`layer_feature`)
@@ -48,7 +48,7 @@ target token exactly.
 The Modal backend loads a Circuit Tracer `ReplacementModel` and calls
 `circuit_tracer.attribute`. Ordinary exports use:
 
-- up to 4,096 feature nodes;
+- up to 2,048 feature nodes;
 - up to five output logits and a desired cumulative logit probability of 0.95;
 - node threshold 0.8 and edge threshold 0.98 when serializing.
 

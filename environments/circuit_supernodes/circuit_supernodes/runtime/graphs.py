@@ -14,8 +14,9 @@ from ..models import (
     TracerNode,
 )
 
-# Maximal Circuit Tracer exports and every top-k view share this graph contract.
-MAX_FEATURE_NODES = 4096
+# Bound attribution work before influence-based pruning. Maximal exports and
+# every top-k view share this graph contract.
+MAX_FEATURE_NODES = 2048
 
 NodeKind = Literal["feature", "embedding", "error", "logit"]
 

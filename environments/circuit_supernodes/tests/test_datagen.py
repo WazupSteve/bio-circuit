@@ -7,6 +7,7 @@ from scripts.prompt_generation import (
     TRAIN_FAMILIES,
     generate,
     generate_pool,
+    iter_pool_batches,
 )
 
 
@@ -51,6 +52,17 @@ def test_cohort_pool_keeps_sampling_after_small_families_exhaust() -> None:
     assert len(first) == 240
     assert set(TRAIN_FAMILIES) == {sample.family for sample in first}
     assert len({sample.prompt for sample in first}) == 240
+
+
+def test_cohort_pool_can_be_consumed_lazily_in_batches() -> None:
+    batches = iter_pool_batches(
+        100_000, seed=11, families=list(TRAIN_FAMILIES), batch_size=7
+    )
+    first = next(batches)
+    second = next(batches)
+    assert len(first) == len(second) == 7
+    assert len({sample.prompt for sample in first + second}) == 14
+    assert first + second == generate_pool(14, seed=11, families=list(TRAIN_FAMILIES))
 
 
 @pytest.mark.parametrize("family", FAMILIES)

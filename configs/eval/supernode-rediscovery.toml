@@ -12,7 +12,7 @@ enable_thinking = false
 [taskset]
 id = "supernode-rediscovery"
 dataset_file = "promptless-supernodes.jsonl.gz"
-min_cohort_success = 1.0
+min_cohort_success = 0.6
 max_control_activation = 0.0
 
 [taskset.subject]

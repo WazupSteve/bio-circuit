@@ -1,4 +1,8 @@
+import gzip
+import json
+import re
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 
 import verifiers.v1 as vf
@@ -10,6 +14,55 @@ from ..runtime.datasets import load_jsonl_rows
 from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "visible_dataset"
+LAZY_DATASET_BYTES = 64 * 1024 * 1024
+_SCALAR = r'"(?:\\.|[^"\\])*"'
+_FAMILY_RE = re.compile(r'"family":(' + _SCALAR + r")")
+_GOAL_RE = re.compile(r'"goal":(null|' + _SCALAR + r")")
+_EXAMPLE_RE = re.compile(
+    r'"prompt":(' + _SCALAR + r'),"target_token":(' + _SCALAR + r")"
+)
+
+
+@dataclass(frozen=True)
+class _PromptHeader:
+    prompt: str
+    target_token: str
+
+
+def _section(line: str, name: str, next_name: str) -> str:
+    start = line.index(f'"{name}":[')
+    end = line.index(f'],"{next_name}":', start)
+    return line[start:end]
+
+
+def _prompt_headers(section: str) -> list[_PromptHeader]:
+    return [
+        _PromptHeader(json.loads(match[1]), json.loads(match[2]))
+        for match in _EXAMPLE_RE.finditer(section)
+    ]
+
+
+def _load_headers(path: Path) -> Iterator[tuple[str, str | None, list[_PromptHeader]]]:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as rows:
+        for line in rows:
+            family_match = _FAMILY_RE.search(line)
+            goal_match = _GOAL_RE.search(line)
+            if family_match is None or goal_match is None:
+                raise ValueError(f"{path} row is missing family or goal")
+            examples = _prompt_headers(
+                _section(line, "example_prompts", "heldout_prompts")
+            )
+            if not examples:
+                examples = _prompt_headers(
+                    _section(line, "heldout_prompts", "control_prompts")
+                )[:5]
+            goal_raw = goal_match[1]
+            yield (
+                json.loads(family_match[1]),
+                None if goal_raw == "null" else json.loads(goal_raw),
+                examples,
+            )
 
 
 SYSTEM_PROMPT = """\
@@ -58,6 +111,16 @@ class CircuitTask(CausalCircuitTask):
     def proposal(self, circuit: Circuit) -> object:
         return circuit.model_dump()["supernodes"]
 
+    def grading_cohorts(self):
+        row = self.source_row()
+        if row is None:
+            return super().grading_cohorts()
+        examples = row.example_prompts
+        holdouts = row.heldout_prompts
+        if not examples and len(holdouts) >= 5:
+            examples, holdouts = holdouts[:5], holdouts[5:]
+        return examples, holdouts, row.control_prompts
+
     @vf.metric
     async def cohort_metrics(
         self, trace: vf.Trace[CircuitTaskData, vf.State]
@@ -94,6 +157,28 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
             raise FileNotFoundError(
                 f"{path} missing; run `uv run python scripts/build_visible_dataset.py`."
             )
+        lazy_cohorts = path.stat().st_size >= LAZY_DATASET_BYTES
+        if lazy_cohorts:
+            for task_index, (family, goal, examples) in enumerate(
+                _load_headers(path)
+            ):
+                data = CircuitTaskData(
+                    idx=task_index,
+                    name=f"circuit-{goal}-{task_index}",
+                    prompt=evidence_prompt(examples),
+                    system_prompt=SYSTEM_PROMPT,
+                    family=family,
+                    subject_config=self.config.subject,
+                    goal=goal,
+                    dataset_path=str(path),
+                    dataset_row=task_index,
+                    min_visible_success=self.config.min_evidence_success,
+                    min_heldout_success=self.config.min_holdout_success,
+                    max_control_failure=self.config.max_null_failure,
+                )
+                yield CircuitTask(data, self.config.task)
+            return
+
         rows = load_jsonl_rows(path, CircuitDatasetRow)
         for task_index, row in enumerate(rows):
             examples = row.example_prompts

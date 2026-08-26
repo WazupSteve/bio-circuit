@@ -1,5 +1,3 @@
-# Generated attribution datasets are large. Keep only the compact curated task
-# library needed by the exported environment in version control.
+# The generated datasets are versioned through Git LFS. Keep only the legacy
+# circuit_mdl directory ignored.
 circuit_supernodes/data/circuit_mdl/
-circuit_supernodes/data/output_restoration/
-circuit_supernodes/data/supernode_rediscovery/

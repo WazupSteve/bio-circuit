@@ -128,3 +128,7 @@ class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):
             }
         except Exception as exc:
             return {"error": validation_message(exc)}
+
+
+if __name__ == "__main__":
+    CircuitExperimentTools.run()

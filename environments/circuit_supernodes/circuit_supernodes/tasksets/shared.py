@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 import verifiers.v1 as vf
 from pydantic import Field
 
 from ..grading.ablation import AblationHoldoutGrader
-from ..models import Circuit, DatasetExample
+from ..models import Circuit, CircuitDatasetRow, DatasetExample
 from ..runtime import circuit_from_response
+from ..runtime.datasets import load_jsonl_rows
 from ..runtime.graphs import weighted_nodes
 from ..runtime.modal import SubjectConfig, subject_from_config
 
@@ -24,9 +27,15 @@ class CircuitTaskData(vf.TaskData):
 
     family: str
     goal: str | None = None
-    example_prompts: list[DatasetExample]
-    heldout_prompts: list[DatasetExample]
-    control_prompts: list[DatasetExample]
+    # Cohorts contain multi-megabyte attribution graphs needed only while the
+    # task is live. Persisting them in every Trace made even startup failures
+    # produce enormous traces; resumed runs reload the task data from the
+    # configured dataset.
+    example_prompts: list[DatasetExample] = Field(default_factory=list, exclude=True)
+    heldout_prompts: list[DatasetExample] = Field(default_factory=list, exclude=True)
+    control_prompts: list[DatasetExample] = Field(default_factory=list, exclude=True)
+    dataset_path: str | None = Field(default=None, exclude=True)
+    dataset_row: int | None = Field(default=None, exclude=True)
     min_visible_success: float = Field(0.0, ge=0.0, le=1.0)
     min_heldout_success: float = Field(1.0, ge=0.0, le=1.0)
     max_control_failure: float = Field(0.0, ge=0.0, le=1.0)
@@ -42,6 +51,14 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
     score_cache_key = "cohort_score"
     parse_options: dict[str, Any] = {"require_supernodes": True}
 
+    def source_row(self) -> CircuitDatasetRow | None:
+        """Reload a graph-heavy source row only when grading needs it."""
+
+        if self.data.dataset_path is None or self.data.dataset_row is None:
+            return None
+        rows = load_jsonl_rows(Path(self.data.dataset_path), CircuitDatasetRow)
+        return next(itertools.islice(rows, self.data.dataset_row, None), None)
+
     def grading_cohorts(
         self,
     ) -> tuple[
@@ -49,6 +66,9 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
         Sequence[DatasetExample],
         Sequence[DatasetExample],
     ]:
+        row = self.source_row()
+        if row is not None:
+            return row.example_prompts, row.heldout_prompts, row.control_prompts
         return (
             self.data.example_prompts,
             self.data.heldout_prompts,

@@ -57,7 +57,7 @@ The repository now owns more than a minimal attribution wrapper:
 - graph quality accounting and error-node screening;
 - textual graph rendering and response-shape normalization;
 - model tokenization, activation-shape, and logits adapters;
-- clean attribution and intervention contexts over Circuit Tracer and NNSight internals;
+- clean attribution and intervention contexts over Circuit Tracer and TransformerLens;
 - pinned cloudpickle/Circuit Tracer variants for backend compatibility; and
 - retry, streaming gzip, atomic-write, digest, and provenance utilities.
 

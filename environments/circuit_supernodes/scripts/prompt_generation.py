@@ -1,4 +1,5 @@
 import random
+from collections.abc import Iterator
 from itertools import product
 from typing import Any
 
@@ -673,14 +674,13 @@ def generate(
     return samples
 
 
-def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]:
-    """Generate an unbalanced cohort pool without one small family capping all.
+def iter_pool_batches(
+    n: int, seed: int, families: list[str], batch_size: int
+) -> Iterator[list[CircuitSample]]:
+    """Yield unique cohort candidates lazily in bounded batches."""
 
-    Cohort builders need hundreds of candidates so answers repeat. Some finite
-    families have fewer unique prompts than others; exhausted families are
-    retired while the remaining requested families continue sampling.
-    """
-
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
     if n < 1:
         raise ValueError("n must be >= 1")
     if not families:
@@ -691,8 +691,9 @@ def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]
     active = list(dict.fromkeys(families))
     misses = {family: 0 for family in active}
     seen: set[str] = set()
-    samples = []
-    while active and len(samples) < n:
+    produced = 0
+    batch: list[CircuitSample] = []
+    while active and produced < n:
         family = rng.choice(active)
         sample = FAMILIES[family](rng)
         if sample.prompt in seen:
@@ -702,10 +703,29 @@ def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]
             continue
         misses[family] = 0
         seen.add(sample.prompt)
-        samples.append(sample)
-    if len(samples) < n:
+        batch.append(sample)
+        produced += 1
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+    if produced < n:
         raise ValueError(
-            f"requested families produced only {len(samples)} unique prompts"
+            f"requested families produced only {produced} unique prompts"
         )
-    rng.shuffle(samples)
-    return samples
+
+
+def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]:
+    """Generate an unbalanced cohort pool without one small family capping all.
+
+    Cohort builders need hundreds of candidates so answers repeat. Some finite
+    families have fewer unique prompts than others; exhausted families are
+    retired while the remaining requested families continue sampling.
+    """
+
+    return [
+        sample
+        for batch in iter_pool_batches(n, seed, families, n)
+        for sample in batch
+    ]

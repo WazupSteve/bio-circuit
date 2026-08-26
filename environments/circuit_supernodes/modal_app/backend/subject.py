@@ -19,7 +19,10 @@ class SubjectBackend:
         from .interventions import InterventionEvaluator
 
         self.model = ReplacementModel.from_pretrained(
-            model_name, transcoder_set, backend="nnsight", dtype=torch.bfloat16
+            model_name,
+            transcoder_set,
+            backend="transformerlens",
+            dtype=torch.bfloat16,
         )
         self.intervention_evaluator = InterventionEvaluator(self.model)
         self.attribution = AttributionEngine(self.model, node_threshold, edge_threshold)
@@ -27,7 +30,7 @@ class SubjectBackend:
 
     def _logits(self, tokens):
         batch = tokens.unsqueeze(0) if tokens.dim() == 1 else tokens
-        return self.model._model(input_ids=batch).logits
+        return self.model(batch)
 
     def sample_until_answer(self, request: dict) -> dict:
         from circuit_supernodes.runtime.sampling import sample_until_answer

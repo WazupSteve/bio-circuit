@@ -100,7 +100,7 @@ def test_manifest_stores_schema_and_generation_provenance_once(tmp_path) -> None
     assert manifest["dataset_schema_version"] == "runtime-minimal-v2"
     assert manifest["generation_policy"] == "maximal-circuit-tracer-export-v1"
     assert manifest["maximal_graphs"] is True
-    assert manifest["max_feature_nodes"] == 4096
+    assert manifest["max_feature_nodes"] == 2048
     assert "corruption_version" not in manifest
     assert "reward_version" not in manifest
     assert manifest["sampler"]["triage"] == triage

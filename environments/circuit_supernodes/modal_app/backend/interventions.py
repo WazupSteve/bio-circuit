@@ -34,18 +34,10 @@ class InterventionEvaluator:
             require_round_trip=True,
         )
 
-    def intervention_input(self, tokens) -> str:
-        """Render the BOS-prefixed tensor back to text for NNSight interventions."""
+    def intervention_input(self, tokens):
+        """Pass token IDs directly to the TransformerLens intervention API."""
 
-        rendered = self.model.tokenizer.decode(
-            tokens.tolist(),
-            skip_special_tokens=False,
-            clean_up_tokenization_spaces=False,
-        )
-        roundtrip = self.model.tokenizer.encode(rendered, add_special_tokens=False)
-        if roundtrip != tokens.tolist():
-            raise ValueError("BOS-prefixed intervention input does not round-trip")
-        return rendered
+        return tokens
 
     @staticmethod
     def normalize_acts(acts):
