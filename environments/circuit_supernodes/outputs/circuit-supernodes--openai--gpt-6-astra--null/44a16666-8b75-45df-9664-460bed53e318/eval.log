@@ -1,0 +1,273 @@
+16:59:32    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": 50,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "openai/gpt-6-astra",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 3,
+  "shuffle": false,
+  "max_concurrent": 1,
+  "verbose": false,
+  "dry_run": false,
+  "rich": true,
+  "server": false,
+  "push": false,
+  "output_dir": null
+}
+17:00:23    INFO running 16x3 rollouts on openai/gpt-6-astra
+17:00:23    INFO results: outputs/circuit-supernodes--openai--gpt-6-astra--null/44a16666-8b75-45df-9664-460bed53e318
+17:00:23    INFO rollout start: id=2c737339cb714ea7a1154a913f043f79 task=0 harness=null runtime=subprocess
+17:00:23    INFO interception up: url=http://127.0.0.1:44937
+17:00:23    INFO interception pool: 1 server(s), multiplex=32
+17:00:28    INFO tool server 'circuit': http://127.0.0.1:45175/mcp
+18:26:20    INFO rollout done: id=2c737339cb714ea7a1154a913f043f79 task=0 reward=0.000 turns=9 stop=agent_completed
+18:26:20    INFO rollout start: id=e54c3d72cc814bc79a606d0d3f7b3222 task=0 harness=null runtime=subprocess
+18:26:23    INFO tool server 'circuit': http://127.0.0.1:35659/mcp
+20:03:15    INFO rollout done: id=e54c3d72cc814bc79a606d0d3f7b3222 task=0 reward=0.000 turns=11 stop=agent_completed
+20:03:15    INFO rollout start: id=ee3bbd22559b4382be201c4084d2451c task=0 harness=null runtime=subprocess
+20:03:19    INFO tool server 'circuit': http://127.0.0.1:46111/mcp
+21:46:19    INFO rollout done: id=ee3bbd22559b4382be201c4084d2451c task=0 reward=0.000 turns=14 stop=agent_completed
+21:46:19    INFO rollout start: id=17d3859ec4a04778ab148bff8f672074 task=1 harness=null runtime=subprocess
+21:46:22    INFO tool server 'circuit': http://127.0.0.1:39417/mcp
+00:18:00    INFO rollout done: id=17d3859ec4a04778ab148bff8f672074 task=1 reward=0.000 turns=20 stop=agent_completed
+00:18:00    INFO rollout start: id=4254b03937094286af58d49eeb6da50b task=1 harness=null runtime=subprocess
+00:18:03    INFO tool server 'circuit': http://127.0.0.1:40795/mcp
+02:03:49    INFO rollout done: id=4254b03937094286af58d49eeb6da50b task=1 reward=0.000 turns=17 stop=agent_completed
+02:03:49    INFO rollout start: id=a269fe096bea4892afad1cdd506fc859 task=1 harness=null runtime=subprocess
+02:03:52    INFO tool server 'circuit': http://127.0.0.1:46429/mcp
+03:06:10 WARNING model call failed: id=a269fe096bea4892afad1cdd506fc859 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb1d5cdaab941-LAX","inference_id":"req_a64e9178e1e04b98801bc7c05ab13562"}
+03:06:10    INFO rollout done: id=a269fe096bea4892afad1cdd506fc859 task=1 reward=0.000 turns=8 stop=ProviderError
+03:06:10    INFO rollout start: id=9ea3c2be70514605a894f4f221a77481 task=2 harness=null runtime=subprocess
+03:06:13    INFO tool server 'circuit': http://127.0.0.1:44769/mcp
+03:06:15 WARNING model call failed: id=9ea3c2be70514605a894f4f221a77481 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb1f87a386d31-LAX","inference_id":"req_db2495925436499d9edcce5086acdf69"}
+03:06:16    INFO rollout done: id=9ea3c2be70514605a894f4f221a77481 task=2 reward=0.000 turns=0 stop=ProviderError
+03:06:16    INFO rollout start: id=c0c3e67737264977a13fc805a2848f00 task=2 harness=null runtime=subprocess
+03:06:19    INFO tool server 'circuit': http://127.0.0.1:41703/mcp
+03:06:21 WARNING model call failed: id=c0c3e67737264977a13fc805a2848f00 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb21aab1eb786-LAX","inference_id":"req_194889f6267e45c9ab21be6410322a26"}
+03:06:21    INFO rollout done: id=c0c3e67737264977a13fc805a2848f00 task=2 reward=0.000 turns=0 stop=ProviderError
+03:06:21    INFO rollout start: id=91d235b3f8994d19bc45402042d39916 task=2 harness=null runtime=subprocess
+03:06:24    INFO tool server 'circuit': http://127.0.0.1:35465/mcp
+03:06:26 WARNING model call failed: id=91d235b3f8994d19bc45402042d39916 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb23cdd3fb256-LAX","inference_id":"req_8cbc4a576cd947f789f04eb8b2cc0177"}
+03:06:27    INFO rollout done: id=91d235b3f8994d19bc45402042d39916 task=2 reward=0.000 turns=0 stop=ProviderError
+03:06:27    INFO rollout start: id=7f4466f9068f47bea90fe591f473b1e0 task=3 harness=null runtime=subprocess
+03:06:30    INFO tool server 'circuit': http://127.0.0.1:42521/mcp
+03:06:32 WARNING model call failed: id=7f4466f9068f47bea90fe591f473b1e0 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb25ecf33f7a9-LAX","inference_id":"req_98bc84ac97ac4c3c87ba939ab88c95ef"}
+03:06:32    INFO rollout done: id=7f4466f9068f47bea90fe591f473b1e0 task=3 reward=0.000 turns=0 stop=ProviderError
+03:06:32    INFO rollout start: id=2cb5044651ff47e18365abad8a5124b4 task=3 harness=null runtime=subprocess
+03:06:35    INFO tool server 'circuit': http://127.0.0.1:39227/mcp
+03:06:37 WARNING model call failed: id=2cb5044651ff47e18365abad8a5124b4 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb280fc243efd-LAX","inference_id":"req_82360fd98d92496cba8aed2fac1824bb"}
+03:06:38    INFO rollout done: id=2cb5044651ff47e18365abad8a5124b4 task=3 reward=0.000 turns=0 stop=ProviderError
+03:06:38    INFO rollout start: id=92b207e8cf954ae2a9c287712d2c8798 task=3 harness=null runtime=subprocess
+03:06:41    INFO tool server 'circuit': http://127.0.0.1:34141/mcp
+03:06:43 WARNING model call failed: id=92b207e8cf954ae2a9c287712d2c8798 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb2a30e7bb589-LAX","inference_id":"req_c8047887765e491295078b6b9d952e48"}
+03:06:43    INFO rollout done: id=92b207e8cf954ae2a9c287712d2c8798 task=3 reward=0.000 turns=0 stop=ProviderError
+03:06:43    INFO rollout start: id=88c4d9e583df44a6b39c92197a54e237 task=4 harness=null runtime=subprocess
+03:06:46    INFO tool server 'circuit': http://127.0.0.1:44213/mcp
+03:06:48 WARNING model call failed: id=88c4d9e583df44a6b39c92197a54e237 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb2c548289dea-LAX","inference_id":"req_508312d7b14945bbb6de9ccd2e6ae454"}
+03:06:48    INFO rollout done: id=88c4d9e583df44a6b39c92197a54e237 task=4 reward=0.000 turns=0 stop=ProviderError
+03:06:48    INFO rollout start: id=0ae64491233c46e788d59e336a3004dd task=4 harness=null runtime=subprocess
+03:06:52    INFO tool server 'circuit': http://127.0.0.1:39197/mcp
+03:06:54 WARNING model call failed: id=0ae64491233c46e788d59e336a3004dd ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb2e7de513434-LAX","inference_id":"req_57fbcf2b7e5c4b4ab9d2c8cd44926c89"}
+03:06:54    INFO rollout done: id=0ae64491233c46e788d59e336a3004dd task=4 reward=0.000 turns=0 stop=ProviderError
+03:06:54    INFO rollout start: id=6ff402329a0241849662188effa6359c task=4 harness=null runtime=subprocess
+03:06:57    INFO tool server 'circuit': http://127.0.0.1:42021/mcp
+03:06:59 WARNING model call failed: id=6ff402329a0241849662188effa6359c ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb309ed642add-LAX","inference_id":"req_56faf2c4810e4e0890af0246e55d3c73"}
+03:06:59    INFO rollout done: id=6ff402329a0241849662188effa6359c task=4 reward=0.000 turns=0 stop=ProviderError
+03:06:59    INFO rollout start: id=dba5a33d67454a3d8500bd477ffd1b9c task=5 harness=null runtime=subprocess
+03:07:03    INFO tool server 'circuit': http://127.0.0.1:45667/mcp
+03:07:05 WARNING model call failed: id=dba5a33d67454a3d8500bd477ffd1b9c ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb32b781758fe-LAX","inference_id":"req_118b9de802ce496ba70910ab3d5ca6cc"}
+03:07:05    INFO rollout done: id=dba5a33d67454a3d8500bd477ffd1b9c task=5 reward=0.000 turns=0 stop=ProviderError
+03:07:05    INFO rollout start: id=1d1f818d12624250a48f45504329694f task=5 harness=null runtime=subprocess
+03:07:08    INFO tool server 'circuit': http://127.0.0.1:41779/mcp
+03:07:10 WARNING model call failed: id=1d1f818d12624250a48f45504329694f ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb3506ed92bbd-LAX","inference_id":"req_84ed96bd3c9340c4a6506da1ceb1fece"}
+03:07:11    INFO rollout done: id=1d1f818d12624250a48f45504329694f task=5 reward=0.000 turns=0 stop=ProviderError
+03:07:11    INFO rollout start: id=4c2fbf05dc1f4eacb29396874e8c467f task=5 harness=null runtime=subprocess
+03:07:14    INFO tool server 'circuit': http://127.0.0.1:44301/mcp
+03:07:16 WARNING model call failed: id=4c2fbf05dc1f4eacb29396874e8c467f ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb3720e746387-LAX","inference_id":"req_b8184e175c6a41528e706174b0480874"}
+03:07:16    INFO rollout done: id=4c2fbf05dc1f4eacb29396874e8c467f task=5 reward=0.000 turns=0 stop=ProviderError
+03:07:16    INFO rollout start: id=770ff18a50744df088d464891a9103b4 task=6 harness=null runtime=subprocess
+03:07:19    INFO tool server 'circuit': http://127.0.0.1:45285/mcp
+03:07:21 WARNING model call failed: id=770ff18a50744df088d464891a9103b4 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb3938e897e95-LAX","inference_id":"req_b86629b55b2e46b2a6f817a88b54a00f"}
+03:07:21    INFO rollout done: id=770ff18a50744df088d464891a9103b4 task=6 reward=0.000 turns=0 stop=ProviderError
+03:07:21    INFO rollout start: id=40e93da5e0e74eb8afd20d08c8b535eb task=6 harness=null runtime=subprocess
+03:07:25    INFO tool server 'circuit': http://127.0.0.1:41733/mcp
+03:07:27 WARNING model call failed: id=40e93da5e0e74eb8afd20d08c8b535eb ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb3b5581f0f27-LAX","inference_id":"req_1d8902f2d68d4046a733552832c4f25b"}
+03:07:27    INFO rollout done: id=40e93da5e0e74eb8afd20d08c8b535eb task=6 reward=0.000 turns=0 stop=ProviderError
+03:07:27    INFO rollout start: id=580c09f40be54b1f887c1f7a9a905eba task=6 harness=null runtime=subprocess
+03:07:30    INFO tool server 'circuit': http://127.0.0.1:42541/mcp
+03:07:32 WARNING model call failed: id=580c09f40be54b1f887c1f7a9a905eba ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb3d6dc6450af-LAX","inference_id":"req_1af55f2bab914e318cada6686e38ed2f"}
+03:07:32    INFO rollout done: id=580c09f40be54b1f887c1f7a9a905eba task=6 reward=0.000 turns=0 stop=ProviderError
+03:07:32    INFO rollout start: id=86bccf6bb9194f3a95b61f00bef0178e task=7 harness=null runtime=subprocess
+03:07:35    INFO tool server 'circuit': http://127.0.0.1:38859/mcp
+03:07:37 WARNING model call failed: id=86bccf6bb9194f3a95b61f00bef0178e ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb3f97a8a08da-LAX","inference_id":"req_ef077b992805441c835db4ea102d5ed7"}
+03:07:38    INFO rollout done: id=86bccf6bb9194f3a95b61f00bef0178e task=7 reward=0.000 turns=0 stop=ProviderError
+03:07:38    INFO rollout start: id=837dc0f52e434f1e957734426e9838a3 task=7 harness=null runtime=subprocess
+03:07:41    INFO tool server 'circuit': http://127.0.0.1:34981/mcp
+03:07:43 WARNING model call failed: id=837dc0f52e434f1e957734426e9838a3 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb41b4cf31172-LAX","inference_id":"req_f4af1be197974b48ab9dde6d2170a366"}
+03:07:43    INFO rollout done: id=837dc0f52e434f1e957734426e9838a3 task=7 reward=0.000 turns=0 stop=ProviderError
+03:07:43    INFO rollout start: id=89df7767b3674ae294f241974e25814f task=7 harness=null runtime=subprocess
+03:07:46    INFO tool server 'circuit': http://127.0.0.1:42051/mcp
+03:07:48 WARNING model call failed: id=89df7767b3674ae294f241974e25814f ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb43d5e122360-LAX","inference_id":"req_7eb5a5d3e0c94262a9d6d31700420c37"}
+03:07:49    INFO rollout done: id=89df7767b3674ae294f241974e25814f task=7 reward=0.000 turns=0 stop=ProviderError
+03:07:49    INFO rollout start: id=4c9858e5ab944f6799f9143384695f61 task=8 harness=null runtime=subprocess
+03:07:52    INFO tool server 'circuit': http://127.0.0.1:45313/mcp
+03:07:54 WARNING model call failed: id=4c9858e5ab944f6799f9143384695f61 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb45f7d2cdbe9-LAX","inference_id":"req_6f4949596eb24c5a99bb88707e53476a"}
+03:07:54    INFO rollout done: id=4c9858e5ab944f6799f9143384695f61 task=8 reward=0.000 turns=0 stop=ProviderError
+03:07:54    INFO rollout start: id=4eaf6f65625b4ce8b8dea50c479ea9d6 task=8 harness=null runtime=subprocess
+03:07:57    INFO tool server 'circuit': http://127.0.0.1:39521/mcp
+03:07:59 WARNING model call failed: id=4eaf6f65625b4ce8b8dea50c479ea9d6 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb481ea962668-LAX","inference_id":"req_02e8c19a96fb4ced9cf872f5410f7556"}
+03:08:00    INFO rollout done: id=4eaf6f65625b4ce8b8dea50c479ea9d6 task=8 reward=0.000 turns=0 stop=ProviderError
+03:08:00    INFO rollout start: id=9629ae3cafd34b7397cb07cb015c8387 task=8 harness=null runtime=subprocess
+03:08:03    INFO tool server 'circuit': http://127.0.0.1:34927/mcp
+03:08:05 WARNING model call failed: id=9629ae3cafd34b7397cb07cb015c8387 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb4a40bd32b85-LAX","inference_id":"req_b6530766e4fb4cf6943d60a4bde6e97a"}
+03:08:05    INFO rollout done: id=9629ae3cafd34b7397cb07cb015c8387 task=8 reward=0.000 turns=0 stop=ProviderError
+03:08:05    INFO rollout start: id=4ebd2c48c4e04c4dabfda1091b68582f task=9 harness=null runtime=subprocess
+03:08:08    INFO tool server 'circuit': http://127.0.0.1:43715/mcp
+03:08:10 WARNING model call failed: id=4ebd2c48c4e04c4dabfda1091b68582f ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb4c6ce93f7db-LAX","inference_id":"req_a1fc7337fc5f46c1b2d2b767ec5d23bc"}
+03:08:11    INFO rollout done: id=4ebd2c48c4e04c4dabfda1091b68582f task=9 reward=0.000 turns=0 stop=ProviderError
+03:08:11    INFO rollout start: id=b774a1defaa142a993414ff71751975b task=9 harness=null runtime=subprocess
+03:08:14    INFO tool server 'circuit': http://127.0.0.1:35025/mcp
+03:08:16 WARNING model call failed: id=b774a1defaa142a993414ff71751975b ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb4e83d975389-LAX","inference_id":"req_c4a44f653f864f628f6d2ab77d42cbcc"}
+03:08:16    INFO rollout done: id=b774a1defaa142a993414ff71751975b task=9 reward=0.000 turns=0 stop=ProviderError
+03:08:16    INFO rollout start: id=4ff63a21a890440392e4ae2bae32364b task=9 harness=null runtime=subprocess
+03:08:19    INFO tool server 'circuit': http://127.0.0.1:40025/mcp
+03:08:21 WARNING model call failed: id=4ff63a21a890440392e4ae2bae32364b ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb509df123f0c-LAX","inference_id":"req_af21327c98d0495eb5cfc176c7158818"}
+03:08:21    INFO rollout done: id=4ff63a21a890440392e4ae2bae32364b task=9 reward=0.000 turns=0 stop=ProviderError
+03:08:21    INFO rollout start: id=99313cc3bdf64c409b0a772bd2ba5a9b task=10 harness=null runtime=subprocess
+03:08:24    INFO tool server 'circuit': http://127.0.0.1:40183/mcp
+03:08:26 WARNING model call failed: id=99313cc3bdf64c409b0a772bd2ba5a9b ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb52b5f8cbe08-LAX","inference_id":"req_d477d7ef53f542228d6f4d53ab6140db"}
+03:08:27    INFO rollout done: id=99313cc3bdf64c409b0a772bd2ba5a9b task=10 reward=0.000 turns=0 stop=ProviderError
+03:08:27    INFO rollout start: id=ee6796dcb90f455d9f26aa9cc4dac89b task=10 harness=null runtime=subprocess
+03:08:30    INFO tool server 'circuit': http://127.0.0.1:45315/mcp
+03:08:32 WARNING model call failed: id=ee6796dcb90f455d9f26aa9cc4dac89b ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb54c7b40f7b1-LAX","inference_id":"req_d8f3dcc730ea4c67ae23b6b8590d4373"}
+03:08:32    INFO rollout done: id=ee6796dcb90f455d9f26aa9cc4dac89b task=10 reward=0.000 turns=0 stop=ProviderError
+03:08:32    INFO rollout start: id=b41d3c1a6ae749598cfea3b10afba1f9 task=10 harness=null runtime=subprocess
+03:08:35    INFO tool server 'circuit': http://127.0.0.1:33589/mcp
+03:08:37 WARNING model call failed: id=b41d3c1a6ae749598cfea3b10afba1f9 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb56e0d97cbac-LAX","inference_id":"req_0314a393273d4275b4c10ba8aba8af81"}
+03:08:37    INFO rollout done: id=b41d3c1a6ae749598cfea3b10afba1f9 task=10 reward=0.000 turns=0 stop=ProviderError
+03:08:37    INFO rollout start: id=88422068466141b3ac07e1c3b7fd12e5 task=11 harness=null runtime=subprocess
+03:08:40    INFO tool server 'circuit': http://127.0.0.1:43079/mcp
+03:08:42 WARNING model call failed: id=88422068466141b3ac07e1c3b7fd12e5 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb58f7dee7e95-LAX","inference_id":"req_f6c88cdc40d147bdb6e3a5cb6270610e"}
+03:08:43    INFO rollout done: id=88422068466141b3ac07e1c3b7fd12e5 task=11 reward=0.000 turns=0 stop=ProviderError
+03:08:43    INFO rollout start: id=fb46c655cb41430baee2bdfebc142960 task=11 harness=null runtime=subprocess
+03:08:46    INFO tool server 'circuit': http://127.0.0.1:37465/mcp
+03:08:48 WARNING model call failed: id=fb46c655cb41430baee2bdfebc142960 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb5b1adbd2ab5-LAX","inference_id":"req_c21dd44b6591468d8a7b5547a79cc58b"}
+03:08:48    INFO rollout done: id=fb46c655cb41430baee2bdfebc142960 task=11 reward=0.000 turns=0 stop=ProviderError
+03:08:48    INFO rollout start: id=b6e10b2cb2254f95947e3eb41360cd40 task=11 harness=null runtime=subprocess
+03:08:51    INFO tool server 'circuit': http://127.0.0.1:46843/mcp
+03:08:53 WARNING model call failed: id=b6e10b2cb2254f95947e3eb41360cd40 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb5d35d5acb92-LAX","inference_id":"req_1a782948eaeb4033b99c1ea5c276c179"}
+03:08:54    INFO rollout done: id=b6e10b2cb2254f95947e3eb41360cd40 task=11 reward=0.000 turns=0 stop=ProviderError
+03:08:54    INFO rollout start: id=e990c3213ce44b11bf4e69505b614264 task=12 harness=null runtime=subprocess
+03:08:57    INFO tool server 'circuit': http://127.0.0.1:34029/mcp
+03:08:59 WARNING model call failed: id=e990c3213ce44b11bf4e69505b614264 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb5f4bba30928-LAX","inference_id":"req_9016885a1e804b5f8ab720f2936cc6f8"}
+03:08:59    INFO rollout done: id=e990c3213ce44b11bf4e69505b614264 task=12 reward=0.000 turns=0 stop=ProviderError
+03:08:59    INFO rollout start: id=212b706d461f485a8d403eb5c65d801a task=12 harness=null runtime=subprocess
+03:09:02    INFO tool server 'circuit': http://127.0.0.1:37969/mcp
+03:09:04 WARNING model call failed: id=212b706d461f485a8d403eb5c65d801a ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb6166c3c4f1a-LAX","inference_id":"req_09e36b06f94f44a28f8ac56668ad241d"}
+03:09:04    INFO rollout done: id=212b706d461f485a8d403eb5c65d801a task=12 reward=0.000 turns=0 stop=ProviderError
+03:09:04    INFO rollout start: id=a4dfe6444a774c6b901b81fc7a36c234 task=12 harness=null runtime=subprocess
+03:09:07    INFO tool server 'circuit': http://127.0.0.1:35491/mcp
+03:09:09 WARNING model call failed: id=a4dfe6444a774c6b901b81fc7a36c234 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb63828dcf9ce-LAX","inference_id":"req_b490b29f90474d47b72d1a05812106d9"}
+03:09:10    INFO rollout done: id=a4dfe6444a774c6b901b81fc7a36c234 task=12 reward=0.000 turns=0 stop=ProviderError
+03:09:10    INFO rollout start: id=0b0bd4f1645247b78fec94769918b4e4 task=13 harness=null runtime=subprocess
+03:09:13    INFO tool server 'circuit': http://127.0.0.1:44531/mcp
+03:09:15 WARNING model call failed: id=0b0bd4f1645247b78fec94769918b4e4 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb659ede4d00b-LAX","inference_id":"req_5df2f05f783f42a4ae2193b5c41921c4"}
+03:09:15    INFO rollout done: id=0b0bd4f1645247b78fec94769918b4e4 task=13 reward=0.000 turns=0 stop=ProviderError
+03:09:15    INFO rollout start: id=48f2b0e6705a490a9672d044994215d8 task=13 harness=null runtime=subprocess
+03:09:18    INFO tool server 'circuit': http://127.0.0.1:44037/mcp
+03:09:20 WARNING model call failed: id=48f2b0e6705a490a9672d044994215d8 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb67c8961edb1-LAX","inference_id":"req_37b5ea649bb14bda84821d35485d7983"}
+03:09:21    INFO rollout done: id=48f2b0e6705a490a9672d044994215d8 task=13 reward=0.000 turns=0 stop=ProviderError
+03:09:21    INFO rollout start: id=beed7e342dd84550a760082317721e76 task=13 harness=null runtime=subprocess
+03:09:24    INFO tool server 'circuit': http://127.0.0.1:41583/mcp
+03:09:26 WARNING model call failed: id=beed7e342dd84550a760082317721e76 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb69e4b24f7b9-LAX","inference_id":"req_1f20a0d4278b46608443ccb9f2c88a1f"}
+03:09:26    INFO rollout done: id=beed7e342dd84550a760082317721e76 task=13 reward=0.000 turns=0 stop=ProviderError
+03:09:26    INFO rollout start: id=0843cafb8cab4ec3b7b73c382a294bfb task=14 harness=null runtime=subprocess
+03:09:29    INFO tool server 'circuit': http://127.0.0.1:44269/mcp
+03:09:31 WARNING model call failed: id=0843cafb8cab4ec3b7b73c382a294bfb ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb6c06ae7a351-LAX","inference_id":"req_068522afd4484a77ab8c691ce6ebe86d"}
+03:09:32    INFO rollout done: id=0843cafb8cab4ec3b7b73c382a294bfb task=14 reward=0.000 turns=0 stop=ProviderError
+03:09:32    INFO rollout start: id=eed3e767b1f142a0bcb8ce4f9386ae3d task=14 harness=null runtime=subprocess
+03:09:35    INFO tool server 'circuit': http://127.0.0.1:34967/mcp
+03:09:37 WARNING model call failed: id=eed3e767b1f142a0bcb8ce4f9386ae3d ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb6e21d1f08d4-LAX","inference_id":"req_dd0ec6f450704664b7ecb36885e1e49b"}
+03:09:37    INFO rollout done: id=eed3e767b1f142a0bcb8ce4f9386ae3d task=14 reward=0.000 turns=0 stop=ProviderError
+03:09:37    INFO rollout start: id=36e1025b48334e669d50849dfb290cf5 task=14 harness=null runtime=subprocess
+03:09:40    INFO tool server 'circuit': http://127.0.0.1:35829/mcp
+03:09:42 WARNING model call failed: id=36e1025b48334e669d50849dfb290cf5 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb703980fb777-LAX","inference_id":"req_5e995635cf6440c3a87ecac45f882f73"}
+03:09:42    INFO rollout done: id=36e1025b48334e669d50849dfb290cf5 task=14 reward=0.000 turns=0 stop=ProviderError
+03:09:42    INFO rollout start: id=8ded95be2ab64ac99f341283aa4140d8 task=15 harness=null runtime=subprocess
+03:09:45    INFO tool server 'circuit': http://127.0.0.1:39269/mcp
+03:09:47 WARNING model call failed: id=8ded95be2ab64ac99f341283aa4140d8 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb7258830d7ab-LAX","inference_id":"req_f33ba844cd4b4a7eabbbe408979a71a4"}
+03:09:48    INFO rollout done: id=8ded95be2ab64ac99f341283aa4140d8 task=15 reward=0.000 turns=0 stop=ProviderError
+03:09:48    INFO rollout start: id=6c8ccfbb00df421b9a790b64f51845ac task=15 harness=null runtime=subprocess
+03:09:51    INFO tool server 'circuit': http://127.0.0.1:40357/mcp
+03:09:53 WARNING model call failed: id=6c8ccfbb00df421b9a790b64f51845ac ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb7478c77f7d7-LAX","inference_id":"req_2322cb9670074590bea7e1604290655a"}
+03:09:53    INFO rollout done: id=6c8ccfbb00df421b9a790b64f51845ac task=15 reward=0.000 turns=0 stop=ProviderError
+03:09:53    INFO rollout start: id=f8bc05cc79aa4c19a52b3f92d9c19018 task=15 harness=null runtime=subprocess
+03:09:56    INFO tool server 'circuit': http://127.0.0.1:41327/mcp
+03:09:58 WARNING model call failed: id=f8bc05cc79aa4c19a52b3f92d9c19018 ProviderError: upstream 402: {"error":{"message":"Insufficient balance (including overdraft). Please add funds to continue. Requests are authenticated by PRIME_API_KEY and billed to the personal balance unless the request includes X-Prime-Team-ID. Add funds to the selected balance. If you intended to use team billing, send X-Prime-Team-ID with the team ID and make sure that team has funds. See https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds.","type":"insufficient_quota","param":null,"code":"insufficient_funds","metadata":{"help_url":"https://docs.primeintellect.ai/inference/troubleshooting#insufficient-funds"}},"request_id":"a39bb769da2cb103-LAX","inference_id":"req_f06340e326fb45cea2baa8fad3ba9d71"}
+03:09:59    INFO rollout done: id=f8bc05cc79aa4c19a52b3f92d9c19018 task=15 reward=0.000 turns=0 stop=ProviderError
+03:09:59    INFO interception down: url=http://127.0.0.1:44937
