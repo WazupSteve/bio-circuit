@@ -12,7 +12,7 @@ dependencies = [
     "tenacity>=9.1.2",
     "typer>=0.27.0",
     "fastapi>=0.141.1",
-    "torch>=2.13.0",
+    "torch==2.13.0",
     "nnsight>=0.7.0",
     "circuit-tracer>=0.5.0",
 ]
@@ -22,6 +22,15 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.15",
 ]
+
+# Keep Linux GPU installs compatible with drivers supporting CUDA 12.8.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]

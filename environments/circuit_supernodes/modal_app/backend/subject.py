@@ -12,6 +12,15 @@ class SubjectBackend:
         edge_threshold: float = 0.98,
     ) -> None:
         import torch
+
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "Subject server requires CUDA, but PyTorch cannot access the GPU "
+                f"(torch={torch.__version__}, CUDA build={torch.version.cuda}). "
+                "Check nvidia-smi and install a PyTorch CUDA build compatible "
+                "with the host driver."
+            )
+
         from circuit_tracer import ReplacementModel
 
         from .attribution import AttributionEngine
@@ -22,6 +31,7 @@ class SubjectBackend:
             model_name,
             transcoder_set,
             backend="transformerlens",
+            device=torch.device("cuda"),
             dtype=torch.bfloat16,
         )
         self.intervention_evaluator = InterventionEvaluator(self.model)
