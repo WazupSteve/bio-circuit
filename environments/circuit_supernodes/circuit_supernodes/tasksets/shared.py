@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import verifiers.v1 as vf
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from ..grading.ablation import AblationHoldoutGrader
 from ..models import Circuit, CircuitDatasetRow, DatasetExample
@@ -16,6 +16,31 @@ from ..runtime import circuit_from_response
 from ..runtime.datasets import load_jsonl_rows
 from ..runtime.graphs import weighted_nodes
 from ..runtime.modal import SubjectConfig, subject_from_config
+
+
+def grading_validation_failure(exc: ValidationError) -> dict[str, Any]:
+    """Keep invalid replay data out of rewards without losing diagnostics."""
+
+    errors = exc.errors(include_url=False, include_input=False, include_context=False)
+    baseline_fields = {
+        "baseline_expected_is_top",
+        "standard_target_is_top",
+        "corruption_changed_top_token",
+    }
+    baseline_drift = any(
+        error["type"] == "literal_error"
+        and error["loc"]
+        and error["loc"][-1] in baseline_fields
+        for error in errors
+    )
+    return {
+        "reward": 0.0,
+        "valid": False,
+        "failure": "baseline_drift" if baseline_drift else "grading_validation_error",
+        "grading_validation_error": True,
+        "baseline_drift": baseline_drift,
+        "validation_errors": errors,
+    }
 
 
 class SubjectTasksetConfig(vf.TasksetConfig):
@@ -95,16 +120,32 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
 
         visible, holdout, controls = self.grading_cohorts()
         grader = AblationHoldoutGrader(subject_from_config(self.data.subject_config))
-        result = await grader.grade(
-            circuit,
-            visible,
-            holdout,
-            controls,
-            min_visible_success=self.data.min_visible_success,
-            min_holdout_success=self.data.min_heldout_success,
-            max_control_failure=self.data.max_control_failure,
-        )
-        result["valid"] = True
+        try:
+            result = await grader.grade(
+                circuit,
+                visible,
+                holdout,
+                controls,
+                min_visible_success=self.data.min_visible_success,
+                min_holdout_success=self.data.min_heldout_success,
+                max_control_failure=self.data.max_control_failure,
+            )
+        except ValidationError as exc:
+            result = grading_validation_failure(exc)
+        else:
+            result["valid"] = True
         result["proposal"] = self.proposal(circuit)
         trace.info[self.score_cache_key] = result
         return result
+
+    @vf.metric
+    async def grading_validation_metrics(
+        self, trace: vf.Trace[CircuitTaskData, vf.State]
+    ) -> dict[str, float]:
+        result = await self.score_circuit(trace)
+        return {
+            "grading_validation_error": float(
+                result.get("grading_validation_error", False)
+            ),
+            "baseline_drift": float(result.get("baseline_drift", False)),
+        }

@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import verifiers.v1 as vf
+from pydantic import ValidationError
 
 from ..grading.restoration import (
     RestorationMetricEvaluator,
@@ -18,7 +19,12 @@ from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows
 from ..runtime.graphs import weighted_nodes
 from ..runtime.modal import subject_from_config
-from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
+from .shared import (
+    CausalCircuitTask,
+    CircuitTaskData,
+    SubjectTasksetConfig,
+    grading_validation_failure,
+)
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "output_restoration"
 
@@ -73,21 +79,24 @@ class CircuitTask(CausalCircuitTask):
             evaluator = RestorationMetricEvaluator(
                 subject_from_config(self.data.subject_config)
             )
-            replay = await evaluator.score_cohort(
-                self.data.heldout_prompts, weighted_nodes(circuit)
-            )
-            similarity = cohort_clean_similarity(replay)
-            result = {
-                "reward": similarity,
-                "valid": True,
-                "heldout_clean_similarity": similarity,
-                "heldout_clean_kl": cohort_clean_kl(replay),
-                "restored_target_rate": sum(
-                    item.get("restored_target_is_top") is True for item in replay
+            try:
+                replay = await evaluator.score_cohort(
+                    self.data.heldout_prompts, weighted_nodes(circuit)
                 )
-                / len(replay),
-                "proposal": weighted_nodes(circuit),
-            }
+                similarity = cohort_clean_similarity(replay)
+                result = {
+                    "reward": similarity,
+                    "valid": True,
+                    "heldout_clean_similarity": similarity,
+                    "heldout_clean_kl": cohort_clean_kl(replay),
+                    "restored_target_rate": sum(
+                        item.get("restored_target_is_top") is True for item in replay
+                    )
+                    / len(replay),
+                    "proposal": weighted_nodes(circuit),
+                }
+            except ValidationError as exc:
+                result = grading_validation_failure(exc)
         trace.info[self.score_cache_key] = result
         return result
 

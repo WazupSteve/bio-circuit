@@ -180,3 +180,132 @@ def test_all_plugin_entrypoints_remain_independent() -> None:
         == restoration.CircuitTask.tools
         == (CircuitExperimentTools,)
     )
+
+
+@pytest.mark.parametrize("family", ["visible", "rediscovery", "restoration"])
+@pytest.mark.parametrize(
+    "failure",
+    [None, "positive_baseline", "secondary_gate", "malformed", "circuit_miss"],
+)
+def test_reward_handles_replay_validation_failures(
+    tmp_path, monkeypatch, family, failure
+) -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from circuit_supernodes.tasksets import shared
+
+    module = {
+        "visible": visible,
+        "rediscovery": rediscovery,
+        "restoration": restoration,
+    }[family]
+    write_row(
+        tmp_path / "task.jsonl",
+        {
+            "family": "family",
+            "goal": "goal",
+            "example_prompts": [example("visible")],
+            "heldout_prompts": [example("heldout", corruption=[[1, 2, 0, 4.0]])],
+            "control_prompts": [example("control")],
+        },
+    )
+    monkeypatch.setattr(module, "DATA_DIR", tmp_path)
+    taskset_type = (
+        module.DiscoveryTaskset if family == "rediscovery" else module.CircuitTaskset
+    )
+    config_type = (
+        module.DiscoveryTasksetConfig
+        if family == "rediscovery"
+        else module.CircuitTasksetConfig
+    )
+    task = next(taskset_type(config_type(dataset_file="task.jsonl")).load())
+
+    class Subject:
+        calls = 0
+
+        async def call(self, method, *args):
+            self.calls += 1
+            if method == "restore_output":
+                result = {
+                    "target_token": " output",
+                    "standard_target_is_top": failure != "positive_baseline",
+                    "corruption_changed_top_token": failure != "secondary_gate",
+                    "restored_target_is_top": failure != "circuit_miss",
+                    "restored_standard_kl": 0.0,
+                }
+                if failure == "malformed":
+                    del result["restored_standard_kl"]
+                return result
+            assert method == "evaluate_ablation_cohort"
+            positives, controls = args
+            result = {
+                "positives": [
+                    {
+                        "expected_token": row["expected_token"],
+                        "baseline_expected_is_top": failure != "positive_baseline",
+                        "changed_top_token": failure != "circuit_miss",
+                    }
+                    for row in positives
+                ],
+                "controls": [
+                    {
+                        "expected_token": row["expected_token"],
+                        "baseline_expected_is_top": failure != "secondary_gate",
+                        "preserved_top_token": True,
+                    }
+                    for row in controls
+                ],
+            }
+            if failure == "malformed":
+                del result["positives"][0]["changed_top_token"]
+            return result
+
+    subject = Subject()
+    monkeypatch.setattr(shared, "subject_from_config", lambda config: subject)
+    monkeypatch.setattr(restoration, "subject_from_config", lambda config: subject)
+    trace = SimpleNamespace(
+        info={},
+        last_reply=json.dumps(
+            {
+                "supernodes": [
+                    {"name": "goal", "nodes": ["1_2"], "intervention_weight": 1.0}
+                ]
+            }
+        ),
+    )
+
+    async def exercise():
+        reward = getattr(
+            task,
+            {
+                "visible": "circuit_faithfulness",
+                "rediscovery": "goal_supernode_intervention",
+                "restoration": "suppressed_feature_restoration",
+            }[family],
+        )
+        assert await reward(trace) == (1.0 if failure is None else 0.0)
+        result = trace.info[task.score_cache_key]
+        validation_failed = failure in {
+            "positive_baseline",
+            "secondary_gate",
+            "malformed",
+        }
+        drift = failure in {"positive_baseline", "secondary_gate"}
+        assert result["valid"] is not validation_failed
+        if validation_failed:
+            assert result["failure"] == (
+                "baseline_drift" if drift else "grading_validation_error"
+            )
+            assert result["validation_errors"]
+            assert all("input" not in error for error in result["validation_errors"])
+            json.dumps(result)
+        calls = subject.calls
+        assert await task.grading_validation_metrics(trace) == {
+            "grading_validation_error": float(validation_failed),
+            "baseline_drift": float(drift),
+        }
+        assert await reward(trace) == result["reward"]
+        assert subject.calls == calls
+
+    asyncio.run(exercise())
