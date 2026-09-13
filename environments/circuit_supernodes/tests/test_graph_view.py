@@ -262,8 +262,10 @@ def test_shared_tools_use_graph_helpers_for_arbitrary_prompts() -> None:
     async def exercise() -> None:
         tools = CircuitExperimentTools(vf.ToolsetConfig())
         tools._subject = Subject()
-        attributed = await tools.attribute("source", 3)
-        assert attributed["returned_feature_count"] == 3
+        attributed = await tools.attribute("source")
+        assert attributed["feature_count"] == 75
+        page = await tools.query_graph(attributed["graph_id"], limit=3, kind="feature")
+        assert len(page["items"]) == 3
         result = await tools.intervene("source", "0_0_9", "target", -1.0)
         assert result["changed_top_token"] is True
 
@@ -293,9 +295,10 @@ def test_restoration_tools_use_redacted_clean_graphs_and_corrupted_outcomes() ->
         tools = CircuitExperimentTools(vf.ToolsetConfig())
         tools._subject = Subject()
         tools._corruption_spec = [(0, 0, -2.0)]
-        attributed = await tools.attribute("source", 3)
-        assert "TOP OUTPUTS" not in attributed["graph"]
-        assert "clean-secret" not in attributed["graph"]
+        attributed = await tools.attribute("source")
+        assert "top_outputs" not in attributed
+        page = await tools.query_graph(attributed["graph_id"], kind="logit")
+        assert page["items"] == []
         result = await tools.intervene("source", "0_0", "target", 0.5)
         assert result == {
             "baseline_top_token": "corrupted",
@@ -315,9 +318,7 @@ def test_shared_tools_return_errors_for_unexpected_failures() -> None:
             raise RuntimeError(f"backend failed for {prompt}")
 
         tools._graph = fail
-        assert await tools.attribute("source", 3) == {
-            "error": "backend failed for source"
-        }
+        assert await tools.attribute("source") == {"error": "backend failed for source"}
         assert await tools.intervene("source", "0_0", "target", -1.0) == {
             "error": "backend failed for source"
         }

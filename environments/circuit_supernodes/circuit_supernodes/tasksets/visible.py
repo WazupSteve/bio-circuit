@@ -77,6 +77,10 @@ original top token throughout the examples while remaining specific to the
 shared semantic concept rather than capturing generic language behavior. The
 concept is the full semantic task family, not one answer label.
 
+Attribute returns a graph ID and summary. Use query_graph to inspect ranked
+nodes, edges, and tokens in bounded pages; follow next_offset with the same
+filters. Each new attribution deletes the previous graph.
+
 Keep analysis concise and reserve enough output budget to emit the required JSON.
 If the remaining budget is uncertain, submit the JSON immediately.
 

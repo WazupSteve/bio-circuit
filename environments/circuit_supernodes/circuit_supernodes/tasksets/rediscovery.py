@@ -28,7 +28,11 @@ remaining specific to that semantic mechanism rather than generic language
 behavior.
 
 Feature identity is the stable `layer_feature` pair; each feature is applied at
-its highest-ranked position in each attributed graph. Keep analysis concise
+its highest-ranked position in each attributed graph.
+
+Attribute returns a graph ID and summary. Use query_graph to inspect ranked
+nodes, edges, and tokens in bounded pages; follow next_offset with the same
+filters. Each new attribution deletes the previous graph. Keep analysis concise
 and reserve enough output budget to emit the required JSON. If the remaining
 budget is uncertain, submit the JSON immediately. Return one JSON object:
 ```json

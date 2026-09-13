@@ -39,6 +39,10 @@ factors. Find a shared intervention that reverses the persistent corruption
 without capturing unrelated language behavior. Reward requires the original
 clean top token and measures `KL(clean || restored)` across the hidden cohort.
 
+Attribute returns a graph ID and summary. Use query_graph to inspect ranked
+nodes, edges, and tokens in bounded pages; follow next_offset with the same
+filters. Each new attribution deletes the previous graph.
+
 Keep analysis concise and reserve enough output budget to emit the required JSON.
 If the remaining budget is uncertain, submit the JSON immediately.
 

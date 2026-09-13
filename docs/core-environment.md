@@ -57,14 +57,24 @@ and weighted links. Nodes may be feature, embedding, error, or logit nodes.
 Feature importance is reconstructed as the nonnegative increment between
 successive cumulative influence values. That increment determines ranking.
 
-Stored datasets retain maximal exports. `attribute(prompt, feature_count)` then
-selects an ordinary top-k view at request time, retaining embeddings and logits
-and only edges whose endpoints remain. Required, corrupted, or submitted nodes
-are not automatically inserted into normal policy views.
+Stored datasets retain maximal exports. `attribute(prompt)` stores the latest
+policy graph in a temporary SQLite file and returns a graph ID, counts, and a
+small output summary. The full graph is released from memory after writing.
+Requesting another attribution deletes the previous file before fetching the
+replacement, including when attribution fails. Task setup also clears the file;
+the temporary directory is cleaned up when the store is released.
 
-The rendered response includes prompt tokens, top outputs, feature coordinates,
-activations, influence deltas, labels, and at most five strongest incoming edges
-per target. It also reports returned and available feature counts.
+`query_graph(graph_id, view="nodes", offset=0, limit=20, node_id=None, kind=None)`
+reads nodes ranked by influence delta, edges ranked by absolute weight, or prompt
+tokens ordered by position. Node queries accept an exact positioned ID or stable
+feature ID and a kind filter. Edge queries accept an exact endpoint ID and return
+both incoming and outgoing connections. Follow `next_offset` with the same
+filters to continue; a null offset marks the end. Each response contains at most
+50 items and 12,000 JSON bytes; label and token text is truncated to 300 characters
+with `text_truncated` set. Replaced graph IDs return an error.
+
+In restoration tasks, logit nodes and their incident edges are omitted from the
+stored graph, and the attribution summary omits top outputs.
 
 ## Stable identity and position resolution
 
@@ -104,11 +114,14 @@ responses.
 
 All three TaskSets install `CircuitExperimentTools`:
 
-- `circuit_attribute(prompt, feature_count)` returns clean graph structure. In restoration, output nodes and edges are redacted; hidden corruption is applied only during interventions and grading replay.
+- `circuit_attribute(prompt)` replaces the stored graph and returns its ID and summary.
+- `circuit_query_graph(graph_id, view, offset, limit, node_id, kind)` reads a bounded page of that graph. In restoration, output nodes and edges are redacted; hidden corruption is applied only during interventions and grading replay.
 - `circuit_intervene(source_prompt, node_id, prompt, intervention_weight)` checks
   that the stable node exists in the source graph, resolves it independently on
   the target graph, reruns the target with the multiplier, and returns baseline
   and intervened top-token fields.
+
+Intervention experiments use transient graphs and do not replace the stored query graph.
 
 Tool errors are returned as concise `{ "error": ... }` objects instead of
 terminating a rollout. Modal calls retry up to four attempts with waits of 1, 4,
