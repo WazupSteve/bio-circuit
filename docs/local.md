@@ -12,7 +12,8 @@ scripts/subject.sh down      # terminate the pod when finished — it bills hour
 ```
 
 The configs use the local `circuit-null` harness, which keeps the isolated MCP
-client on the MCP 1.x version required by Verifiers.
+client on the MCP 1.x version required by Verifiers and allows up to one hour
+for large circuit-tool responses over the subject tunnel.
 
 `up` creates the cheapest available A100-80GB pod on Prime Intellect (`uv run prime login` first), rsyncs `environments/circuit_supernodes` to it, installs the pinned GPU stack into a Python 3.11 venv, starts `modal_app.server`, opens an SSH tunnel to `localhost:8000`, and waits for `/health`.
 

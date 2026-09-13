@@ -15,16 +15,20 @@ _UPSTREAM_DEPENDENCIES = '# dependencies = ["openai", "mcp", "httpx", "tenacity"
 _PINNED_DEPENDENCIES = (
     '# dependencies = ["openai", "mcp>=1.24,<2", "httpx", "tenacity"]'
 )
+_UPSTREAM_MCP_TIMEOUT = "MCP_TIMEOUT = httpx.Timeout(600.0, connect=5.0)"
+_EXTENDED_MCP_TIMEOUT = "MCP_TIMEOUT = httpx.Timeout(3600.0, connect=5.0)"
 
 if UPSTREAM_PROGRAM_SOURCE.count(_UPSTREAM_DEPENDENCIES) != 1:
     raise RuntimeError(
         "Verifiers null-harness dependencies changed; update circuit-null"
     )
+if UPSTREAM_PROGRAM_SOURCE.count(_UPSTREAM_MCP_TIMEOUT) != 1:
+    raise RuntimeError("Verifiers null-harness timeout changed; update circuit-null")
 
 PROGRAM_SOURCE = UPSTREAM_PROGRAM_SOURCE.replace(
     _UPSTREAM_DEPENDENCIES,
     _PINNED_DEPENDENCIES,
-)
+).replace(_UPSTREAM_MCP_TIMEOUT, _EXTENDED_MCP_TIMEOUT)
 
 
 class CircuitNullHarness(NullHarness):
