@@ -32,7 +32,7 @@ node_threshold = 0.8
 edge_threshold = 0.98
 
 [env.harness]
-id = "null"
+id = "circuit-null"
 
 [eval]
 interval = 10
@@ -56,4 +56,4 @@ node_threshold = 0.8
 edge_threshold = 0.98
 
 [eval.env.harness]
-id = "null"
+id = "circuit-null"

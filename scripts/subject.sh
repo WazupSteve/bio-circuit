@@ -4,17 +4,23 @@
 #   scripts/subject.sh up                 # create Prime pod, install, serve, tunnel
 #   scripts/subject.sh up ubuntu@host     # use an existing GPU box you can SSH into
 #   scripts/subject.sh down               # terminate the Prime pod
+#   SUBJECT_INSTANCE=kimi SUBJECT_PORT=8001 scripts/subject.sh up
 #
 # When it finishes, `export SUBJECT_URL=http://localhost:8000` and run as usual.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_DIR="$ROOT/environments/circuit_supernodes"
-STATE="$ROOT/.subject"            # holds pod id + ssh target
+INSTANCE="${SUBJECT_INSTANCE:-}"
+[[ "$INSTANCE" =~ ^[a-zA-Z0-9_-]*$ ]] || {
+  echo "SUBJECT_INSTANCE may contain only letters, numbers, underscores, and hyphens" >&2
+  exit 2
+}
+STATE="$ROOT/.subject${INSTANCE:+.$INSTANCE}" # holds pod id + ssh target
 SSH_KEY="${SUBJECT_SSH_KEY:-$HOME/.ssh/primeintellect_ed25519}"
 GPU="${SUBJECT_GPU:-A100_80GB}"
 PORT="${SUBJECT_PORT:-8000}"
-NAME="biocircuit-subject"
+NAME="biocircuit-subject${INSTANCE:+-$INSTANCE}"
 
 prime() { (cd "$ROOT" && uv run prime --plain "$@"); }
 # Pods are ephemeral and IPs are recycled, so host keys go to a scratch file.
@@ -23,11 +29,21 @@ ssh_() { ssh "${SSH_OPTS[@]}" "$@"; }
 
 create_pod() {
   echo "» creating $GPU pod on Prime" >&2
-  local id
+  local id output pod_id
   id=$(prime availability list --gpu-type "$GPU" --gpu-count 1 --output json \
        | jq -r '.gpu_resources | sort_by(.price_value) | .[0].id')
-  prime pods create --id "$id" --name "$NAME" --gpu-count 1 --disk-size 200 -y \
-    | grep -oE 'pod [0-9a-f]{32}' | cut -d' ' -f2 > "$STATE.pod"
+  if [[ -z "$id" || "$id" == "null" ]]; then
+    echo "No $GPU pod is currently available on Prime" >&2
+    return 1
+  fi
+  output=$(prime pods create --id "$id" --name "$NAME" --gpu-count 1 --disk-size 200 -y) || return 1
+  pod_id=$(grep -oE '[0-9a-f]{32}' <<< "$output" | head -1 || true)
+  if [[ -z "$pod_id" ]]; then
+    echo "$output" >&2
+    echo "Prime did not return a pod ID" >&2
+    return 1
+  fi
+  echo "$pod_id" > "$STATE.pod"
   prime config set-ssh-key-path "$SSH_KEY" >/dev/null
   echo "» waiting for pod $(cat "$STATE.pod")" >&2
   until prime pods status "$(cat "$STATE.pod")" | grep -q ACTIVE; do sleep 15; done
@@ -36,7 +52,10 @@ create_pod() {
 
 up() {
   local target="${1:-}"
-  [[ -z "$target" ]] && target=$(create_pod)
+  if [[ -z "$target" ]] && ! target=$(create_pod); then
+    rm -f "$STATE.pod"
+    return 1
+  fi
   echo "$target" > "$STATE.ssh"
   echo "» syncing code to $target"
   ssh_ "$target" 'curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1; mkdir -p ~/bio-circuit'

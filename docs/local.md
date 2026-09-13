@@ -11,6 +11,9 @@ cd environments/circuit_supernodes && uv run eval @ ../../configs/eval/visible-d
 scripts/subject.sh down      # terminate the pod when finished — it bills hourly
 ```
 
+The configs use the local `circuit-null` harness, which keeps the isolated MCP
+client on the MCP 1.x version required by Verifiers.
+
 `up` creates the cheapest available A100-80GB pod on Prime Intellect (`uv run prime login` first), rsyncs `environments/circuit_supernodes` to it, installs the pinned GPU stack into a Python 3.11 venv, starts `modal_app.server`, opens an SSH tunnel to `localhost:8000`, and waits for `/health`.
 
 Already have a GPU box you can SSH into? Skip Prime entirely:
@@ -20,6 +23,10 @@ scripts/subject.sh up ubuntu@my-gpu-host
 ```
 
 Knobs (env vars): `SUBJECT_GPU` (default `A100_80GB`), `SUBJECT_PORT` (`8000`), `SUBJECT_SSH_KEY` (`~/.ssh/primeintellect_ed25519`).
+
+For parallel evaluations, set a unique `SUBJECT_INSTANCE` and `SUBJECT_PORT`
+for each pod. The instance name namespaces the local pod and tunnel state, so
+each instance must be stopped with the same `SUBJECT_INSTANCE` value.
 
 ## What is running
 

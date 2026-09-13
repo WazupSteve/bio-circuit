@@ -8,6 +8,7 @@ from circuit_supernodes.models import TracerGraphPayload
 from circuit_supernodes.runtime import circuit_tracer
 from circuit_supernodes.runtime.circuit_tracer import CircuitExperimentTools
 from circuit_supernodes.runtime.graph_store import MAX_RESPONSE_BYTES, GraphStore
+from mcp.server.fastmcp import FastMCP
 
 
 def graph():
@@ -32,6 +33,11 @@ def graph():
             ],
         }
     )
+
+
+def test_toolset_registers_fastmcp_schemas():
+    tools = CircuitExperimentTools(vf.ToolsetConfig())
+    tools._register(FastMCP("schema-test"))
 
 
 def test_store_paginates_all_nodes_with_byte_budget_and_filters():

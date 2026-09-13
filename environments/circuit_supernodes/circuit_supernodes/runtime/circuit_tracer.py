@@ -1,7 +1,5 @@
 """Typed, task-agnostic adapters for model-facing Circuit Tracer tools."""
 
-from __future__ import annotations
-
 import asyncio
 
 import verifiers.v1 as vf
