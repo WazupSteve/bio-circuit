@@ -1,0 +1,92 @@
+17:57:26 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+17:57:26    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": 50,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "openai/gpt-6-astra",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 4,
+  "shuffle": false,
+  "max_concurrent": 2,
+  "verbose": false,
+  "dry_run": false,
+  "rich": false,
+  "server": false,
+  "push": false,
+  "output_dir": null
+}
+17:57:56    INFO running 16x4 rollouts on openai/gpt-6-astra
+17:57:56    INFO results: outputs/circuit-supernodes--openai--gpt-6-astra--circuit-null/284bfa73-2336-4c3a-afe6-83b8975bb4dd
+17:57:56    INFO rollout start: id=f7f37d541e814473bb7d5cfd398abf22 task=0 harness=circuit-null runtime=subprocess
+17:57:56    INFO rollout start: id=3455e0c3a8a54210b8c86506366f34e3 task=0 harness=circuit-null runtime=subprocess
+17:57:56    INFO interception up: url=http://127.0.0.1:40965
+17:57:56    INFO interception pool: 1 server(s), multiplex=32
+17:58:00    INFO tool server 'circuit': http://127.0.0.1:40423/mcp
+17:58:00    INFO tool server 'circuit': http://127.0.0.1:34089/mcp
+18:48:58 WARNING interrupted — cleaning up, please wait...
+18:48:58    INFO interception down: url=http://127.0.0.1:40965

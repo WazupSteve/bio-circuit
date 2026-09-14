@@ -1,0 +1,90 @@
+16:16:01 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+16:16:01    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": 50,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "anthropic/claude-fable-5.1",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 4,
+  "shuffle": false,
+  "max_concurrent": 2,
+  "verbose": false,
+  "dry_run": false,
+  "rich": false,
+  "server": false,
+  "push": false,
+  "output_dir": null
+}
+16:16:31    INFO running 16x4 rollouts on anthropic/claude-fable-5.1
+16:16:31    INFO results: outputs/circuit-supernodes--anthropic--claude-fable-5.1--circuit-null/e59a847c-8990-4f57-95d2-36db987b1b48
+16:16:31    INFO rollout start: id=2e0873e4b60a41d48994eeb4fa3ad1ae task=0 harness=circuit-null runtime=subprocess
+16:16:31    INFO rollout start: id=81371138c68b4f7387c06eab1ec5b1b5 task=0 harness=circuit-null runtime=subprocess
+16:16:31    INFO interception up: url=http://127.0.0.1:37501
+16:16:31    INFO interception pool: 1 server(s), multiplex=32
+16:16:34    INFO tool server 'circuit': http://127.0.0.1:45803/mcp
+16:16:34    INFO tool server 'circuit': http://127.0.0.1:38793/mcp

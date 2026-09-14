@@ -26,6 +26,4 @@ __pycache__/
 uv.lock
 
 # prime eval / prime train local run artifacts
-/outputs/
-/environments/*/outputs/
 .subject.*

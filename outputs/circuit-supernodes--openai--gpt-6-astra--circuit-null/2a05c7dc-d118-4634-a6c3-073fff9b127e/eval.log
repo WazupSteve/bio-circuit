@@ -1,0 +1,168 @@
+14:59:30 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+14:59:30    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": 50,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "openai/gpt-6-astra",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 4,
+  "shuffle": false,
+  "max_concurrent": 4,
+  "verbose": false,
+  "dry_run": false,
+  "rich": false,
+  "server": false,
+  "push": false,
+  "output_dir": null
+}
+15:00:00    INFO running 16x4 rollouts on openai/gpt-6-astra
+15:00:00    INFO results: outputs/circuit-supernodes--openai--gpt-6-astra--circuit-null/2a05c7dc-d118-4634-a6c3-073fff9b127e
+15:00:00    INFO rollout start: id=2857a4e7792b47b78e3240e4658966c5 task=0 harness=circuit-null runtime=subprocess
+15:00:00    INFO rollout start: id=f90712d8ca4644abaf9b4bd43b88095e task=0 harness=circuit-null runtime=subprocess
+15:00:00    INFO rollout start: id=f6138c011f1041dbb3afe2d727d3722e task=0 harness=circuit-null runtime=subprocess
+15:00:00    INFO rollout start: id=30c1784b45804adfaa2a6d1ec1e88133 task=0 harness=circuit-null runtime=subprocess
+15:00:00    INFO interception up: url=http://127.0.0.1:42191
+15:00:00    INFO interception pool: 1 server(s), multiplex=32
+15:00:03    INFO tool server 'circuit': http://127.0.0.1:45083/mcp
+15:00:03    INFO tool server 'circuit': http://127.0.0.1:34215/mcp
+15:00:03    INFO tool server 'circuit': http://127.0.0.1:35427/mcp
+15:00:04    INFO tool server 'circuit': http://127.0.0.1:41497/mcp
+15:10:07    INFO rollout done: id=30c1784b45804adfaa2a6d1ec1e88133 task=0 reward=0.000 turns=1 stop=HarnessError
+15:10:07    INFO rollout start: id=6b5a6581d1cc47bdadd70a93f76886b9 task=1 harness=circuit-null runtime=subprocess
+15:10:07    INFO rollout done: id=f6138c011f1041dbb3afe2d727d3722e task=0 reward=0.000 turns=1 stop=HarnessError
+15:10:07    INFO rollout start: id=dc2b22304a014a48bf7ab030c40324ea task=1 harness=circuit-null runtime=subprocess
+15:10:08    INFO rollout done: id=f90712d8ca4644abaf9b4bd43b88095e task=0 reward=0.000 turns=1 stop=HarnessError
+15:10:08    INFO rollout start: id=37e33555bdfa4299892013ddf71aa90e task=1 harness=circuit-null runtime=subprocess
+15:10:08    INFO rollout done: id=2857a4e7792b47b78e3240e4658966c5 task=0 reward=0.000 turns=1 stop=HarnessError
+15:10:08    INFO rollout start: id=0e37382d1cea44c79bdec8516dd12731 task=1 harness=circuit-null runtime=subprocess
+15:10:09    INFO tool server 'circuit': http://127.0.0.1:44395/mcp
+15:10:09    INFO tool server 'circuit': http://127.0.0.1:44345/mcp
+15:10:10    INFO tool server 'circuit': http://127.0.0.1:41005/mcp
+15:10:10    INFO tool server 'circuit': http://127.0.0.1:46349/mcp
+15:20:13    INFO rollout done: id=6b5a6581d1cc47bdadd70a93f76886b9 task=1 reward=0.000 turns=1 stop=HarnessError
+15:20:13    INFO rollout start: id=eee30ba6eebd43f7acbb4ae5aa5c1498 task=2 harness=circuit-null runtime=subprocess
+15:20:13    INFO rollout done: id=37e33555bdfa4299892013ddf71aa90e task=1 reward=0.000 turns=1 stop=HarnessError
+15:20:13    INFO rollout start: id=36f8a88463f14fd58437da2642fadb93 task=2 harness=circuit-null runtime=subprocess
+15:20:14    INFO rollout done: id=dc2b22304a014a48bf7ab030c40324ea task=1 reward=0.000 turns=1 stop=HarnessError
+15:20:14    INFO rollout start: id=054f63fe92f44616b47d98e0cfe1dfc4 task=2 harness=circuit-null runtime=subprocess
+15:20:14    INFO rollout done: id=0e37382d1cea44c79bdec8516dd12731 task=1 reward=0.000 turns=1 stop=HarnessError
+15:20:14    INFO rollout start: id=7074c7b2a15040a089a8ae4d2e17ba7e task=2 harness=circuit-null runtime=subprocess
+15:20:15    INFO tool server 'circuit': http://127.0.0.1:41381/mcp
+15:20:15    INFO tool server 'circuit': http://127.0.0.1:35139/mcp
+15:20:16    INFO tool server 'circuit': http://127.0.0.1:45845/mcp
+15:20:16    INFO tool server 'circuit': http://127.0.0.1:41795/mcp
+15:30:18    INFO rollout done: id=36f8a88463f14fd58437da2642fadb93 task=2 reward=0.000 turns=1 stop=HarnessError
+15:30:18    INFO rollout start: id=6108e9f251fc40bc9c85c72a79f4c0d2 task=3 harness=circuit-null runtime=subprocess
+15:30:18    INFO rollout done: id=eee30ba6eebd43f7acbb4ae5aa5c1498 task=2 reward=0.000 turns=1 stop=HarnessError
+15:30:18    INFO rollout start: id=ed31268364f54d759c7ab45c371a9d3a task=3 harness=circuit-null runtime=subprocess
+15:30:19    INFO rollout done: id=054f63fe92f44616b47d98e0cfe1dfc4 task=2 reward=0.000 turns=1 stop=HarnessError
+15:30:19    INFO rollout start: id=8fde5943f544483b9fb374016b3ace0e task=3 harness=circuit-null runtime=subprocess
+15:30:20    INFO rollout done: id=7074c7b2a15040a089a8ae4d2e17ba7e task=2 reward=0.000 turns=1 stop=HarnessError
+15:30:20    INFO rollout start: id=cadc70e891d14b219aefaf29545c8a62 task=3 harness=circuit-null runtime=subprocess
+15:30:20    INFO tool server 'circuit': http://127.0.0.1:41585/mcp
+15:30:20    INFO tool server 'circuit': http://127.0.0.1:46783/mcp
+15:30:21    INFO tool server 'circuit': http://127.0.0.1:40707/mcp
+15:30:22    INFO tool server 'circuit': http://127.0.0.1:42215/mcp
+15:40:24    INFO rollout done: id=ed31268364f54d759c7ab45c371a9d3a task=3 reward=0.000 turns=1 stop=HarnessError
+15:40:24    INFO rollout start: id=cfd740e04a624149a4b0dfdb4d9694c3 task=4 harness=circuit-null runtime=subprocess
+15:40:24    INFO rollout done: id=6108e9f251fc40bc9c85c72a79f4c0d2 task=3 reward=0.000 turns=1 stop=HarnessError
+15:40:24    INFO rollout start: id=9c3ecfb322964d7fbdfca7f2ec64b507 task=4 harness=circuit-null runtime=subprocess
+15:40:24    INFO rollout done: id=8fde5943f544483b9fb374016b3ace0e task=3 reward=0.000 turns=1 stop=HarnessError
+15:40:24    INFO rollout start: id=8c7a0d7ec8c94e2faa0f0a87cfc13e0c task=4 harness=circuit-null runtime=subprocess
+15:40:26    INFO tool server 'circuit': http://127.0.0.1:45693/mcp
+15:40:26    INFO tool server 'circuit': http://127.0.0.1:38471/mcp
+15:40:26    INFO tool server 'circuit': http://127.0.0.1:42847/mcp
+15:40:26    INFO rollout done: id=cadc70e891d14b219aefaf29545c8a62 task=3 reward=0.000 turns=1 stop=HarnessError
+15:40:26    INFO rollout start: id=3f177458f52748ba8b38648cadb35e12 task=4 harness=circuit-null runtime=subprocess
+15:40:28    INFO tool server 'circuit': http://127.0.0.1:43995/mcp
+15:50:29    INFO rollout done: id=9c3ecfb322964d7fbdfca7f2ec64b507 task=4 reward=0.000 turns=1 stop=HarnessError
+15:50:29    INFO rollout start: id=f16e47552229471aabd715bd81739dc8 task=5 harness=circuit-null runtime=subprocess
+15:50:29    INFO rollout done: id=8c7a0d7ec8c94e2faa0f0a87cfc13e0c task=4 reward=0.000 turns=1 stop=HarnessError
+15:50:29    INFO rollout start: id=a7906bd366ee4fd19c589f3ca4522476 task=5 harness=circuit-null runtime=subprocess
+15:50:29    INFO rollout done: id=cfd740e04a624149a4b0dfdb4d9694c3 task=4 reward=0.000 turns=1 stop=HarnessError
+15:50:29    INFO rollout start: id=d0f6f39817924834ae66f450f6d9011a task=5 harness=circuit-null runtime=subprocess
+15:50:31    INFO tool server 'circuit': http://127.0.0.1:45047/mcp
+15:50:31    INFO tool server 'circuit': http://127.0.0.1:33393/mcp
+15:50:31    INFO tool server 'circuit': http://127.0.0.1:38677/mcp
+15:50:31    INFO rollout done: id=3f177458f52748ba8b38648cadb35e12 task=4 reward=0.000 turns=1 stop=HarnessError
+15:50:31    INFO rollout start: id=d989e2b75c4d453e8825ab09360203d5 task=5 harness=circuit-null runtime=subprocess
+15:50:33    INFO tool server 'circuit': http://127.0.0.1:46677/mcp
+16:00:35    INFO rollout done: id=f16e47552229471aabd715bd81739dc8 task=5 reward=0.000 turns=1 stop=HarnessError
+16:00:35    INFO rollout start: id=6e631b78396f49a3af64291c1953ead0 task=6 harness=circuit-null runtime=subprocess
+16:00:35    INFO rollout done: id=d0f6f39817924834ae66f450f6d9011a task=5 reward=0.000 turns=1 stop=HarnessError
+16:00:35    INFO rollout start: id=bd50bcbab8db40a687f7628effa2d7ca task=6 harness=circuit-null runtime=subprocess
+16:00:35    INFO rollout done: id=a7906bd366ee4fd19c589f3ca4522476 task=5 reward=0.000 turns=1 stop=HarnessError
+16:00:35    INFO rollout start: id=9660046834c5435eb4b87aa2f0847a80 task=6 harness=circuit-null runtime=subprocess
+16:00:37    INFO tool server 'circuit': http://127.0.0.1:36871/mcp
+16:00:37    INFO tool server 'circuit': http://127.0.0.1:46017/mcp
+16:00:37    INFO tool server 'circuit': http://127.0.0.1:43059/mcp
+16:00:38    INFO rollout done: id=d989e2b75c4d453e8825ab09360203d5 task=5 reward=0.000 turns=1 stop=HarnessError
+16:00:38    INFO rollout start: id=5a5574a11ddb4ce9832ab53da76b7bb2 task=6 harness=circuit-null runtime=subprocess
+16:00:40    INFO tool server 'circuit': http://127.0.0.1:37557/mcp
+16:07:16 WARNING interrupted — cleaning up, please wait...
+16:07:16    INFO interception down: url=http://127.0.0.1:42191

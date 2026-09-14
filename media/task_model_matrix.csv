@@ -1,0 +1,17 @@
+task,family,kimi_k3_successes,kimi_k3_baseline_drift,fable_5.1_successes,fable_5.1_baseline_drift,gpt_6_astra_successes,gpt_6_astra_baseline_drift
+0,comparison,0,0,0,0,0,0
+1,comparison,0,0,0,0,0,0
+2,rule_composition,0,0,0,0,0,0
+3,agreement,0,0,0,0,0,0
+4,agreement,0,1,0,1,0,1
+5,path_composition,0,0,0,0,0,0
+6,spatial_composition,1,0,1,0,0,0
+7,rule_composition,0,1,0,1,0,1
+8,weekday,2,0,2,0,1,0
+9,spatial_composition,0,1,0,1,0,1
+10,weekday,0,1,0,1,0,1
+11,two_hop,2,0,2,0,2,0
+12,modular_arithmetic,0,1,0,1,0,1
+13,path_composition,0,0,0,0,0,0
+14,two_hop,1,0,2,0,2,0
+15,modular_arithmetic,0,0,0,0,0,0

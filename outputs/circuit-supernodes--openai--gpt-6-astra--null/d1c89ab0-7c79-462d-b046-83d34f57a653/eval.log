@@ -1,0 +1,211 @@
+13:45:30    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": 50,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "openai/gpt-6-astra",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 4,
+  "shuffle": false,
+  "max_concurrent": 4,
+  "verbose": false,
+  "dry_run": false,
+  "rich": false,
+  "server": false,
+  "push": false,
+  "output_dir": null
+}
+13:46:00    INFO running 16x4 rollouts on openai/gpt-6-astra
+13:46:00    INFO results: outputs/circuit-supernodes--openai--gpt-6-astra--null/d1c89ab0-7c79-462d-b046-83d34f57a653
+13:46:00    INFO rollout start: id=e55c1ef6a1b24f85b85991efddd0457a task=0 harness=null runtime=subprocess
+13:46:00    INFO rollout start: id=765926c2449d4ed1b7b6ffa24c43df12 task=0 harness=null runtime=subprocess
+13:46:00    INFO rollout start: id=add090581cdb41a5974eddbdbdbd9e69 task=0 harness=null runtime=subprocess
+13:46:00    INFO rollout start: id=b7c54d2406a74829a8e6d72df27d8324 task=0 harness=null runtime=subprocess
+13:46:00    INFO interception up: url=http://127.0.0.1:39123
+13:46:00    INFO interception pool: 1 server(s), multiplex=32
+13:49:08    INFO rollout done: id=e55c1ef6a1b24f85b85991efddd0457a task=0 reward=0.000 turns=0 stop=ToolsetError
+13:49:08    INFO rollout start: id=4a5da0f02d524883af483b1fd07a9a61 task=1 harness=null runtime=subprocess
+13:49:08    INFO rollout done: id=765926c2449d4ed1b7b6ffa24c43df12 task=0 reward=0.000 turns=0 stop=ToolsetError
+13:49:08    INFO rollout start: id=6600fe518b1f405395ebe0f9388e5f9b task=1 harness=null runtime=subprocess
+13:49:08    INFO rollout done: id=b7c54d2406a74829a8e6d72df27d8324 task=0 reward=0.000 turns=0 stop=ToolsetError
+13:49:08    INFO rollout start: id=1c8fb0fd3488416fa5bbb69ae60c343d task=1 harness=null runtime=subprocess
+13:49:08    INFO rollout done: id=add090581cdb41a5974eddbdbdbd9e69 task=0 reward=0.000 turns=0 stop=ToolsetError
+13:49:08    INFO rollout start: id=409f139b2bb848f183feb73ef4dfb285 task=1 harness=null runtime=subprocess
+13:52:10    INFO rollout done: id=409f139b2bb848f183feb73ef4dfb285 task=1 reward=0.000 turns=0 stop=ToolsetError
+13:52:10    INFO rollout start: id=8c3debfec5cc4d9fa478f490804daaab task=2 harness=null runtime=subprocess
+13:52:10    INFO rollout done: id=4a5da0f02d524883af483b1fd07a9a61 task=1 reward=0.000 turns=0 stop=ToolsetError
+13:52:10    INFO rollout start: id=609e4061c0a74b3aa835df17166677b8 task=2 harness=null runtime=subprocess
+13:52:10    INFO rollout done: id=1c8fb0fd3488416fa5bbb69ae60c343d task=1 reward=0.000 turns=0 stop=ToolsetError
+13:52:10    INFO rollout start: id=762f467ef1fa4906b8ef9ea142cf4547 task=2 harness=null runtime=subprocess
+13:52:11    INFO rollout done: id=6600fe518b1f405395ebe0f9388e5f9b task=1 reward=0.000 turns=0 stop=ToolsetError
+13:52:11    INFO rollout start: id=a6614066c7a04cbf8d68ed30ac6e946c task=2 harness=null runtime=subprocess
+13:55:12    INFO rollout done: id=762f467ef1fa4906b8ef9ea142cf4547 task=2 reward=0.000 turns=0 stop=ToolsetError
+13:55:12    INFO rollout start: id=2db8dc8659454cc6b7d809eb678bddc2 task=3 harness=null runtime=subprocess
+13:55:12    INFO rollout done: id=609e4061c0a74b3aa835df17166677b8 task=2 reward=0.000 turns=0 stop=ToolsetError
+13:55:12    INFO rollout start: id=79e08802aa304bdc87253c0d3bbe6f25 task=3 harness=null runtime=subprocess
+13:55:13    INFO rollout done: id=8c3debfec5cc4d9fa478f490804daaab task=2 reward=0.000 turns=0 stop=ToolsetError
+13:55:13    INFO rollout start: id=e4f3656294724df58ed3e6306837aa21 task=3 harness=null runtime=subprocess
+13:55:13    INFO rollout done: id=a6614066c7a04cbf8d68ed30ac6e946c task=2 reward=0.000 turns=0 stop=ToolsetError
+13:55:13    INFO rollout start: id=4798ca932e8f4b768e5388bc20463950 task=3 harness=null runtime=subprocess
+13:58:15    INFO rollout done: id=2db8dc8659454cc6b7d809eb678bddc2 task=3 reward=0.000 turns=0 stop=ToolsetError
+13:58:15    INFO rollout start: id=d50851344e974b529b652ea8eca72b2e task=4 harness=null runtime=subprocess
+13:58:15    INFO rollout done: id=79e08802aa304bdc87253c0d3bbe6f25 task=3 reward=0.000 turns=0 stop=ToolsetError
+13:58:15    INFO rollout start: id=85bcca9ba02f43f191a7e06646b4ab4b task=4 harness=null runtime=subprocess
+13:58:15    INFO rollout done: id=e4f3656294724df58ed3e6306837aa21 task=3 reward=0.000 turns=0 stop=ToolsetError
+13:58:15    INFO rollout start: id=7c3a35c7ebdd48c58fe9171904cf0150 task=4 harness=null runtime=subprocess
+13:58:15    INFO rollout done: id=4798ca932e8f4b768e5388bc20463950 task=3 reward=0.000 turns=0 stop=ToolsetError
+13:58:15    INFO rollout start: id=af8882fb939c442eada58254abcbc524 task=4 harness=null runtime=subprocess
+14:01:17    INFO rollout done: id=d50851344e974b529b652ea8eca72b2e task=4 reward=0.000 turns=0 stop=ToolsetError
+14:01:17    INFO rollout start: id=37416831fb6844efb9383945f70d4841 task=5 harness=null runtime=subprocess
+14:01:17    INFO rollout done: id=85bcca9ba02f43f191a7e06646b4ab4b task=4 reward=0.000 turns=0 stop=ToolsetError
+14:01:17    INFO rollout start: id=0d2980d950bd487da269f04ce1722e1b task=5 harness=null runtime=subprocess
+14:01:18    INFO rollout done: id=7c3a35c7ebdd48c58fe9171904cf0150 task=4 reward=0.000 turns=0 stop=ToolsetError
+14:01:18    INFO rollout start: id=8c3283be3c764e63b54386ded53f89e6 task=5 harness=null runtime=subprocess
+14:01:18    INFO rollout done: id=af8882fb939c442eada58254abcbc524 task=4 reward=0.000 turns=0 stop=ToolsetError
+14:01:18    INFO rollout start: id=5977d38a3c7b4ad5a02bd46f571482bb task=5 harness=null runtime=subprocess
+14:04:19    INFO rollout done: id=37416831fb6844efb9383945f70d4841 task=5 reward=0.000 turns=0 stop=ToolsetError
+14:04:19    INFO rollout start: id=cc9a4613bc9b47dba877122b4dc13c78 task=6 harness=null runtime=subprocess
+14:04:19    INFO rollout done: id=0d2980d950bd487da269f04ce1722e1b task=5 reward=0.000 turns=0 stop=ToolsetError
+14:04:19    INFO rollout start: id=7068936e3e7642d4b0ed0c73865059f6 task=6 harness=null runtime=subprocess
+14:04:20    INFO rollout done: id=8c3283be3c764e63b54386ded53f89e6 task=5 reward=0.000 turns=0 stop=ToolsetError
+14:04:20    INFO rollout start: id=19eb519f6e834c9381d6a75a13f428fb task=6 harness=null runtime=subprocess
+14:04:20    INFO rollout done: id=5977d38a3c7b4ad5a02bd46f571482bb task=5 reward=0.000 turns=0 stop=ToolsetError
+14:04:20    INFO rollout start: id=cb670aba88c34ff59a6a2a221aafb5ec task=6 harness=null runtime=subprocess
+14:07:21    INFO rollout done: id=cc9a4613bc9b47dba877122b4dc13c78 task=6 reward=0.000 turns=0 stop=ToolsetError
+14:07:21    INFO rollout start: id=e50c14eb4b2646d69f257fd89e220566 task=7 harness=null runtime=subprocess
+14:07:21    INFO rollout done: id=7068936e3e7642d4b0ed0c73865059f6 task=6 reward=0.000 turns=0 stop=ToolsetError
+14:07:21    INFO rollout start: id=695236c7910647e19b0bc70bf209c1d3 task=7 harness=null runtime=subprocess
+14:07:22    INFO rollout done: id=19eb519f6e834c9381d6a75a13f428fb task=6 reward=0.000 turns=0 stop=ToolsetError
+14:07:22    INFO rollout start: id=5b107a89b96b4a0aa3fb3aad0f9f368c task=7 harness=null runtime=subprocess
+14:07:22    INFO rollout done: id=cb670aba88c34ff59a6a2a221aafb5ec task=6 reward=0.000 turns=0 stop=ToolsetError
+14:07:22    INFO rollout start: id=a763a492f5104874a4073e310cc76a7f task=7 harness=null runtime=subprocess
+14:10:23    INFO rollout done: id=e50c14eb4b2646d69f257fd89e220566 task=7 reward=0.000 turns=0 stop=ToolsetError
+14:10:23    INFO rollout start: id=788ba82de12349c3af48c1bdf2393260 task=8 harness=null runtime=subprocess
+14:10:24    INFO rollout done: id=5b107a89b96b4a0aa3fb3aad0f9f368c task=7 reward=0.000 turns=0 stop=ToolsetError
+14:10:24    INFO rollout start: id=2a24e4efdab6430687c0f3b21bd90d17 task=8 harness=null runtime=subprocess
+14:10:24    INFO rollout done: id=a763a492f5104874a4073e310cc76a7f task=7 reward=0.000 turns=0 stop=ToolsetError
+14:10:24    INFO rollout start: id=9578c1f1b5b64cec88fb187afcffd5c5 task=8 harness=null runtime=subprocess
+14:10:24    INFO rollout done: id=695236c7910647e19b0bc70bf209c1d3 task=7 reward=0.000 turns=0 stop=ToolsetError
+14:10:24    INFO rollout start: id=496aa940dd0e4b278373557254273812 task=8 harness=null runtime=subprocess
+14:13:25    INFO rollout done: id=788ba82de12349c3af48c1bdf2393260 task=8 reward=0.000 turns=0 stop=ToolsetError
+14:13:25    INFO rollout start: id=e3b5fe9fc65443958327bcf2a067ddce task=9 harness=null runtime=subprocess
+14:13:26    INFO rollout done: id=2a24e4efdab6430687c0f3b21bd90d17 task=8 reward=0.000 turns=0 stop=ToolsetError
+14:13:26    INFO rollout start: id=96a0d287740448c1a2d3248087f4200f task=9 harness=null runtime=subprocess
+14:13:26    INFO rollout done: id=9578c1f1b5b64cec88fb187afcffd5c5 task=8 reward=0.000 turns=0 stop=ToolsetError
+14:13:26    INFO rollout start: id=7c4886262c744a13a10b59c65c92afa5 task=9 harness=null runtime=subprocess
+14:13:26    INFO rollout done: id=496aa940dd0e4b278373557254273812 task=8 reward=0.000 turns=0 stop=ToolsetError
+14:13:26    INFO rollout start: id=ac50e653fdfc48b5bb286ef0a8a6a738 task=9 harness=null runtime=subprocess
+14:16:27    INFO rollout done: id=e3b5fe9fc65443958327bcf2a067ddce task=9 reward=0.000 turns=0 stop=ToolsetError
+14:16:27    INFO rollout start: id=d45075bcfd3b49d7893682d300adc439 task=10 harness=null runtime=subprocess
+14:16:28    INFO rollout done: id=7c4886262c744a13a10b59c65c92afa5 task=9 reward=0.000 turns=0 stop=ToolsetError
+14:16:28    INFO rollout start: id=1a8b7d4714f64023bffa86a1553115ba task=10 harness=null runtime=subprocess
+14:16:29    INFO rollout done: id=ac50e653fdfc48b5bb286ef0a8a6a738 task=9 reward=0.000 turns=0 stop=ToolsetError
+14:16:29    INFO rollout start: id=43f5af92182c4e94b0eb9c38948811d7 task=10 harness=null runtime=subprocess
+14:16:29    INFO rollout done: id=96a0d287740448c1a2d3248087f4200f task=9 reward=0.000 turns=0 stop=ToolsetError
+14:16:29    INFO rollout start: id=b83b4629f01240f8a4da939eb8c06f79 task=10 harness=null runtime=subprocess
+14:19:29    INFO rollout done: id=d45075bcfd3b49d7893682d300adc439 task=10 reward=0.000 turns=0 stop=ToolsetError
+14:19:29    INFO rollout start: id=76b03cae9c774334bbe6ac9ce48332e8 task=11 harness=null runtime=subprocess
+14:19:30    INFO rollout done: id=1a8b7d4714f64023bffa86a1553115ba task=10 reward=0.000 turns=0 stop=ToolsetError
+14:19:30    INFO rollout start: id=0c0109c2cdf942359ca6b7e7e2ddcb8e task=11 harness=null runtime=subprocess
+14:19:31    INFO rollout done: id=43f5af92182c4e94b0eb9c38948811d7 task=10 reward=0.000 turns=0 stop=ToolsetError
+14:19:31    INFO rollout start: id=20ccf32ab921439f84c3ed5746fc6631 task=11 harness=null runtime=subprocess
+14:19:31    INFO rollout done: id=b83b4629f01240f8a4da939eb8c06f79 task=10 reward=0.000 turns=0 stop=ToolsetError
+14:19:31    INFO rollout start: id=1ebdd7766257468b89d0539ab79ac48d task=11 harness=null runtime=subprocess
+14:22:32    INFO rollout done: id=76b03cae9c774334bbe6ac9ce48332e8 task=11 reward=0.000 turns=0 stop=ToolsetError
+14:22:32    INFO rollout start: id=1ba5bc43a51745d8aa32f246dae94311 task=12 harness=null runtime=subprocess
+14:22:33    INFO rollout done: id=0c0109c2cdf942359ca6b7e7e2ddcb8e task=11 reward=0.000 turns=0 stop=ToolsetError
+14:22:33    INFO rollout start: id=15a7bd026c944f219ce882e40679a634 task=12 harness=null runtime=subprocess
+14:22:33    INFO rollout done: id=20ccf32ab921439f84c3ed5746fc6631 task=11 reward=0.000 turns=0 stop=ToolsetError
+14:22:33    INFO rollout start: id=c7a4dd54d9014412aa56ce1ae3e20cb0 task=12 harness=null runtime=subprocess
+14:22:33    INFO rollout done: id=1ebdd7766257468b89d0539ab79ac48d task=11 reward=0.000 turns=0 stop=ToolsetError
+14:22:33    INFO rollout start: id=5ef4ce8581974c9081c0e1977b563254 task=12 harness=null runtime=subprocess
+14:25:34    INFO rollout done: id=1ba5bc43a51745d8aa32f246dae94311 task=12 reward=0.000 turns=0 stop=ToolsetError
+14:25:34    INFO rollout start: id=7100bc77ac3740d99ce11db9d1e460e8 task=13 harness=null runtime=subprocess
+14:25:35    INFO rollout done: id=15a7bd026c944f219ce882e40679a634 task=12 reward=0.000 turns=0 stop=ToolsetError
+14:25:35    INFO rollout start: id=471500b609b74c0c8e379d792f748098 task=13 harness=null runtime=subprocess
+14:25:35    INFO rollout done: id=c7a4dd54d9014412aa56ce1ae3e20cb0 task=12 reward=0.000 turns=0 stop=ToolsetError
+14:25:35    INFO rollout start: id=ed75cce76a5c4abf8423b6ef57cffd1a task=13 harness=null runtime=subprocess
+14:25:36    INFO rollout done: id=5ef4ce8581974c9081c0e1977b563254 task=12 reward=0.000 turns=0 stop=ToolsetError
+14:25:36    INFO rollout start: id=3c9cb647bc174de097c20946f558d964 task=13 harness=null runtime=subprocess
+14:28:36    INFO rollout done: id=7100bc77ac3740d99ce11db9d1e460e8 task=13 reward=0.000 turns=0 stop=ToolsetError
+14:28:36    INFO rollout start: id=cccac630b89c43d19dbe04d1864f6363 task=14 harness=null runtime=subprocess
+14:28:37    INFO rollout done: id=471500b609b74c0c8e379d792f748098 task=13 reward=0.000 turns=0 stop=ToolsetError
+14:28:37    INFO rollout start: id=b9705a00483b402788db2b22f7490d8f task=14 harness=null runtime=subprocess
+14:28:37    INFO rollout done: id=ed75cce76a5c4abf8423b6ef57cffd1a task=13 reward=0.000 turns=0 stop=ToolsetError
+14:28:37    INFO rollout start: id=6e794f6d368b4cccbe494f69e293a2f2 task=14 harness=null runtime=subprocess
+14:28:38    INFO rollout done: id=3c9cb647bc174de097c20946f558d964 task=13 reward=0.000 turns=0 stop=ToolsetError
+14:28:38    INFO rollout start: id=291cb92803464193ad02d44e7bd93e91 task=14 harness=null runtime=subprocess
+14:31:38    INFO rollout done: id=cccac630b89c43d19dbe04d1864f6363 task=14 reward=0.000 turns=0 stop=ToolsetError
+14:31:38    INFO rollout start: id=43c64efac3fc43b5a7c39d0b97f36aac task=15 harness=null runtime=subprocess
+14:31:39    INFO rollout done: id=b9705a00483b402788db2b22f7490d8f task=14 reward=0.000 turns=0 stop=ToolsetError
+14:31:39    INFO rollout start: id=c8986b355bc9429fbbe72cda1957da65 task=15 harness=null runtime=subprocess
+14:31:39    INFO rollout done: id=6e794f6d368b4cccbe494f69e293a2f2 task=14 reward=0.000 turns=0 stop=ToolsetError
+14:31:39    INFO rollout start: id=c2c3bcdd79ee4b648f28b549af554b9b task=15 harness=null runtime=subprocess
+14:31:40    INFO rollout done: id=291cb92803464193ad02d44e7bd93e91 task=14 reward=0.000 turns=0 stop=ToolsetError
+14:31:40    INFO rollout start: id=318ce276694a419988ecc52e829056b3 task=15 harness=null runtime=subprocess
+14:32:49 WARNING interrupted — cleaning up, please wait...
+14:32:49    INFO interception down: url=http://127.0.0.1:39123
