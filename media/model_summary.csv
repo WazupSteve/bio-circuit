@@ -1,4 +1,0 @@
-model,rollouts,gradeable_rollouts,successful_rollouts,raw_success_rate,gradeable_success_rate,evidence_passes,holdout_passes,null_passes,reported_api_cost,reported_cost_per_success,median_duration_minutes,average_tool_calls
-Kimi K3,32,22,6,0.1875,0.2727272727272727,9,8,13,11.367700000000001,1.8946166666666668,29.844309510787326,19.3125
-Fable 5.1,32,22,7,0.21875,0.3181818181818182,7,9,19,123.4259,17.63227142857143,22.031797160704933,17.53125
-GPT-6 Astra,32,22,5,0.15625,0.22727272727272727,6,6,20,55.4968,11.09936,37.8755379875501,50.4375

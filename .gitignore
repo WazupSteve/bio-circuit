@@ -1,6 +1,3 @@
-# Internal planning; not part of the published environment
-/STEPS.md
-
 # Lab generated artifacts
 .env
 /AGENTS.md
@@ -27,3 +24,8 @@ uv.lock
 
 # prime eval / prime train local run artifacts
 .subject.*
+
+# media files 
+blog_media/
+scripts/make_blog_media.py
+blog.md
