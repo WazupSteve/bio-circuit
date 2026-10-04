@@ -1,89 +1,72 @@
 # Quickstart
 
-This builds randomly mixed evaluation datasets for the three task modes and
-runs hosted Kimi K3 rollouts against them.
+Run these commands from a local checkout. The evaluation client uses Python
+3.13; the Modal deployment defines its own GPU image.
 
-## 1. Install the environment
-
-From the repository root:
+## 1. Install
 
 ```bash
-uv sync
 cd environments/circuit_supernodes
-uv sync
+uv sync --frozen
 ```
 
-Configure the credentials required by Modal and Prime before continuing.
+The default evaluation datasets download from Hugging Face on first use. No
+Hugging Face token or Git LFS setup is required. The three compressed datasets
+total about 2.6 GiB; allow additional RAM for parsed attribution graphs.
 
-## 2. Deploy the shared subject-model backend
+## 2. Connect to Modal
 
-All three modes use the same Modal `Attributor` deployment:
+Use credentials for the workspace containing the `circuit-supernodes` app:
+
+```bash
+uv run modal setup
+```
+
+For an existing deployment, continue to the next step. To deploy the included
+backend in your own workspace:
 
 ```bash
 uv run modal deploy modal_app/attribution.py
 ```
 
-## 3. Generate mixed-family evaluation datasets
+The backend loads Qwen3-4B and its transcoders on A100-80GB GPUs. It can scale to
+eight containers, so GPU usage is billed to the deployment's Modal workspace.
 
-Visible circuit discovery:
+Leave `SUBJECT_URL` unset to use Modal. If it was set for a local GPU server:
 
 ```bash
-uv run scripts/build_visible_dataset.py \
-  --n 2400 \
-  --tasks 16 \
-  --seed 1 \
-  --split eval \
-  --out circuit_supernodes/data/visible_dataset/heldout-cohorts.jsonl.gz
+unset SUBJECT_URL
 ```
 
-Promptless supernode discovery:
+For automated runs, provide `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` through
+your runner's secret configuration. Keep credentials out of config files and Git.
+
+## 3. Configure policy inference
+
+The supplied configs use Prime Inference. Set `PRIME_API_KEY` in your shell or
+runner's secret configuration. The policy model is selected by `model` in each
+TOML file; Qwen3-4B remains the subject being studied.
+
+## 4. Check the configuration
 
 ```bash
-uv run scripts/build_promptless_dataset.py \
-  --n 480 \
-  --tasks 16 \
-  --seed 1 \
-  --split eval \
-  --out circuit_supernodes/data/supernode_rediscovery/promptless-supernodes.jsonl.gz
+uv run eval @ ../../configs/eval/visible-dataset.toml --dry-run --no-push
 ```
 
-Suppressed-feature restoration:
+This validates configuration without calling the policy or GPU backend.
+
+## 5. Run an evaluation
 
 ```bash
-uv run scripts/build_restoration_dataset.py \
-  --n 480 \
-  --tasks 16 \
-  --seed 1 \
-  --split eval \
-  --out circuit_supernodes/data/output_restoration/suppressed-features.jsonl.gz
+uv run eval @ ../../configs/eval/visible-dataset.toml --no-push
+uv run eval @ ../../configs/eval/supernode-rediscovery.toml --no-push
+uv run eval @ ../../configs/eval/suppressed-features.toml --no-push
 ```
 
-The builders randomly mix completed family rows using `--seed`, so the same
-seed reproduces the same ordering.
+Each config selects 16 tasks and one rollout per task. These commands call the
+policy provider and Modal backend. `--no-push` keeps evaluation results local;
+it does not disable inference or GPU charges.
 
-## 4. Run hosted Kimi K3 evaluations
-
-Return to the repository root:
-
-```bash
-cd ../..
-```
-
-Visible circuit discovery:
-
-```bash
-uv run prime eval run configs/eval/visible-dataset.toml \
-  --model moonshotai/Kimi-K3 \
-  --num-examples 16 \
-  --rollouts-per-example 4 \
-  --hosted
-```
-
-Promptless supernode discovery:
-
-```bash
-uv run prime eval run configs/eval/supernode-rediscovery.toml \
-  --model moonshotai/Kimi-K3 \
-  --num-examples 16 \
-  --rollouts-per-example 4 \
-  --hosted
+See [operations](docs/operations.md) for hosted execution and training,
+[troubleshooting](docs/troubleshooting.md) for common failures, and
+[data generation](docs/data-generation.md) to build additional cohorts.

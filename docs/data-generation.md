@@ -116,7 +116,7 @@ Writers stream compact JSONL, optionally gzip-compressed at low compression, to
 a sibling `.partial` file and atomically rename it on success. This avoids both
 large in-memory serialization and partially written final artifacts.
 
-Every row uses `CircuitDatasetRow`. The checked-in fixture uses a supported legacy manifest shape. A sidecar `*.manifest.json` records the
+Every row uses `CircuitDatasetRow`. A sidecar `*.manifest.json` records the
 dataset schema, SHA-256, row count, subject backend, families,
 sampler triage, screening policy, maximal graph policy, generator parameters,
 quality summaries, and corruption provenance where applicable. Manifests are provenance only and are not automatically checked. Runtime loaders

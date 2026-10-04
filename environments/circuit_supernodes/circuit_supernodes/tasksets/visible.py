@@ -10,7 +10,7 @@ from pydantic import Field
 
 from ..models import Circuit, CircuitDatasetRow
 from ..runtime.circuit_tracer import CircuitExperimentTools
-from ..runtime.datasets import load_jsonl_rows
+from ..runtime.datasets import load_jsonl_rows, resolve_dataset
 from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "visible_dataset"
@@ -147,7 +147,7 @@ class CircuitTask(CausalCircuitTask):
 
 
 class CircuitTasksetConfig(SubjectTasksetConfig):
-    dataset_file: str = "circuit-cohorts.jsonl"
+    dataset_file: str = "heldout-cohorts.jsonl.gz"
     min_evidence_success: float = Field(1.0, ge=0.0, le=1.0)
     min_holdout_success: float = Field(1.0, ge=0.0, le=1.0)
     max_null_failure: float = Field(0.0, ge=0.0, le=1.0)
@@ -156,16 +156,10 @@ class CircuitTasksetConfig(SubjectTasksetConfig):
 # See the matching note in rediscovery.py about Verifiers' invariant TaskT bound.
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
     def load(self) -> Iterator[CircuitTask]:
-        path = DATA_DIR / self.config.dataset_file
-        if not path.exists():
-            raise FileNotFoundError(
-                f"{path} missing; run `uv run python scripts/build_visible_dataset.py`."
-            )
+        path = resolve_dataset(DATA_DIR, self.config.dataset_file)
         lazy_cohorts = path.stat().st_size >= LAZY_DATASET_BYTES
         if lazy_cohorts:
-            for task_index, (family, goal, examples) in enumerate(
-                _load_headers(path)
-            ):
+            for task_index, (family, goal, examples) in enumerate(_load_headers(path)):
                 data = CircuitTaskData(
                     idx=task_index,
                     name=f"circuit-{goal}-{task_index}",

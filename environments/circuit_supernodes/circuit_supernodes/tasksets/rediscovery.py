@@ -12,7 +12,7 @@ from pydantic import Field
 
 from ..models import CircuitDatasetRow, DatasetExample
 from ..runtime.circuit_tracer import CircuitExperimentTools
-from ..runtime.datasets import load_jsonl_rows
+from ..runtime.datasets import load_jsonl_rows, resolve_dataset
 from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "supernode_rediscovery"
@@ -85,7 +85,7 @@ class DiscoveryTask(CausalCircuitTask):
 
 
 class DiscoveryTasksetConfig(SubjectTasksetConfig):
-    dataset_file: str = "promptless-supernodes.jsonl"
+    dataset_file: str = "promptless-supernodes.jsonl.gz"
     min_cohort_success: float = Field(1.0, ge=0.0, le=1.0)
     max_control_activation: float = Field(0.0, ge=0.0, le=1.0)
 
@@ -94,11 +94,7 @@ class DiscoveryTasksetConfig(SubjectTasksetConfig):
 # invariant TaskT bound; the runtime and Verifiers' own generic resolver support it.
 class DiscoveryTaskset(vf.Taskset[DiscoveryTask, DiscoveryTasksetConfig]):
     def load(self) -> Iterator[DiscoveryTask]:
-        source = DATA_DIR / self.config.dataset_file
-        if not source.exists():
-            raise FileNotFoundError(
-                f"{source} missing; run scripts/build_promptless_dataset.py."
-            )
+        source = resolve_dataset(DATA_DIR, self.config.dataset_file)
         rows = load_jsonl_rows(source, CircuitDatasetRow)
         for index, row in enumerate(rows):
             goal = row.goal

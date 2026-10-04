@@ -43,11 +43,16 @@ Every row has `family`, optional `goal`, and lists `example_prompts`, `heldout_p
 | `supernode-rediscovery` | `supernode_rediscovery/promptless-supernodes.jsonl.gz` | `promptless-supernodes-train.jsonl.gz` |
 | `suppressed-features` | `output_restoration/suppressed-features.jsonl.gz` | `suppressed-features-train.jsonl.gz` |
 
-Only the visible eval file is shipped.
+All three evaluation files (16 rows each) are public in
+[amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit).
+Environment version 0.1.1 downloads them from the immutable revision
+`566f6880c28714a0e28cab3128535b6064b17a33` when a local file is absent.
+Training files are not included in this release. The Python wheel contains no
+dataset bytes.
 
 ## Manifest versions
 
-Sidecars record dataset schema and generation-policy versions, row count and SHA-256; subject model, transcoder set, node/edge thresholds and backend; sampler and generator settings; screening; and aggregate graph quality. The checked-in visible sidecar is legacy data and remains supported. Manifests are provenance sidecars, not runtime admission checks.
+Sidecars record dataset schema and generation-policy versions, row count and SHA-256; subject model, transcoder set, node/edge thresholds and backend; sampler and generator settings; screening; and aggregate graph quality. Manifests are provenance sidecars, not runtime admission checks.
 
 ## Modal RPCs
 

@@ -1,27 +1,24 @@
-# BioCircuit documentation
-
-## Understand
-
-- [Core environment](core-environment.md): tools, stable identities, graph views, and response normalization
-- [TaskSets](tasksets.md): visible discovery, promptless rediscovery, and restoration
-- [Graders](graders.md): necessity, specificity, and restoration similarity
-- [How BioCircuit works](blog/how-biocircuit-works.md): narrative introduction
+# Documentation
 
 ## Run
 
-- [Quickstart](../quickstart.md): the shipped one-row path
-- [Data generation](data-generation.md): build absent datasets
-- [Operations](operations.md): local/hosted evaluation, deployment, RL, and teardown
-- [Local / self-hosted subject](local.md): run the subject model on your own GPU instead of Modal with one script
-- [Troubleshooting](troubleshooting.md)
+- [Quickstart](../quickstart.md): install and evaluate with the Modal backend.
+- [Operations](operations.md): deployment, hosted execution, and training.
+- [Troubleshooting](troubleshooting.md): data, credentials, and runtime failures.
+- [Self-hosted GPU](local.md): optional HTTP backend on an existing GPU host.
 
-## Operate
+## Understand
 
-- [Reference](reference.md): schemas, tool/RPC contracts, files, configs, and stability
-- [Neuronpedia](neuronpedia.md): optional feature labels
-- [Ownership and module map](repository-map.md)
+- [Core environment](core-environment.md): tools, graph views, and circuit responses.
+- [Tasksets](tasksets.md): visible discovery, rediscovery, and restoration.
+- [Graders](graders.md): intervention rules and reward calculations.
+- [Walkthrough](blog/how-biocircuit-works.md): an example of the experiment loop.
 
-## Extend
+## Develop
 
-- [Contributing](../CONTRIBUTING.md)
-- [Nested package commands](../environments/circuit_supernodes/README.md)
+- [Data generation](data-generation.md): build training or evaluation cohorts.
+- [Reference](reference.md): schemas, dataset paths, and backend methods.
+- [Module map](repository-map.md): source layout and tests.
+- [Neuronpedia](neuronpedia.md): optional feature labels during generation.
+- [Package README](../environments/circuit_supernodes/README.md): standalone setup.
+- [Release record](public-release.json): published versions and checksums.

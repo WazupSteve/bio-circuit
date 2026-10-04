@@ -13,6 +13,7 @@
 /prime-rl/
 /environments/AGENTS.md
 /environments/*/dist/
+/environments/*/.prime/
 /environments/*/*.egg-info/
 /environments/*/__pycache__/
 __pycache__/
@@ -20,7 +21,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
-uv.lock
 
 # prime eval / prime train local run artifacts
 .subject.*
@@ -29,3 +29,10 @@ uv.lock
 blog_media/
 scripts/make_blog_media.py
 blog.md
+
+# Generated data and experiment artifacts
+outputs/
+runlogs/
+*.log
+*.partial
+/environments/*/circuit_supernodes/data/

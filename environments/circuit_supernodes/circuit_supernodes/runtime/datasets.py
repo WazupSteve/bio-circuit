@@ -12,6 +12,38 @@ from pydantic import BaseModel
 
 DATASET_SCHEMA_VERSION = "runtime-minimal-v2"
 GENERATION_POLICY = "maximal-circuit-tracer-export-v1"
+HF_DATASET_REPO = "amitprakash2005/bio-circuit"
+# Immutable public release; update only when publishing new dataset bytes.
+HF_DATASET_REVISION = "566f6880c28714a0e28cab3128535b6064b17a33"
+PUBLIC_DATASETS = {
+    "visible_dataset/heldout-cohorts.jsonl.gz",
+    "supernode_rediscovery/promptless-supernodes.jsonl.gz",
+    "output_restoration/suppressed-features.jsonl.gz",
+}
+
+
+def resolve_dataset(data_dir: Path, filename: str) -> Path:
+    """Prefer an explicit local dataset; fetch known release files anonymously."""
+    path = data_dir / filename
+    if path.is_file():
+        return path
+    relative = f"{data_dir.name}/{filename}"
+    if relative not in PUBLIC_DATASETS:
+        raise FileNotFoundError(
+            f"{path} missing. Only evaluation cohorts are published; provide a "
+            "local dataset_file for custom or training data."
+        )
+    from huggingface_hub import hf_hub_download
+
+    return Path(
+        hf_hub_download(
+            repo_id=HF_DATASET_REPO,
+            filename=f"data/{relative}",
+            repo_type="dataset",
+            revision=HF_DATASET_REVISION,
+            token=False,
+        )
+    )
 
 
 class JsonlDatasetFile:

@@ -43,7 +43,7 @@ flowchart LR
 
 ## From prompts to cohorts
 
-Builders seed prompt generation across semantic families, ask the subject to sample bounded answers, retain attributable first tokens, build maximal graphs, and screen graph error influence. They then form same-goal positives and different-goal controls. Restoration additionally searches for a shared corruption that changes every cohort member. The output is compact runtime data plus a provenance sidecar—not a pasted multi-gigabyte graph in documentation.
+Builders seed prompt generation across semantic families, ask the subject to sample bounded answers, retain attributable first tokens, build maximal graphs, and screen graph error influence. They then form same-goal positives and different-goal controls. Restoration additionally searches for a shared corruption that changes every cohort member. The output is compact runtime data plus a provenance sidecar.
 
 ```mermaid
 flowchart TD
@@ -60,6 +60,6 @@ flowchart TD
 
 ## Engineering boundaries and limitations
 
-Modal owns GPU subject execution; Git LFS carries only the legacy visible smoke artifact; Prime/Verifiers owns policy rollouts; Neuronpedia labels are optional enrichment, never grading truth. Operational commands belong in [operations](../operations.md), schemas in [reference](../reference.md), and artifact generation in [data generation](../data-generation.md).
+Modal owns GPU subject execution; Hugging Face hosts the three evaluation datasets; Prime/Verifiers owns policy rollouts; Neuronpedia labels are optional enrichment, never grading truth. Operational commands belong in [operations](../operations.md), schemas in [reference](../reference.md), and artifact generation in [data generation](../data-generation.md).
 
-The method is costly and sensitive to pruning. A stable feature may be absent from a prompt, graph thresholds may hide useful structure, and subject/transcoder/provider versions can drift. “Hidden” means hidden from policy messages and tools, not encrypted from operators or stored task rows. Finally, disrupting a top token is evidence of causal necessity under this intervention—not complete semantic proof. Local ignored outputs must not be promoted into benchmark claims.
+The method is costly and sensitive to pruning. A stable feature may be absent from a prompt, graph thresholds may hide useful structure, and subject/transcoder/provider versions can drift. “Hidden” means hidden from policy messages and tools, not encrypted from operators or stored task rows. Finally, disrupting a top token is evidence of causal necessity under this intervention, rather than proof of a complete semantic explanation. Local ignored outputs must not be promoted into benchmark claims.

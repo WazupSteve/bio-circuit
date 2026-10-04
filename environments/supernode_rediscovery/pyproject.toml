@@ -1,0 +1,17 @@
+[project]
+name = "supernode-rediscovery"
+version = "0.1.2"
+description = "Rediscover causal Qwen3-4B circuits for named semantic goals"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+tags = ["taskset", "interpretability", "requires-gpu"]
+dependencies = [
+    "circuit-supernodes==0.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["_biocircuit_supernode_rediscovery_release.py", "README.md", "pyproject.toml"]

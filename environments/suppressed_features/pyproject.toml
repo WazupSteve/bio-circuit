@@ -1,0 +1,17 @@
+[project]
+name = "suppressed-features"
+version = "0.1.2"
+description = "Restore Qwen3-4B outputs after hidden feature corruption"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+tags = ["taskset", "interpretability", "requires-gpu"]
+dependencies = [
+    "circuit-supernodes==0.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["_biocircuit_suppressed_features_release.py", "README.md", "pyproject.toml"]

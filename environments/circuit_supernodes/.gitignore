@@ -1,3 +1,3 @@
-# The generated datasets are versioned through Git LFS. Keep only the legacy
-# circuit_mdl directory ignored.
-circuit_supernodes/data/circuit_mdl/
+# Dataset files are downloaded from the pinned Hugging Face release.
+# Prime source archives also honor this exclusion.
+circuit_supernodes/data/

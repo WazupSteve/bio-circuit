@@ -1,93 +1,59 @@
-# Ownership and module map
-
-This evergreen map assigns each source subsystem an operational and reference owner.
-
-## Primary layout
+# Module map
 
 ```text
 configs/
-  eval/                         Prime evaluation configurations
-  rl/                           Prime training configurations
+  eval/                         Local Verifiers evaluation configs
+  rl/                           Training templates
 environments/circuit_supernodes/
   circuit_supernodes/
-    data/                       generated/checked-in dataset artifacts
-    grading/                    discovery ablation and restoration KL reward
-    runtime/                    schemas, graphs, sampling, tools, Modal clients
-    tasksets/                   three Verifiers adapters
-  modal_app/                    GPU deployment and unified backend
-  scripts/                      prompt and dataset generation
-  tests/                        unit and contract tests
-docs/                           this documentation
+    grading/                    Ablation and restoration rewards
+    runtime/                    Data loading, graph tools, subject clients
+    tasksets/                   Three Verifiers tasksets
+  circuit_null/                 Shared policy harness
+  supernode_rediscovery/         Rediscovery import entrypoint
+  suppressed_features/          Restoration import entrypoint
+  modal_app/                    Modal deployment and GPU backend
+  scripts/                      Prompt and dataset builders
+  tests/                        Unit and integration contract tests
+environments/circuit_null/      Hub distribution for the harness
+environments/supernode_rediscovery/  Hub distribution for rediscovery
+environments/suppressed_features/    Hub distribution for restoration
+scripts/                       Optional GPU-host helper and release preparation
+docs/                          Setup and reference documentation
 ```
 
-## Modal deployment layer
+## Execution
 
-One deployed service owns all subject-model execution:
+`modal_app/backend/subject.py` loads Qwen3-4B and the transcoders. The Modal
+service exposes sampling, attribution, corruption, ablation, and restoration
+methods. `circuit_supernodes/runtime/modal.py` calls those methods through the
+Modal SDK, or uses an HTTP backend when `SUBJECT_URL` is set.
 
-| Service | Model/transcoders | Responsibilities |
-| --- | --- | --- |
-| `circuit-supernodes/Attributor` | Qwen3-4B / `mwhanna/qwen3-4b-transcoders` | sampling, clean attribution, corruption search, intervention replay, and KL restoration replay |
+Tasksets shape policy inputs and select graders. The shared tools expose
+attribution, paginated graph queries, and feature interventions. Hidden cohorts
+and corruption parameters stay in task data used by the backend and graders.
 
-It uses A100-80GB GPUs, shared Hugging Face cache volumes, container scaling,
-and long timeouts. Deploying it changes external Modal state and is not part of
-local tests.
+## Packaging
 
-```bash
-cd environments/circuit_supernodes
-uv run modal deploy modal_app/attribution.py
-```
+The root Python project supplies Prime and development tools. The nested
+`circuit-supernodes` project builds the core wheel, including all tasksets,
+the harness, and backend source. Three small Hub distributions depend on that
+core package and make the other tasksets and harness addressable by Hub ID.
 
-## Runner and packaging layer
-
-There are two Python projects. The root pins Prime, Modal, and Verifiers for
-repository-wide running and checks. The nested project is a buildable
-`circuit-supernodes` package with its own dependencies and lockfile. Prime eval
-and RL TOML files configure policy models, rollout concurrency, turn/token
-budgets, TaskSet thresholds, training filters, and periodic evaluation.
-
-This is operational infrastructure, not part of circuit semantics, but it is
-required to reproduce training and evaluation.
-
-## Graph presentation and compatibility machinery
-
-The repository now owns more than a minimal attribution wrapper:
-
-- a maximal-graph storage policy and derived top-k views;
-- cumulative-influence-to-delta ranking;
-- graph quality accounting and error-node screening;
-- textual graph rendering and response-shape normalization;
-- model tokenization, activation-shape, and logits adapters;
-- clean attribution and intervention contexts over Circuit Tracer and TransformerLens;
-- pinned cloudpickle/Circuit Tracer variants for backend compatibility; and
-- retry, streaming gzip, atomic-write, digest, and provenance utilities.
-
-These support systems are owned compatibility and data/deployment infrastructure.
-
-## Evaluation canary
-
-`configs/eval/suppressed-features-canary-egress.toml` is a one-task,
-external-policy-model smoke test. It is operational validation and is outside
-the scientific task/grader contract.
+Datasets live on Hugging Face. The loader uses a pinned release revision when
+no local dataset is supplied. Generated data, logs, traces, and build outputs
+are ignored by Git.
 
 ## Tests
 
-The test suite covers schemas, boundaries, graph views, sampling/data generation,
-builder support, visible cohort construction, rediscovery grouping, restoration,
-ablation wire contracts, and integration contracts. Tests mock or isolate remote
-behavior; they do not deploy the Modal service.
+Tests cover schemas, graph views, response parsing, interventions, dataset
+builders, taskset loading, reward contracts, and public dataset resolution.
+Remote calls are mocked; the tests do not deploy Modal or verify a live rollout.
+
+From `environments/circuit_supernodes`:
 
 ```bash
-cd environments/circuit_supernodes
 uv sync --frozen
-uv run ruff format --check .
-uv run ruff check .
 uv run pytest
+uv run ruff check .
 ```
-
-## Known architectural seams
-
-- Neuronpedia enrichment is Qwen-only, build-time-only, and best-effort.
-
-These seams should be considered before extending the system again: new work
-should either reinforce the shared contract or be documented as another
-adjacent subsystem.

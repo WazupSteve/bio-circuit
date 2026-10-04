@@ -1,4 +1,4 @@
-# prime eval run configs/eval/visible-dataset.toml [--hosted]
+# From environments/circuit_supernodes: uv run eval @ ../../configs/eval/visible-dataset.toml --no-push
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 16
 num_rollouts = 1

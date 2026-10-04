@@ -26,6 +26,3 @@ At runtime, graph rendering displays `clerp` text before the optional label, so 
 Neuronpedia label is visible only when the exporter does not already provide a
 non-empty `clerp` for that node. Labels have no effect on feature ranking,
 intervention resolution, cohort construction, or grading.
-
-This is the entirety of the current Neuronpedia backing; there is no local
-Neuronpedia database or proxy service.

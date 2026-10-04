@@ -1,8 +1,9 @@
 [project]
 name = "circuit-supernodes"
 description = "Evidence/holdout causal-circuit, rediscovery, and restoration tasksets"
-tags = ["multi-turn", "interpretability", "tool-use", "train", "eval"]
-version = "0.1.0"
+tags = ["multi-turn", "interpretability", "tool-use", "eval", "requires-gpu"]
+version = "0.1.1"
+readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "verifiers==0.2.1",
@@ -12,9 +13,7 @@ dependencies = [
     "tenacity>=9.1.2",
     "typer>=0.27.0",
     "fastapi>=0.141.1",
-    "torch==2.13.0",
-    "nnsight>=0.7.0",
-    "circuit-tracer>=0.5.0",
+    "huggingface-hub>=0.34,<2",
 ]
 
 [dependency-groups]
@@ -22,15 +21,6 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.15",
 ]
-
-# Keep Linux GPU installs compatible with drivers supporting CUDA 12.8.
-[tool.uv.sources]
-torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux'" }]
-
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
 
 [build-system]
 requires = ["hatchling"]
@@ -42,8 +32,11 @@ include = [
     "circuit_supernodes/**",
     "supernode_rediscovery/**",
     "suppressed_features/**",
+    "modal_app/**",
     "pyproject.toml",
+    "README.md",
 ]
+exclude = ["circuit_supernodes/data/**", "**/__pycache__/**"]
 
 [tool.ty.src]
 # Tests intentionally construct invalid Pydantic payloads, while modal_app is

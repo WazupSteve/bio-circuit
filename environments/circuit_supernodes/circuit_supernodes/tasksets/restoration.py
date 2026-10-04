@@ -16,7 +16,7 @@ from ..grading.restoration import (
 from ..models import CircuitDatasetRow
 from ..runtime import circuit_from_response
 from ..runtime.circuit_tracer import CircuitExperimentTools
-from ..runtime.datasets import load_jsonl_rows
+from ..runtime.datasets import load_jsonl_rows, resolve_dataset
 from ..runtime.graphs import weighted_nodes
 from ..runtime.modal import subject_from_config
 from .shared import (
@@ -125,17 +125,13 @@ class CircuitTask(CausalCircuitTask):
 
 
 class CircuitTasksetConfig(SubjectTasksetConfig):
-    dataset_file: str = "suppressed-features.jsonl"
+    dataset_file: str = "suppressed-features.jsonl.gz"
 
 
 # See the matching note in rediscovery.py about Verifiers' invariant TaskT bound.
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
     def load(self) -> Iterator[CircuitTask]:
-        path = DATA_DIR / self.config.dataset_file
-        if not path.exists():
-            raise FileNotFoundError(
-                f"{path} missing; run scripts/build_restoration_dataset.py."
-            )
+        path = resolve_dataset(DATA_DIR, self.config.dataset_file)
         rows = load_jsonl_rows(path, CircuitDatasetRow)
         for task_index, row in enumerate(rows):
             data = CircuitTaskData(

@@ -1,0 +1,17 @@
+[project]
+name = "circuit-null"
+version = "0.1.2"
+description = "Bio-Circuit Verifiers v1 harness with pinned MCP and extended tool timeouts"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+tags = ["harness", "interpretability", "requires-gpu"]
+dependencies = [
+    "circuit-supernodes==0.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["_biocircuit_circuit_null_release.py", "README.md", "pyproject.toml"]

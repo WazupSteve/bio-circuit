@@ -14,7 +14,7 @@ uv run eval @ ../../configs/eval/visible-dataset.toml --dry-run --no-push
 
 ## Modal deployment
 
-From `environments/circuit_supernodes`, after budget approval:
+From `environments/circuit_supernodes`:
 
 ```bash
 uv run modal deploy modal_app/attribution.py
@@ -29,7 +29,19 @@ See [local.md](local.md): `scripts/subject.sh up` brings up a GPU host, serves t
 
 ## Hosted publication and evaluation
 
-Hosted evaluation is a separate workflow. Publish each TaskSet environment under an owner slug, publish its required dataset, then invoke Prime's hosted evaluation interface with that published identifier. The local Verifiers-v1 TOMLs in `configs/eval/` are not claimed to work with `prime eval run --hosted`.
+Core version 0.1.1 is published under `wazupsteve/circuit-supernodes`, with small
+version 0.1.2 distributions for `wazupsteve/supernode-rediscovery`,
+`wazupsteve/suppressed-features`, and `wazupsteve/circuit-null` depending on the
+version-pinned core package. Public evaluation data is hosted at
+[amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit).
+See the [package README](../environments/circuit_supernodes/README.md) for a
+self-contained installation and self-hosted GPU setup.
+
+Hosted evaluation is a separate workflow and still requires an accessible GPU
+subject backend. The local Verifiers-v1 TOMLs in `configs/eval/` are not claimed
+to work with `prime eval run --hosted`. This release publishes packages and
+datasets; it does not deploy GPU infrastructure, publish a container image, or
+provide a training dataset.
 
 ## Dataset generation
 
@@ -45,7 +57,7 @@ Choose `--out` filenames matching [reference](reference.md). Generation samples 
 
 ## Reinforcement learning
 
-Training is advanced and paid. It requires generated train/eval datasets, published environments, provider and Prime credentials, and explicit cost approval. From repository root:
+Training requires separate training data, an accessible subject backend, and provider and Prime credentials. The supplied RL configs are templates. From the repository root:
 
 ```bash
 prime train configs/rl/visible-dataset.toml
@@ -57,4 +69,4 @@ Validate configs locally before dispatch; do not run training in pull-request CI
 
 ## Manual remote acceptance
 
-With budget approval: deploy staging; run one sample and attribution; build one task for each mode; complete one rollout per TaskSet. Test hosted evaluation and RL only after corresponding environments and datasets are published. Record model/transcoder versions and tear down staging resources.
+To verify a deployment, run one sample and attribution request, then complete one scored rollout per taskset. Record the subject and transcoder versions, check credentials from the intended runner, and stop temporary resources when finished.
