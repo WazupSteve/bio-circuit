@@ -61,3 +61,21 @@ def test_all_default_datasets_are_published():
             f"{Path(module.DATA_DIR).name}/{config.dataset_file}"
             in datasets.PUBLIC_DATASETS
         )
+
+
+@pytest.mark.parametrize("suffix", [".jsonl", ".jsonl.gz"])
+@pytest.mark.parametrize("trailing_newline", [True, False])
+def test_jsonl_lines_match_text_rows_across_chunk_boundaries(
+    tmp_path, monkeypatch, suffix, trailing_newline
+):
+    import gzip
+
+    rows = [b'{"a":"' + bytes([97 + i]) * (i * 7 + 1) + b'"}' for i in range(6)]
+    raw = b"\n  \n".join(rows) + (b"\n" if trailing_newline else b"")
+    path = tmp_path / f"rows{suffix}"
+    path.write_bytes(gzip.compress(raw) if suffix.endswith(".gz") else raw)
+    monkeypatch.setattr(datasets, "_CHUNK_BYTES", 5)
+
+    assert list(datasets.jsonl_lines(path)) == list(enumerate(rows))
+    assert list(datasets.jsonl_lines(path, only={1, 4})) == [(1, rows[1]), (4, rows[4])]
+    assert list(datasets.jsonl_lines(path, only={9})) == []

@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import verifiers.v1 as vf
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from ..grading.restoration import (
     RestorationMetricEvaluator,
     cohort_clean_kl,
     cohort_clean_similarity,
 )
-from ..models import CircuitDatasetRow
+from ..models import CircuitDatasetRow, Intervention
 from ..runtime import circuit_from_response
 from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows, resolve_dataset
@@ -24,9 +28,32 @@ from .shared import (
     CircuitTaskData,
     SubjectTasksetConfig,
     grading_validation_failure,
+    is_lazy_dataset,
+    row_headers,
+    row_section,
 )
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "output_restoration"
+_EXAMPLE_START = re.compile(rb'\{\s*"prompt"\s*:')
+_CORRUPTION_RE = re.compile(rb'"corruption"\s*:\s*(\[[^"{}]*?\]\s*\])')
+_INTERVENTIONS = TypeAdapter(list[Intervention])
+
+
+def first_heldout_corruption(line: bytes) -> list[Intervention]:
+    """Read the first held-out corruption without validating cohort graphs."""
+
+    heldout = row_section(line, "heldout_prompts", "control_prompts")
+    starts = _EXAMPLE_START.finditer(heldout)
+    next(starts, None)
+    second = next(starts, None)
+    first = heldout if second is None else heldout[: second.start()]
+    match = _CORRUPTION_RE.search(first)
+    if match is None:
+        return []
+    return _INTERVENTIONS.validate_python(
+        [tuple(item) for item in json.loads(match[1])]
+    )
+
 
 SYSTEM_PROMPT = """\
 The subject model has a persistent feature corruption. Attribute arbitrary
@@ -83,10 +110,9 @@ class CircuitTask(CausalCircuitTask):
             evaluator = RestorationMetricEvaluator(
                 subject_from_config(self.data.subject_config)
             )
+            _, heldout, _ = await asyncio.to_thread(self.grading_cohorts)
             try:
-                replay = await evaluator.score_cohort(
-                    self.data.heldout_prompts, weighted_nodes(circuit)
-                )
+                replay = await evaluator.score_cohort(heldout, weighted_nodes(circuit))
                 similarity = cohort_clean_similarity(replay)
                 result = {
                     "reward": similarity,
@@ -132,21 +158,44 @@ class CircuitTasksetConfig(SubjectTasksetConfig):
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
     def load(self) -> Iterator[CircuitTask]:
         path = resolve_dataset(DATA_DIR, self.config.dataset_file)
+        if is_lazy_dataset(path):
+            for task_index, family, _, line in row_headers(path):
+                yield self.build_task(
+                    task_index,
+                    family,
+                    first_heldout_corruption(line),
+                    dataset_path=str(path),
+                    dataset_row=task_index,
+                )
+            return
         rows = load_jsonl_rows(path, CircuitDatasetRow)
         for task_index, row in enumerate(rows):
-            data = CircuitTaskData(
-                idx=task_index,
-                name=f"suppressed-{row.family}-{task_index}",
-                prompt=restoration_prompt(row.family),
-                system_prompt=SYSTEM_PROMPT,
-                family=row.family,
-                subject_config=self.config.subject,
+            yield self.build_task(
+                task_index,
+                row.family,
+                row.heldout_prompts[0].corruption,
                 example_prompts=row.example_prompts,
                 heldout_prompts=row.heldout_prompts,
                 control_prompts=row.control_prompts,
-                corruption_spec=[
-                    (layer, feature, factor)
-                    for layer, feature, _, factor in row.heldout_prompts[0].corruption
-                ],
             )
-            yield CircuitTask(data, self.config.task)
+
+    def build_task(
+        self,
+        task_index: int,
+        family: str,
+        corruption: list[Intervention],
+        **cohorts: Any,
+    ) -> CircuitTask:
+        data = CircuitTaskData(
+            idx=task_index,
+            name=f"suppressed-{family}-{task_index}",
+            prompt=restoration_prompt(family),
+            system_prompt=SYSTEM_PROMPT,
+            family=family,
+            subject_config=self.config.subject,
+            corruption_spec=[
+                (layer, feature, factor) for layer, feature, _, factor in corruption
+            ],
+            **cohorts,
+        )
+        return CircuitTask(data, self.config.task)

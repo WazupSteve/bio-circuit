@@ -6,6 +6,7 @@ __all__ = ["DiscoveryTaskset"]
 
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import verifiers.v1 as vf
 from pydantic import Field
@@ -13,7 +14,13 @@ from pydantic import Field
 from ..models import CircuitDatasetRow, DatasetExample
 from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows, resolve_dataset
-from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
+from .shared import (
+    CausalCircuitTask,
+    CircuitTaskData,
+    SubjectTasksetConfig,
+    is_lazy_dataset,
+    row_headers,
+)
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "supernode_rediscovery"
 
@@ -63,6 +70,9 @@ class DiscoveryTask(CausalCircuitTask):
     def grading_cohorts(
         self,
     ) -> tuple[list[DatasetExample], list[DatasetExample], list[DatasetExample]]:
+        row = self.source_row()
+        if row is not None:
+            return row.heldout_prompts, [], row.control_prompts
         return self.data.heldout_prompts, [], self.data.control_prompts
 
     @vf.metric
@@ -95,23 +105,38 @@ class DiscoveryTasksetConfig(SubjectTasksetConfig):
 class DiscoveryTaskset(vf.Taskset[DiscoveryTask, DiscoveryTasksetConfig]):
     def load(self) -> Iterator[DiscoveryTask]:
         source = resolve_dataset(DATA_DIR, self.config.dataset_file)
+        if is_lazy_dataset(source):
+            for index, family, goal, _ in row_headers(source):
+                yield self.build_task(
+                    index, family, goal, dataset_path=str(source), dataset_row=index
+                )
+            return
         rows = load_jsonl_rows(source, CircuitDatasetRow)
         for index, row in enumerate(rows):
-            goal = row.goal
-            if goal is None:
-                raise ValueError("rediscovery rows require a goal")
-            data = CircuitTaskData(
-                idx=index,
-                name=f"promptless-{row.family}-{index}",
-                prompt=cohort_prompt(goal),
-                system_prompt=SYSTEM_PROMPT,
-                family=row.family,
-                subject_config=self.config.subject,
-                goal=goal,
+            yield self.build_task(
+                index,
+                row.family,
+                row.goal,
                 example_prompts=row.example_prompts,
                 heldout_prompts=row.heldout_prompts,
                 control_prompts=row.control_prompts,
-                min_visible_success=self.config.min_cohort_success,
-                max_control_failure=self.config.max_control_activation,
             )
-            yield DiscoveryTask(data, self.config.task)
+
+    def build_task(
+        self, index: int, family: str, goal: str | None, **cohorts: Any
+    ) -> DiscoveryTask:
+        if goal is None:
+            raise ValueError("rediscovery rows require a goal")
+        data = CircuitTaskData(
+            idx=index,
+            name=f"promptless-{family}-{index}",
+            prompt=cohort_prompt(goal),
+            system_prompt=SYSTEM_PROMPT,
+            family=family,
+            subject_config=self.config.subject,
+            goal=goal,
+            min_visible_success=self.config.min_cohort_success,
+            max_control_failure=self.config.max_control_activation,
+            **cohorts,
+        )
+        return DiscoveryTask(data, self.config.task)

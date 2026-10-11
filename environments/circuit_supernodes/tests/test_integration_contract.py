@@ -182,13 +182,14 @@ def test_all_plugin_entrypoints_remain_independent() -> None:
     )
 
 
+@pytest.mark.parametrize("lazy", [False, True], ids=["eager", "lazy"])
 @pytest.mark.parametrize("family", ["visible", "rediscovery", "restoration"])
 @pytest.mark.parametrize(
     "failure",
     [None, "positive_baseline", "secondary_gate", "malformed", "circuit_miss"],
 )
 def test_reward_handles_replay_validation_failures(
-    tmp_path, monkeypatch, family, failure
+    tmp_path, monkeypatch, family, failure, lazy
 ) -> None:
     import asyncio
     from types import SimpleNamespace
@@ -211,6 +212,8 @@ def test_reward_handles_replay_validation_failures(
         },
     )
     monkeypatch.setattr(module, "DATA_DIR", tmp_path)
+    if lazy:
+        monkeypatch.setattr(shared, "LAZY_DATASET_BYTES", 0)
     taskset_type = (
         module.DiscoveryTaskset if family == "rediscovery" else module.CircuitTaskset
     )
@@ -220,6 +223,7 @@ def test_reward_handles_replay_validation_failures(
         else module.CircuitTasksetConfig
     )
     task = next(taskset_type(config_type(dataset_file="task.jsonl")).load())
+    assert (task.data.dataset_path is not None) is lazy
 
     class Subject:
         calls = 0
@@ -309,3 +313,67 @@ def test_reward_handles_replay_validation_failures(
         assert subject.calls == calls
 
     asyncio.run(exercise())
+
+
+def lazy_and_eager_tasks(tmp_path, monkeypatch, module, rows: list[dict]):
+    from circuit_supernodes.tasksets import shared
+
+    (tmp_path / "task.jsonl").write_text(
+        "\n\n".join(json.dumps(row, separators=(",", ":")) for row in rows) + "\n"
+    )
+    monkeypatch.setattr(module, "DATA_DIR", tmp_path)
+    taskset_type = getattr(module, "DiscoveryTaskset", None) or module.CircuitTaskset
+    config_type = (
+        getattr(module, "DiscoveryTasksetConfig", None) or module.CircuitTasksetConfig
+    )
+    eager = list(taskset_type(config_type(dataset_file="task.jsonl")).load())
+    monkeypatch.setattr(shared, "LAZY_DATASET_BYTES", 0)
+    lazy = list(taskset_type(config_type(dataset_file="task.jsonl")).load())
+    return eager, lazy
+
+
+@pytest.mark.parametrize("module", [visible, rediscovery, restoration])
+def test_lazy_tasks_match_eager_tasks(tmp_path, monkeypatch, module) -> None:
+    rows = [
+        {
+            "family": f"family-{index}",
+            "goal": f'goal "{index}"',
+            "example_prompts": [example(f"example {index}")] if index else [],
+            "heldout_prompts": [
+                example(
+                    f"heldout {index}-{position}",
+                    corruption=[[1, index, position, 2.5], [3, 4, 5, -1e-3]],
+                )
+                for position in range(6)
+            ],
+            "control_prompts": [example(f"control {index}")],
+        }
+        for index in range(3)
+    ]
+    eager, lazy = lazy_and_eager_tasks(tmp_path, monkeypatch, module, rows)
+
+    assert len(lazy) == len(eager) == 3
+    for eager_task, lazy_task in zip(eager, lazy, strict=True):
+        assert lazy_task.data.dataset_path is not None
+        assert not lazy_task.data.heldout_prompts
+        assert lazy_task.data.model_dump() == eager_task.data.model_dump()
+        assert lazy_task.data.corruption_spec == eager_task.data.corruption_spec
+        assert lazy_task.grading_cohorts() == eager_task.grading_cohorts()
+
+
+def test_lazy_restoration_without_corruption_matches_eager(
+    tmp_path, monkeypatch
+) -> None:
+    rows = [
+        {
+            "family": "family",
+            "example_prompts": [],
+            "heldout_prompts": [
+                example("no corruption"),
+                example("later", corruption=[[1, 2, 0, 4.0]]),
+            ],
+            "control_prompts": [example("control")],
+        }
+    ]
+    eager, lazy = lazy_and_eager_tasks(tmp_path, monkeypatch, restoration, rows)
+    assert lazy[0].data.corruption_spec == eager[0].data.corruption_spec == []

@@ -1,4 +1,3 @@
-import gzip
 import json
 import re
 from collections.abc import Iterator
@@ -11,15 +10,23 @@ from pydantic import Field
 from ..models import Circuit, CircuitDatasetRow
 from ..runtime.circuit_tracer import CircuitExperimentTools
 from ..runtime.datasets import load_jsonl_rows, resolve_dataset
-from .shared import CausalCircuitTask, CircuitTaskData, SubjectTasksetConfig
+from .shared import (
+    JSON_STRING,
+    CausalCircuitTask,
+    CircuitTaskData,
+    SubjectTasksetConfig,
+    is_lazy_dataset,
+    row_headers,
+    row_section,
+)
 
 DATA_DIR = Path(__file__).parents[1] / "data" / "visible_dataset"
-LAZY_DATASET_BYTES = 64 * 1024 * 1024
-_SCALAR = r'"(?:\\.|[^"\\])*"'
-_FAMILY_RE = re.compile(r'"family":(' + _SCALAR + r")")
-_GOAL_RE = re.compile(r'"goal":(null|' + _SCALAR + r")")
 _EXAMPLE_RE = re.compile(
-    r'"prompt":(' + _SCALAR + r'),"target_token":(' + _SCALAR + r")"
+    rb'"prompt"\s*:\s*('
+    + JSON_STRING
+    + rb')\s*,\s*"target_token"\s*:\s*('
+    + JSON_STRING
+    + rb")"
 )
 
 
@@ -29,40 +36,25 @@ class _PromptHeader:
     target_token: str
 
 
-def _section(line: str, name: str, next_name: str) -> str:
-    start = line.index(f'"{name}":[')
-    end = line.index(f'],"{next_name}":', start)
-    return line[start:end]
-
-
-def _prompt_headers(section: str) -> list[_PromptHeader]:
+def _prompt_headers(section: bytes) -> list[_PromptHeader]:
     return [
         _PromptHeader(json.loads(match[1]), json.loads(match[2]))
         for match in _EXAMPLE_RE.finditer(section)
     ]
 
 
-def _load_headers(path: Path) -> Iterator[tuple[str, str | None, list[_PromptHeader]]]:
-    opener = gzip.open if path.suffix == ".gz" else open
-    with opener(path, "rt", encoding="utf-8") as rows:
-        for line in rows:
-            family_match = _FAMILY_RE.search(line)
-            goal_match = _GOAL_RE.search(line)
-            if family_match is None or goal_match is None:
-                raise ValueError(f"{path} row is missing family or goal")
+def _load_headers(
+    path: Path,
+) -> Iterator[tuple[int, str, str | None, list[_PromptHeader]]]:
+    for index, family, goal, line in row_headers(path):
+        examples = _prompt_headers(
+            row_section(line, "example_prompts", "heldout_prompts")
+        )
+        if not examples:
             examples = _prompt_headers(
-                _section(line, "example_prompts", "heldout_prompts")
-            )
-            if not examples:
-                examples = _prompt_headers(
-                    _section(line, "heldout_prompts", "control_prompts")
-                )[:5]
-            goal_raw = goal_match[1]
-            yield (
-                json.loads(family_match[1]),
-                None if goal_raw == "null" else json.loads(goal_raw),
-                examples,
-            )
+                row_section(line, "heldout_prompts", "control_prompts")
+            )[:5]
+        yield index, family, goal, examples
 
 
 SYSTEM_PROMPT = """\
@@ -157,9 +149,8 @@ class CircuitTasksetConfig(SubjectTasksetConfig):
 class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
     def load(self) -> Iterator[CircuitTask]:
         path = resolve_dataset(DATA_DIR, self.config.dataset_file)
-        lazy_cohorts = path.stat().st_size >= LAZY_DATASET_BYTES
-        if lazy_cohorts:
-            for task_index, (family, goal, examples) in enumerate(_load_headers(path)):
+        if is_lazy_dataset(path):
+            for task_index, family, goal, examples in _load_headers(path):
                 data = CircuitTaskData(
                     idx=task_index,
                     name=f"circuit-{goal}-{task_index}",

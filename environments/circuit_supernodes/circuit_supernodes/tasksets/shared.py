@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-import itertools
-from collections.abc import Sequence
+import asyncio
+import json
+import re
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -13,9 +15,55 @@ from pydantic import Field, ValidationError
 from ..grading.ablation import AblationHoldoutGrader
 from ..models import Circuit, CircuitDatasetRow, DatasetExample
 from ..runtime import circuit_from_response
-from ..runtime.datasets import load_jsonl_rows
+from ..runtime.datasets import jsonl_lines, load_jsonl_row
 from ..runtime.graphs import weighted_nodes
 from ..runtime.modal import SubjectConfig, subject_from_config
+
+# Larger datasets keep only task-prompt fields in memory and reload the
+# graph-heavy row when grading needs it; small fixtures load eagerly.
+LAZY_DATASET_BYTES = 64 * 1024 * 1024
+JSON_STRING = rb'"(?:\\.|[^"\\])*"'
+_FAMILY_RE = re.compile(rb'"family"\s*:\s*(' + JSON_STRING + rb")")
+_GOAL_RE = re.compile(rb'"goal"\s*:\s*(null|' + JSON_STRING + rb")")
+
+
+def _cohort_start(name: str) -> re.Pattern[bytes]:
+    return re.compile(rb'"' + name.encode() + rb'"\s*:\s*\[')
+
+
+def is_lazy_dataset(path: Path) -> bool:
+    return path.stat().st_size >= LAZY_DATASET_BYTES
+
+
+def row_section(line: bytes, name: str, next_name: str) -> bytes:
+    """Raw JSON between a row's ``name`` cohort and the following key."""
+
+    start = _cohort_start(name).search(line)
+    end = re.compile(rb'\]\s*,\s*"' + next_name.encode() + rb'"\s*:').search(
+        line, start.end() if start else 0
+    )
+    if start is None or end is None:
+        raise ValueError(f"row is missing the {name} cohort")
+    return line[start.start() : end.start()]
+
+
+def row_headers(path: Path) -> Iterator[tuple[int, str, str | None, bytes]]:
+    """Stream ``(row, family, goal, line)`` without validating cohort graphs."""
+
+    for index, line in jsonl_lines(path):
+        # Top-level scalars precede the cohorts; never search inside graphs.
+        cohorts = _cohort_start("example_prompts").search(line)
+        head = line if cohorts is None else line[: cohorts.start()]
+        family = _FAMILY_RE.search(head)
+        if family is None:
+            raise ValueError(f"{path} row {index + 1} is missing family")
+        goal = _GOAL_RE.search(head)
+        yield (
+            index,
+            json.loads(family[1]),
+            None if goal is None or goal[1] == b"null" else json.loads(goal[1]),
+            line,
+        )
 
 
 def grading_validation_failure(exc: ValidationError) -> dict[str, Any]:
@@ -81,8 +129,9 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
 
         if self.data.dataset_path is None or self.data.dataset_row is None:
             return None
-        rows = load_jsonl_rows(Path(self.data.dataset_path), CircuitDatasetRow)
-        return next(itertools.islice(rows, self.data.dataset_row, None), None)
+        return load_jsonl_row(
+            Path(self.data.dataset_path), CircuitDatasetRow, self.data.dataset_row
+        )
 
     def grading_cohorts(
         self,
@@ -118,7 +167,8 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
             trace.info[self.score_cache_key] = result
             return result
 
-        visible, holdout, controls = self.grading_cohorts()
+        # Reloading a graph-heavy row takes seconds; keep other rollouts moving.
+        visible, holdout, controls = await asyncio.to_thread(self.grading_cohorts)
         grader = AblationHoldoutGrader(subject_from_config(self.data.subject_config))
         try:
             result = await grader.grade(
