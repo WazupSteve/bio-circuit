@@ -56,7 +56,7 @@ Sidecars record dataset schema and generation-policy versions, row count and SHA
 
 ## Modal RPCs
 
-`sample_until_answer`, `attribute_prompt`, `evaluate_ablation_cohort`, `test_corruption_coordinates`, and `restore_output` are internal RPCs. Policy-facing tools are the stable public boundary. Config `[taskset]` selects an ID, dataset and grader thresholds; `[taskset.subject]` selects model/transcoder/pruning. Changing those values changes provenance and may change scientific results.
+`sample_until_answer`, `attribute_prompt`, `evaluate_ablation_cohort`, `test_corruption_coordinates`, and `restore_output` are internal RPCs. Policy-facing tools are the stable public boundary. Config `[env.taskset]` selects an ID, dataset and grader thresholds; `[env.taskset.subject]` selects model/transcoder/pruning. Changing those values changes provenance and may change scientific results.
 
 ## Threat boundary
 

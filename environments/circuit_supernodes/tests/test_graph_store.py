@@ -37,7 +37,7 @@ def graph():
 
 def test_toolset_registers_fastmcp_schemas():
     tools = CircuitExperimentTools(vf.ToolsetConfig())
-    tools._register(FastMCP("schema-test"))
+    tools.register(FastMCP("schema-test"))
 
 
 def test_store_paginates_all_nodes_with_byte_budget_and_filters():
@@ -146,7 +146,9 @@ def test_replacement_failure_and_task_reset_delete_previous_file(monkeypatch):
         await tools.attribute("third")
         old_path = tools._graph_store.path
         monkeypatch.setattr(circuit_tracer, "subject_from_config", lambda config: None)
-        await tools.setup_task(SimpleNamespace(subject_config=None, corruption_spec=[]))
+        await tools.setup_task(
+            SimpleNamespace(subject_config=None, corruption_spec=[], heldout_prompts=[])
+        )
         assert not old_path.exists()
         assert tools._graph_store is None
 

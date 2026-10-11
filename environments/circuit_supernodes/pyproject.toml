@@ -6,7 +6,7 @@ version = "0.1.1"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "verifiers==0.2.1",
+    "verifiers>=0.3.1,<0.4",
     "modal>=1.5",
     "pydantic>=2.12.3",
     "httpx>=0.28.1",

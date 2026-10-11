@@ -711,9 +711,7 @@ def iter_pool_batches(
     if batch:
         yield batch
     if produced < n:
-        raise ValueError(
-            f"requested families produced only {produced} unique prompts"
-        )
+        raise ValueError(f"requested families produced only {produced} unique prompts")
 
 
 def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]:
@@ -725,7 +723,5 @@ def generate_pool(n: int, seed: int, families: list[str]) -> list[CircuitSample]
     """
 
     return [
-        sample
-        for batch in iter_pool_batches(n, seed, families, n)
-        for sample in batch
+        sample for batch in iter_pool_batches(n, seed, families, n) for sample in batch
     ]

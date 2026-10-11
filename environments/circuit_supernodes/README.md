@@ -39,7 +39,7 @@ prime env install wazupsteve/circuit-supernodes
 ```
 
 The rediscovery/restoration modules and harness are included in that install.
-This package uses the Verifiers v1 `Taskset` interface with `verifiers==0.2.1`.
+This package uses the Verifiers v1 `Taskset` interface with `verifiers>=0.3.1,<0.4`.
 
 ## Modal backend
 
@@ -78,17 +78,19 @@ costs.
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 1
 num_rollouts = 1
-max_turns = 8
 
 [sampling]
 max_tokens = 16384
-enable_thinking = false
 
-[taskset]
+[env.taskset]
 id = "circuit-supernodes"
 
-[harness]
+[env.agent]
+max_turns = 8
+
+[env.agent.harness]
 id = "circuit-null"
+tool_timeout = 3600
 ```
 
 ```bash
@@ -96,7 +98,7 @@ eval @ eval.toml --dry-run --no-push
 eval @ eval.toml --no-push
 ```
 
-Change `taskset.id` to `supernode-rediscovery` or `suppressed-features` for the
+Change `env.taskset.id` to `supernode-rediscovery` or `suppressed-features` for the
 other tasks. Defaults select the corresponding public evaluation file.
 `--dry-run` checks configuration only; a real rollout establishes end-to-end
 backend operation. `--no-push` prevents result uploads, not provider calls.

@@ -1,20 +1,23 @@
 model = "openai/gpt-4.1-mini"
 num_tasks = 1
 num_rollouts = 1
-max_turns = 8
 
 [sampling]
 max_tokens = 4096
 
-[taskset]
+[env.taskset]
 id = "suppressed-features"
 dataset_file = "suppressed-features.jsonl.gz"
 
-[taskset.subject]
+[env.taskset.subject]
 model_name = "Qwen/Qwen3-4B"
 transcoder_set = "mwhanna/qwen3-4b-transcoders"
 node_threshold = 0.8
 edge_threshold = 0.98
 
-[harness]
+[env.agent]
+max_turns = 8
+
+[env.agent.harness]
 id = "circuit-null"
+tool_timeout = 3600

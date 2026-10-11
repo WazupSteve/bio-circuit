@@ -17,7 +17,7 @@ From `environments/circuit_supernodes`:
 
 ```bash
 uv sync --frozen
-uv run python -c 'from verifiers.v1.loaders import taskset_class; print(taskset_class("supernode-rediscovery"))'
+uv run python -c 'from verifiers.v1.utils.loaders import taskset_class; print(taskset_class("supernode-rediscovery"))'
 ```
 
 Taskset IDs map to Python modules with underscores. Install the core package

@@ -33,6 +33,7 @@ edge_threshold = 0.98
 
 [env.harness]
 id = "circuit-null"
+tool_timeout = 3600
 
 [eval]
 interval = 10
@@ -57,3 +58,4 @@ edge_threshold = 0.98
 
 [eval.env.harness]
 id = "circuit-null"
+tool_timeout = 3600
