@@ -19,7 +19,7 @@ its transcoders run on a Modal A100-80GB service, so the client needs no GPU.
 
 The environment runs end to end: all three tasksets have been evaluated against
 the live Modal subject. Rewards are sparse by design; the eval configs set
-calibration thresholds ([tasksets](docs/tasksets.md)).
+calibration thresholds.
 
 ## Public release
 
@@ -53,6 +53,3 @@ uv run ruff check . && uv run ruff format --check .
 
 Tests use local fixtures and mocked backend calls; they never start GPU work.
 Datasets, traces, logs and build outputs stay out of Git.
-
-The [documentation](docs/README.md) covers tools, grading, datasets,
-deployment and the source layout.

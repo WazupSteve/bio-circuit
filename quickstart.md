@@ -40,8 +40,8 @@ The service runs Qwen3-4B on A100-80GB GPUs, up to eight containers, billed to
 the workspace. Containers start on the first call (several minutes to load the
 model) and stop after ten idle minutes.
 
-Leave `SUBJECT_URL` unset to use Modal; set it only for a
-[self-hosted GPU](docs/local.md).
+Leave `SUBJECT_URL` unset to use Modal; set it only for a self-hosted GPU
+server (`scripts/subject.sh up` starts one).
 
 ## 4. Check the configs
 
@@ -75,5 +75,3 @@ Containers scale down on their own. To stop them immediately:
 ```bash
 uv run modal app stop circuit-supernodes   # also undeploys the app
 ```
-
-Next: [operations](docs/operations.md), [troubleshooting](docs/troubleshooting.md).
