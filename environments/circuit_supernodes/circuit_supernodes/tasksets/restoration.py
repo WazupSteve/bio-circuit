@@ -62,7 +62,8 @@ Transfer selected features to different prompts in intervention experiments,
 whose before/after outputs include the hidden corruption, to identify the mechanism.
 
 Submit stable `layer_feature` ids and multiplicative intervention
-factors. Find a shared intervention that reverses the persistent corruption
+factors; each feature is applied at its highest-ranked position in each
+attributed graph. Find a shared intervention that reverses the persistent corruption
 without capturing unrelated language behavior. Reward requires the original
 clean top token and measures `KL(clean || restored)` across the hidden cohort.
 

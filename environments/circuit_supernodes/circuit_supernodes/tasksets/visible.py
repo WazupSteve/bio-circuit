@@ -64,7 +64,8 @@ arbitrary prompts and transfer a selected feature to a different arbitrary
 prompt for an intervention experiment.
 
 Use `layer_feature` identities so a feature denotes the same learned mechanism
-regardless of its token position. Find features that are necessary for the
+regardless of its token position; each feature is applied at its highest-ranked
+position in each attributed graph. Find features that are necessary for the
 original top token throughout the examples while remaining specific to the
 shared semantic concept rather than capturing generic language behavior. The
 concept is the full semantic task family, not one answer label.

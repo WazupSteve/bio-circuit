@@ -109,7 +109,8 @@ def top_outputs(graph: TracerGraphPayload) -> list[tuple[str, float]]:
     for node in graph.nodes:
         if node_kind(node) != "logit":
             continue
-        match = re.search(r'"(.*?)"', node.clerp, re.DOTALL)
+        # Greedy, because the token itself may contain quotes: `Output """ (p=0.1)`.
+        match = re.search(r'"(.*)"', node.clerp, re.DOTALL)
         outputs.append((match.group(1) if match else node.clerp, node.token_prob))
     return sorted(outputs, key=lambda item: -item[1])
 

@@ -35,7 +35,8 @@ remaining specific to that semantic mechanism rather than generic language
 behavior.
 
 Feature identity is the stable `layer_feature` pair; each feature is applied at
-its highest-ranked position in each attributed graph.
+its highest-ranked position in each attributed graph. The grader applies the
+negative of each submitted weight; `intervene` applies weights as given.
 
 Attribute returns a graph ID and summary. Use query_graph to inspect ranked
 nodes, edges, and tokens in bounded pages; follow next_offset with the same
