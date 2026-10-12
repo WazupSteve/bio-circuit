@@ -1,47 +1,61 @@
-# Local / self-hosted subject (no Modal)
+# Self-hosted subject
 
-The subject model (Qwen3-4B + transcoders) can run on any single 80 GB-class GPU instead of Modal. The environment picks the backend from one env var: if `SUBJECT_URL` is set it talks HTTP to that server, otherwise it uses the Modal app. Nothing else changes.
+The subject (Qwen3-4B plus transcoders) can run on any single 80 GB GPU instead
+of Modal. Clients choose the backend with one variable: if `SUBJECT_URL` is set
+they call that HTTP server, otherwise Modal. Nothing else changes.
 
-## One command
+## Quick start
+
+From the repository root:
 
 ```bash
-scripts/subject.sh up        # ~10 min first time (downloads ~57 GB of weights), ~3 min after
+scripts/subject.sh up                      # first run ~10 min (~57 GB of weights), later ~3 min
 export SUBJECT_URL=http://localhost:8000
-cd environments/circuit_supernodes && uv run eval @ ../../configs/eval/visible-dataset.toml --no-push
-scripts/subject.sh down      # terminate the pod when finished — it bills hourly
+(cd environments/circuit_supernodes && uv run eval @ ../../configs/eval/visible-dataset.toml --num-tasks 1 --no-push)
+scripts/subject.sh down                    # stop the pod; it bills hourly
 ```
 
-The configs use the local `circuit-null` harness, Verifiers' null harness with
-its MCP 1.x client; `tool_timeout = 3600` allows up to one hour for large
-circuit-tool responses over the subject tunnel.
+`up` creates the cheapest A100-80GB pod on Prime Intellect (run
+`uv run prime login` first), copies `environments/circuit_supernodes` to it,
+installs the pinned GPU stack (Python 3.11, `torch==2.8.0`,
+`transformer-lens==2.16.1`, `pyarrow<26`, …), starts `modal_app.server`, opens an
+SSH tunnel to `localhost:8000` and waits for `/health`.
 
-`up` creates the cheapest available A100-80GB pod on Prime Intellect (`uv run prime login` first), rsyncs `environments/circuit_supernodes` to it, installs the pinned GPU stack into a Python 3.11 venv, starts `modal_app.server`, opens an SSH tunnel to `localhost:8000`, and waits for `/health`.
-
-Already have a GPU box you can SSH into? Skip Prime entirely:
+To use a GPU host you can already SSH into:
 
 ```bash
 scripts/subject.sh up ubuntu@my-gpu-host
 ```
 
-Knobs (env vars): `SUBJECT_GPU` (default `A100_80GB`), `SUBJECT_PORT` (`8000`), `SUBJECT_SSH_KEY` (`~/.ssh/primeintellect_ed25519`).
-
-For parallel evaluations, set a unique `SUBJECT_INSTANCE` and `SUBJECT_PORT`
-for each pod. The instance name namespaces the local pod and tunnel state, so
-each instance must be stopped with the same `SUBJECT_INSTANCE` value.
-
-## What is running
-
-| Piece | Where | Purpose |
+| Variable | Default | Purpose |
 |---|---|---|
-| `modal_app/backend/subject.py` | GPU host | `SubjectBackend` — loads the model once, serves the five operations. No Modal dependency. |
-| `modal_app/server.py` | GPU host | FastAPI: `GET /health`, `POST /<method>` with a JSON list of positional args. One lock serialises GPU work. |
-| `HttpSubject` in `circuit_supernodes/runtime/modal.py` | your machine | Same `call` / `map` / `spawn` surface as `ModalSubject`. |
+| `SUBJECT_GPU` | `A100_80GB` | Pod GPU type |
+| `SUBJECT_PORT` | `8000` | Local tunnel port |
+| `SUBJECT_SSH_KEY` | `~/.ssh/primeintellect_ed25519` | SSH key |
+| `SUBJECT_INSTANCE` | — | Names a pod for parallel runs; stop it with the same value |
 
-Server log on the host: `~/subject.log`. Restart manually with
+For parallel evaluations give each pod its own `SUBJECT_INSTANCE` and
+`SUBJECT_PORT`.
+
+## What runs where
+
+| Component | Where | Role |
+|---|---|---|
+| `modal_app/backend/subject.py` | GPU host | `SubjectBackend`: loads the model once and serves the RPCs; no Modal dependency |
+| `modal_app/server.py` | GPU host | FastAPI: `GET /health`, `POST /<method>` with a JSON list of arguments; one lock serializes GPU work |
+| `HttpSubject` (`circuit_supernodes/runtime/modal.py`) | Your machine | Same `call` / `map` / `spawn` interface as the Modal client |
+
+The tools and graders call the subject from your machine, so a `localhost`
+tunnel works with the default configs. The server has no authentication; keep
+it on loopback or a trusted network.
+
+Server log: `~/subject.log` on the host. Restart by hand with
 `cd ~/bio-circuit/circuit_supernodes && .venv/bin/python -m modal_app.server --port 8000`.
 
 ## Expectations
 
-- Attribution takes ~2–4 min per graph on an A100; sampling and interventions take seconds.
-- One GPU means `map` calls run sequentially (Modal fanned out to 8 containers). For bulk dataset generation, bring up several hosts and shard prompts, or run one server per GPU on a multi-GPU box.
-- The HF cache lives on the pod disk; terminating the pod re-downloads weights next time.
+- A short prompt attributes in about ten seconds on an A100 once the model is
+  loaded; long prompts take longer. Interventions take seconds.
+- One GPU runs `map` calls one after another, where Modal fans out to eight
+  containers. For bulk generation, run several hosts or one server per GPU.
+- Weights cache on the pod disk; a new pod downloads them again.

@@ -1,28 +1,17 @@
-# Neuronpedia backing
+# Neuronpedia labels
 
-Neuronpedia is optional enrichment, not a runtime dependency of the tasks or
-graders. It is currently wired only into the vanilla visible-dataset builder via
-`--neuronpedia-labels`.
+Optional enrichment for dataset generation; tasks and graders never call
+Neuronpedia. Only the visible builder uses it, behind `--neuronpedia-labels`.
 
-For each graph, `scripts/neuronpedia.py` selects the ordinary top 60 feature
-nodes, reduces positional IDs to unique `(layer, feature)` pairs, and sends one
-batch POST request to:
+For each graph, `scripts/neuronpedia.py` takes the top 60 feature nodes, reduces
+them to unique `(layer, feature)` pairs and sends one batch request to
+`https://www.neuronpedia.org/api/features` (model `qwen3-4b`, layer
+`<layer>-transcoder-hp`). The first non-empty explanation per feature is written
+to the `label` of every matching node.
 
-```text
-https://www.neuronpedia.org/api/features
-```
+Failures are logged and generation continues without labels. Requests time out
+after 30 seconds, with no authentication, caching, retries or rate limiting.
 
-Requests identify model `qwen3-4b`, layer `<layer>-transcoder-hp`, feature index,
-and ask for one maximum-activation record. The helper takes the first non-empty
-explanation description returned for each feature and writes it into every
-matching positional node's `label` field in the in-memory graph.
-
-Failures are deliberately non-fatal in the builder: they are logged and dataset
-generation continues without labels. The request has a 30-second timeout. There
-is no authentication, response cache, retry layer, rate-limit handling, or
-a second model mapping in this repository.
-
-At runtime, graph rendering displays `clerp` text before the optional label, so a
-Neuronpedia label is visible only when the exporter does not already provide a
-non-empty `clerp` for that node. Labels have no effect on feature ranking,
-intervention resolution, cohort construction, or grading.
+Graph views show a node's `clerp` text first, so a label appears only when
+`clerp` is empty. Labels never affect ranking, interventions, cohorts or
+grading.

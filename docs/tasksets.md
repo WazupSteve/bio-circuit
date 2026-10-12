@@ -1,83 +1,74 @@
-# TaskSets
+# Tasksets
 
-The package exposes three task contracts over the same tool and dataset schema.
-Visible discovery exposes an evidence cohort; promptless and restoration tasks
-require the policy to create their own experimental prompts.
+Three tasksets share one tool set, one dataset row shape and the `circuit-null`
+harness. They differ in what the policy sees and what the grader asks for.
 
-## Comparison
+| Taskset | Policy sees | Hidden grading data | Answer | Turns (eval) |
+|---|---|---|---|---|
+| `circuit-supernodes` | 5 example prompts and answers | 25 same-concept prompts, 25 controls | Exactly one supernode | 50 |
+| `supernode-rediscovery` | A goal name | 4-prompt cohort, 4 controls | One or more weighted supernodes | 16 |
+| `suppressed-features` | A family name | 10 corrupted prompts | Weighted nodes or supernodes | 16 |
 
-| TaskSet ID | Repository role | Subject | Hidden positives | Controls | Submission |
-| --- | --- | --- | --- | --- | --- |
-| `circuit-supernodes` | Shared-concept discovery from five visible examples | Qwen3-4B | 25 additional same-goal prompts | 25 different-goal prompts | Exactly one named supernode; omitted factors default to `1.0` |
-| `supernode-rediscovery` | Promptless goal rediscovery | Qwen3-4B | Same goal with varied answers | Different-goal prompts | One or more named weighted supernodes |
-| `suppressed-features` | Persistent-corruption restoration | Qwen3-4B | Same-family prompts sharing one hidden corruption | Not reward-bearing | Flat or grouped weighted nodes |
+Thresholds below are the class defaults (also used by the RL configs); the eval
+configs relax some of them, as noted.
 
-## Vanilla discovery: `circuit-supernodes`
+## circuit-supernodes
 
-The task prompt shows five prompt/continuation examples but does not reveal their
-stored semantic goal. The policy must infer the shared concept, then use
-attribution and transfer experiments to find one stable feature group necessary
-for the full concept rather than one answer label.
+The prompt lists five prompt/continuation pairs without naming their shared
+concept. The policy infers the concept, experiments, and submits one supernode
+that is necessary for the whole concept rather than for one answer.
 
-The final response must contain exactly one `supernodes` group. Nodes may be bare
-stable IDs because this adapter supplies the default factor `1.0`. The hidden
-positive cache contains exactly 25 additional same-goal examples and the neutral
-cache contains exactly 25 examples from other goals. With default configuration,
-all five evidence examples and all hidden positives must change under the
-negated proposal, while all controls remain unchanged.
+- Answer: exactly one entry in `supernodes`; node weights default to `1.0`.
+- Graded on the 5 evidence examples, 25 hidden same-goal prompts and 25 controls
+  from other goals.
+- Defaults require every evidence and hidden prompt to change and every control
+  to hold (`min_evidence_success = 1.0`, `min_holdout_success = 1.0`,
+  `max_null_failure = 0.0`). The eval config uses 0.6 and 0.4 for the first two.
 
-Implementation: `tasksets/visible.py`. Configurations:
-`configs/{eval,rl}/visible-dataset.toml`.
+Source: `tasksets/visible.py`. Configs: `configs/{eval,rl}/visible-dataset.toml`.
 
-## Goal rediscovery: `supernode-rediscovery`
+## supernode-rediscovery
 
-The policy receives only a semantic goal key, never the underlying cohort
-prompts, answers, or stored graphs. Goal keys distinguish
-mechanistically meaningful subfamilies rather than grouping every prompt that
-happens to emit the same label.
+The policy gets only a goal name, which is the family name (e.g.
+`boolean_composition`), and must write its own experiment prompts. It never sees
+the cohort.
 
-The positive cohort is grouped by goal and is required to contain at least two
-distinct full answers. Controls come from different semantic goals and may even
-share an answer token with a positive. The policy must attach a factor to every node,
-either on the enclosing supernode or on individual nodes. Multiple named groups
-are accepted, but grading flattens them into one intervention proposal.
+- Answer: one or more named supernodes; every node needs a weight, set on the
+  node or on its group. Groups are merged into one intervention for grading.
+- Graded on a 4-prompt cohort with at least two distinct answers and 4 controls
+  from other goals (controls may share an answer token with the cohort). There
+  is no second holdout set.
+- Defaults: every cohort prompt changes, every control holds
+  (`min_cohort_success = 1.0`, `max_control_activation = 0.0`). The eval config
+  uses `min_cohort_success = 0.6`, i.e. 3 of 4.
 
-The adapter treats the entire positive cohort as its first grading gate and has
-no second holdout partition. Defaults require every positive output to change
-and every control output to be preserved.
+Source: `tasksets/rediscovery.py`. Configs: `configs/{eval,rl}/supernode-rediscovery.toml`.
 
-Implementation: `tasksets/rediscovery.py`. Configurations:
-`configs/{eval,rl}/supernode-rediscovery.toml`.
+## suppressed-features
 
-## Suppressed-feature restoration: `suppressed-features`
+The subject carries a hidden, persistent corruption: 4–12 features shared by
+the cohort, each scaled by a signed factor in [−8, 8], chosen so that every
+cohort prompt changes its top token. The policy gets only the family name, sees
+clean graphs with outputs redacted, and observes corrupted before/after top
+tokens through `circuit_intervene`. It submits multipliers that undo the
+corruption.
 
-Each task represents a semantic family with a persistent hidden feature
-corruption. The builder first finds clean same-family prompts with the same
-target token, intersects their stable positive-activation features, and samples
-a shared 4–12-feature corruption with signed multipliers in `[-8, 8]`.
-It keeps the corruption only if every selected prompt changes top token, then
-stores the already-computed clean graphs for feature-coordinate resolution.
+- Answer: a flat `nodes` list or named `supernodes`; every node needs a weight.
+- Graded on the 10 corrupted prompts in `heldout_prompts` by how closely the
+  restored output matches the clean distribution. `example_prompts` is empty;
+  `control_prompts` exist in the data but are not scored.
 
-At runtime, arbitrary tool prompts receive ordinary clean feature attribution,
-with all clean output logits, output tokens, and output edges redacted. The policy submits factors intended to identify and
-reverse that mechanism. The accepted response can be a flat `nodes` list or
-named `supernodes`; every node requires a factor.
+Source: `tasksets/restoration.py`. Configs:
+`configs/{eval,rl}/suppressed-features.toml`, plus a one-task canary on an
+external model in `configs/eval/suppressed-features-canary-egress.toml`.
 
-All corrupted positives are stored in `heldout_prompts`; `example_prompts` is
-empty because the policy creates its own experiments. Controls are clean prompts
-from other families. This preserves the shared example/holdout/control dataset
-shape while giving each field one consistent meaning.
+## Loading
 
-Grading replays the hidden factors server-side, composes submitted multipliers
-without negation, and rewards recovery of the clean distribution. The policy can observe feature structure and corrupted before/after experimental
-outcomes, but receives neither clean output tokens nor hidden factor values. See [Graders](graders.md).
+Each taskset reads JSONL or gzipped JSONL. Files of 64 MB or more load lazily:
+`load()` streams the file and keeps only task fields, and grading rereads just
+the row it needs. Smaller files load fully. Without a local `dataset_file`, the
+default evaluation file downloads from the pinned Hugging Face release; training
+files must be supplied locally.
 
-Implementation: `tasksets/restoration.py`. Configurations:
-`configs/{eval,rl}/suppressed-features.toml`; a one-task external-model canary is
-in `configs/eval/suppressed-features-canary-egress.toml`.
-
-## Loading and discovery
-
-Each adapter streams JSONL or gzip-compressed JSONL through strict Pydantic
-validation and yields Verifiers tasks. Each public ID has an importable top-level package exporting exactly one TaskSet subclass through `__all__`; tests resolve all three with the Verifiers v1 loader. Default evaluation files download from the pinned public Hugging Face release
-when absent locally. Custom or training files must be supplied explicitly.
+Each public ID is an importable package exporting one taskset class, resolved by
+`verifiers.v1.utils.loaders.taskset_class`.

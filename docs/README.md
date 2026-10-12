@@ -2,23 +2,24 @@
 
 ## Run
 
-- [Quickstart](../quickstart.md): install and evaluate with the Modal backend.
-- [Operations](operations.md): deployment, hosted execution, and training.
-- [Troubleshooting](troubleshooting.md): data, credentials, and runtime failures.
-- [Self-hosted GPU](local.md): optional HTTP backend on an existing GPU host.
+- [Quickstart](../quickstart.md): install, connect Modal, run a smoke test.
+- [Operations](operations.md): deployment, evaluation, publishing, training.
+- [Self-hosted GPU](local.md): serve the subject from your own GPU host.
+- [Troubleshooting](troubleshooting.md): common failures and fixes.
 
 ## Understand
 
-- [Core environment](core-environment.md): tools, graph views, and circuit responses.
-- [Tasksets](tasksets.md): visible discovery, rediscovery, and restoration.
-- [Graders](graders.md): intervention rules and reward calculations.
-- [Walkthrough](blog/how-biocircuit-works.md): an example of the experiment loop.
+- [Core environment](core-environment.md): tools, graphs, interventions.
+- [Tasksets](tasksets.md): what each task shows the policy and asks for.
+- [Graders](graders.md): how submissions are scored.
+- [Known issues](known-issues.md): open problems that affect rewards.
 
 ## Develop
 
-- [Data generation](data-generation.md): build training or evaluation cohorts.
-- [Reference](reference.md): schemas, dataset paths, and backend methods.
+- [Reference](reference.md): answer formats, dataset schema, files, configs.
+- [Data generation](data-generation.md): building new cohorts.
 - [Module map](repository-map.md): source layout and tests.
 - [Neuronpedia](neuronpedia.md): optional feature labels during generation.
-- [Package README](../environments/circuit_supernodes/README.md): standalone setup.
-- [Release record](public-release.json): published versions and checksums.
+- [Package README](../environments/circuit_supernodes/README.md): standalone install.
+- [Dataset card](hf-dataset-card.md) and [release record](public-release.json):
+  the published 0.1.x release, kept as published.

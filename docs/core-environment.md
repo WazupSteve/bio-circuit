@@ -1,160 +1,115 @@
 # Core environment
 
-The core is a Verifiers multi-turn environment in which a policy model can
-attribute arbitrary text, inspect a bounded view of its attribution graph, apply
-multiplicative feature interventions, and finally submit a circuit. The actual
-subject-model computation runs in a Modal GPU service; the local package provides
-typed requests, graph manipulation, tool rendering, and remote clients.
+A policy model experiments on Qwen3-4B through three tools, then submits a
+circuit as JSON. The subject model runs in a Modal GPU service (or a
+[self-hosted server](local.md)); the Python package provides typed requests,
+graph handling, the tools and the graders.
 
-## End-to-end flow
+## Experiment loop
 
 ```text
-arbitrary prompt
-  -> optional bounded answer sampling
-  -> subject-model forward pass
-  -> Circuit Tracer attribution (up to 2,048 feature nodes)
-  -> exported graph JSON
-  -> top-k textual view for the policy model
-  -> stable feature selection (`layer_feature`)
-  -> resolve feature to highest-ranked position on a target prompt
-  -> multiply its clean activation by the requested factor
-  -> re-run model and compare baseline/intervened top tokens
+policy prompt
+  -> circuit_attribute: Circuit Tracer attribution (up to 2,048 feature nodes)
+  -> circuit_query_graph: bounded pages of nodes, edges, tokens
+  -> choose a stable feature (`layer_feature`)
+  -> circuit_intervene: resolve it on another prompt, scale its activation,
+     rerun, compare top tokens
+  -> final answer: JSON circuit, graded on hidden prompts
 ```
 
-The sampling phase is primarily a dataset-generation operation. During a task,
-the policy-facing tools expose attribution and intervention, not a separate raw
-sampling tool.
+## Tools
 
-## Subject-model sampling
+All three tasksets install `CircuitExperimentTools` (`runtime/circuit_tracer.py`).
+Tool errors come back as `{"error": "..."}` instead of ending the rollout.
 
-`runtime/sampling.py` implements greedy generation for at most 50 new tokens.
-The request supplies a prompt and a finite set of answer labels. After each
-token, the sampler searches for the first complete, case-insensitive answer
-label at word boundaries. It returns:
+**`circuit_attribute(prompt)`** attributes the prompt, stores the graph in a
+temporary SQLite file and returns a graph ID, counts and a short output summary.
+Only the latest graph is kept: a new attribution deletes the previous one, and
+old IDs return "Graph has been replaced".
 
-- `matched`, with generated text, matched answer, attribution-ready prompt, and
-  the first answer token;
-- `exhausted`, when no label appears before EOS or the token bound; or
-- `error`, for invalid input or model failure.
+**`circuit_query_graph(graph_id, view, offset, limit, node_id, kind)`** reads one
+page of the stored graph:
 
-Text generated before the answer label is appended to the original prompt and
-becomes attribution context. Dataset preparation keeps only samples whose
-matched answer equals the generator's expected answer. A later faithfulness
-check requires the attributed graph's top exported token to equal the sampled
-target token exactly.
+- `view="nodes"`: nodes ranked by influence; filter by `node_id` (positioned or
+  stable ID) and `kind` (`feature`, `embedding`, `error`, `logit`).
+- `view="edges"`: edges ranked by absolute weight; `node_id` matches either end.
+- `view="tokens"`: prompt tokens by position.
+
+Pages hold at most 50 items and 12,000 bytes, and text is cut to 300 characters
+(`text_truncated` is set). Follow `next_offset` with the same filters; `null`
+marks the end.
+
+**`circuit_intervene(source_prompt, node_id, prompt, intervention_weight)`**
+checks that the stable feature exists in the source prompt's graph, resolves it
+on the target prompt, multiplies its activation by `intervention_weight`, reruns
+the target and reports `baseline_top_token`, `intervened_top_token` and
+`changed_top_token` (discovery tasks add expected-token fields). It uses
+temporary graphs and does not replace the stored one.
+
+Modal calls retry up to four times, waiting 1, 4 and 15 seconds.
 
 ## Attribution graphs
 
-The Modal backend loads a Circuit Tracer `ReplacementModel` and calls
-`circuit_tracer.attribute`. Ordinary exports use:
+The backend calls `circuit_tracer.attribute` with at most 2,048 feature nodes,
+five output logits and a 0.95 cumulative logit probability, then prunes at node
+threshold 0.8 and edge threshold 0.98. Graphs keep prompt tokens, nodes
+(feature, embedding, error, logit) and weighted links. A feature's influence is
+the non-negative increase in cumulative influence it adds, which also sets its
+rank.
 
-- up to 2,048 feature nodes;
-- up to five output logits and a desired cumulative logit probability of 0.95;
-- node threshold 0.8 and edge threshold 0.98 when serializing.
+## Stable features and positions
 
-The repository consumes a deliberately small graph schema: prompt tokens, nodes,
-and weighted links. Nodes may be feature, embedding, error, or logit nodes.
-Feature importance is reconstructed as the nonnegative increment between
-successive cumulative influence values. That increment determines ranking.
+Graph nodes are `layer_feature_position` (`12_345_7`); answers use the stable
+`layer_feature` (`12_345`) because positions differ between prompts. On every
+graph the runtime maps a stable ID to its highest-ranked occurrence and
+intervenes there only. An ID absent from a graph has no effect on that prompt,
+so a circuit can only act where its features were attributed.
 
-Stored datasets retain maximal exports. `attribute(prompt)` stores the latest
-policy graph in a temporary SQLite file and returns a graph ID, counts, and a
-small output summary. The full graph is released from memory after writing.
-Requesting another attribution deletes the previous file before fetching the
-replacement, including when attribution fails. Task setup also clears the file;
-the temporary directory is cleaned up when the store is released.
+## Interventions
 
-`query_graph(graph_id, view="nodes", offset=0, limit=20, node_id=None, kind=None)`
-reads nodes ranked by influence delta, edges ranked by absolute weight, or prompt
-tokens ordered by position. Node queries accept an exact positioned ID or stable
-feature ID and a kind filter. Edge queries accept an exact endpoint ID and return
-both incoming and outgoing connections. Follow `next_offset` with the same
-filters to continue; a null offset marks the end. Each response contains at most
-50 items and 12,000 JSON bytes; label and token text is truncated to 300 characters
-with `text_truncated` set. Replaced graph IDs return an error.
+For clean activation `a` and factor `w`, an intervention writes `a × w` and
+reruns the model. `w` can be any finite number: `0` zero-ablates, negative
+values flip the sign.
 
-In restoration tasks, logit nodes and their incident edges are omitted from the
-stored graph, and the attribution summary omits top outputs.
+The graders interpret factors differently per task:
 
-## Stable identity and position resolution
+- Discovery grading negates every submitted factor (`a × −w`); see
+  [graders](graders.md).
+- Restoration composes the submitted factor with the hidden corruption `c`:
+  `a × c × w`.
 
-Circuit Tracer feature nodes use `layer_feature_position`. Policy submissions use
-`layer_feature`, because token position changes between prompts. For every graph,
-the runtime ranks feature occurrences by influence delta and maps a stable ID to
-its highest-ranked occurrence. An ID absent from a target graph produces no
-intervention for that prompt.
+## Restoration mode
 
-This resolution happens independently for every source, experiment, and grading
-graph. It is what makes cross-prompt feature transfer possible, but also means a
-proposal is effective only on prompts where the stable feature was attributed.
+When a task carries a hidden corruption (`suppressed-features`):
 
-## Multiplicative patching
+- `circuit_attribute` returns the clean graph with logit nodes, their edges and
+  top outputs removed.
+- `circuit_intervene` maps the hidden corruption onto the experiment prompt and
+  reports only top tokens. Prompts must contain at least four corruption
+  features; otherwise the call fails or runs uncorrupted
+  ([known issues](known-issues.md)).
 
-For a clean activation `a` and submitted factor `w`, ordinary intervention writes
-the absolute activation `a * w` through Circuit Tracer's feature-intervention
-API, then reruns the model. Policy factors may be any finite float; zero is a
-valid multiplicative clamp. The `[-8, 8]` bound applies only when generating
-hidden dataset corruptions.
+Corruption features and factors never appear in prompts or tool output.
 
-The suppressed-feature backend additionally has a hidden signed corruption
-factor `c`.
-A restoration replay composes factors coordinate-wise:
+## Subject configuration
 
-```text
-executed activation = a * c * w
-```
-
-Factors on coordinates not present in the other set implicitly multiply by one.
-The restoration reward path uses this direct composition without negating the
-policy factor; see [Graders](graders.md). Hidden corruption factors stay in task
-data and backend calls and are never included in policy-facing prompts or tool
-responses.
-
-## Policy-facing tools
-
-All three TaskSets install `CircuitExperimentTools`:
-
-- `circuit_attribute(prompt)` replaces the stored graph and returns its ID and summary.
-- `circuit_query_graph(graph_id, view, offset, limit, node_id, kind)` reads a bounded page of that graph. In restoration, output nodes and edges are redacted; hidden corruption is applied only during interventions and grading replay.
-- `circuit_intervene(source_prompt, node_id, prompt, intervention_weight)` checks
-  that the stable node exists in the source graph, resolves it independently on
-  the target graph, reruns the target with the multiplier, and returns baseline
-  and intervened top-token fields.
-
-Intervention experiments use transient graphs and do not replace the stored query graph.
-
-Tool errors are returned as concise `{ "error": ... }` objects instead of
-terminating a rollout. Modal calls retry up to four attempts with waits of 1, 4,
-and 15 seconds.
-
-## Schemas and limits
-
-`models.py` is the main validation boundary. A final `Circuit` contains one to
-eight named supernodes, at most 60 unique stable features total, and one bounded
-factor per feature. Incoming response normalization tolerates unrelated extra fields; the canonical `Circuit` is strict. Dataset rows share one
-shape across all tasks: `family`, optional `goal`, plus
-`example_prompts`, `heldout_prompts`, and `control_prompts`. Each example stores
-the prompt, target token, graph, and optional coordinate-level corruption.
-
-Relevant source modules are `runtime/circuit_tracer.py`, `runtime/graphs.py`,
-`runtime/responses.py`, `runtime/modal_backend.py`, `runtime/corruption.py`, and
-`models.py` under `environments/circuit_supernodes/circuit_supernodes`.
-
-### Run-configured subject backend
-
-Training and evaluation tasksets select the subject model and graph pruning in
-their own TOML configuration. The shared Modal app and `Attributor` class remain
-global; these values parameterize its container instance:
+Each config selects the subject model and pruning; tools and graders in a run
+share it:
 
 ```toml
-[taskset.subject]
+[env.taskset.subject]
 model_name = "Qwen/Qwen3-4B"
 transcoder_set = "mwhanna/qwen3-4b-transcoders"
 node_threshold = 0.8
 edge_threshold = 0.98
 ```
 
-RL configurations use the corresponding `[env.taskset.subject]` and
-`[eval.env.taskset.subject]` tables. Model and transcoder changes produce a
-distinct parameterized Modal container, while tools and graders within the run
-share the same subject configuration.
+RL configs use the same table under `[[env]]` and `[[eval.env]]`. Each distinct
+model/transcoder pair gets its own parameterized Modal container.
+
+## Source
+
+`runtime/circuit_tracer.py` (tools), `runtime/graph_store.py` (stored graph and
+pages), `runtime/graphs.py` (ranking, resolution), `runtime/modal.py` (Modal and
+HTTP clients), `runtime/responses.py` (answer parsing), `runtime/corruption.py`,
+`models.py`, and `modal_app/backend/` (GPU side).

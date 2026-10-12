@@ -1,66 +1,54 @@
 # BioCircuit
 
-BioCircuit tests whether a language model can identify causal circuits in
-Qwen3-4B. The policy inspects attribution graphs, runs feature interventions,
-and submits a circuit. Grading checks its effects on held-out prompts and
-controls.
+BioCircuit asks a policy model to find causal circuits inside Qwen3-4B. The
+policy attributes prompts, inspects attribution graphs, runs feature
+interventions, and submits a circuit. A grader replays the submission on hidden
+prompts and scores its causal effect.
 
-## Tasks
-
-| Taskset | Policy input | Grading |
+| Taskset | The policy sees | The grader checks |
 |---|---|---|
-| `circuit-supernodes` | Five labeled examples | Change the subject's output on positive examples while preserving controls |
-| `supernode-rediscovery` | A semantic goal | Find features that affect a hidden positive cohort while preserving controls |
-| `suppressed-features` | A corrupted task family | Restore the subject's clean output distribution |
+| `circuit-supernodes` | Five example prompts sharing a hidden concept | Negating the submitted supernode changes the answer on the examples and on 25 hidden same-concept prompts, and leaves 25 controls unchanged |
+| `supernode-rediscovery` | Only a goal name, e.g. `comparison` | Same causal test on a hidden 4-prompt cohort and 4 controls |
+| `suppressed-features` | Only a task family; the subject carries a hidden feature corruption | Submitted multipliers restore the clean output distribution on 10 hidden prompts |
 
-All three tasksets use the shared `circuit-null` harness. The policy runs through
-Verifiers; Qwen3-4B and its transcoders run on a Modal A100-80GB backend. The
-client does not need a local GPU. Live experiments and grading use Modal GPU
-compute.
+All three tasksets share the `circuit-null` harness and run on
+[Verifiers](https://github.com/PrimeIntellect-ai/verifiers) 0.3.1. Qwen3-4B and
+its transcoders run on a Modal A100-80GB service, so the client needs no GPU.
+
+## Status
+
+The environment runs end to end: all three tasksets have been evaluated against
+the live Modal subject. Several grading and tool issues are still open and affect
+rewards; read [known issues](docs/known-issues.md) before training or comparing
+scores.
 
 ## Public release
 
-- [Dataset on Hugging Face](https://huggingface.co/datasets/amitprakash2005/bio-circuit):
-  48 evaluation tasks, full graphs, browsable indexes, schemas, and provenance.
-- [Circuit Supernodes](https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-supernodes)
-- [Supernode Rediscovery](https://app.primeintellect.ai/dashboard/environments/wazupsteve/supernode-rediscovery)
-- [Suppressed Features](https://app.primeintellect.ai/dashboard/environments/wazupsteve/suppressed-features)
-- [Shared harness](https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-null)
+- Dataset: [amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit)
+  (16 evaluation tasks per taskset, CC-BY-4.0, no training split).
+- Prime Hub: [circuit-supernodes](https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-supernodes),
+  [supernode-rediscovery](https://app.primeintellect.ai/dashboard/environments/wazupsteve/supernode-rediscovery),
+  [suppressed-features](https://app.primeintellect.ai/dashboard/environments/wazupsteve/suppressed-features),
+  [circuit-null](https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-null).
 
-The environment downloads a pinned dataset revision on first use. Each taskset
-has 16 evaluation tasks. The generated data is CC-BY-4.0; this release does not
-include training splits or validated SFT trajectories.
+The Hub packages are release 0.1.x, built on Verifiers 0.2.1. This repository
+has since moved to Verifiers 0.3.1 and has not been republished.
 
-## Run
+## Get started
 
-Follow the [quickstart](quickstart.md) to install the client, connect to the
-Modal backend, and run an evaluation. You need Python 3.13, `uv`, access to the
-Modal deployment, and policy inference credentials.
+Follow the [quickstart](quickstart.md). You need Python 3.13, `uv`, a Prime
+account (policy inference and sandboxes), and Modal access.
 
-To install the published package in an active virtualenv:
+## Develop
 
 ```bash
-uv pip install prime
-prime env install wazupsteve/circuit-supernodes
-```
-
-That package includes all three tasksets and the harness. The other Hub entries
-allow each component to be selected by its own ID.
-
-## Development
-
-From the repository root:
-
-```bash
-cd environments/circuit_supernodes
-uv sync --frozen
+uv sync
 uv run pytest
-uv run ruff check .
-uv build
+uv run ruff check . && uv run ruff format --check .
 ```
 
-Tests use local fixtures and mocked backend calls. They do not start GPU jobs.
-Datasets, rollout traces, logs, and build outputs are excluded from Git.
+Tests use local fixtures and mocked backend calls; they never start GPU work.
+Datasets, traces, logs and build outputs stay out of Git.
 
-See [the documentation](docs/README.md) for tool contracts, grading, dataset
-builders, and deployment details.
+The [documentation](docs/README.md) covers tools, grading, datasets,
+deployment and the source layout.

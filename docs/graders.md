@@ -1,100 +1,85 @@
 # Graders
 
-The two discovery tasks share a negative-intervention causal grader. The
-restoration task has a separate reward that directly composes the submitted
-factors with a hidden corruption and measures KL divergence from clean behavior.
+The two discovery tasksets share an ablation grader. Restoration has its own
+grader that measures distance from the clean output.
 
-## Response parsing
+## Parsing the answer
 
-The grader scans the model's last reply for JSON objects and uses the one whose
-parse ends latest. It accepts exactly one of these top-level shapes:
-
-```json
-{"nodes": [{"id": "12_345", "intervention_weight": 0.5}]}
-```
+The parser reads the policy's last reply, takes the last complete JSON object,
+and accepts exactly one of:
 
 ```json
 {"supernodes": [{"name": "mechanism", "nodes": ["12_345"], "intervention_weight": 1.0}]}
 ```
 
-Task adapters decide whether a flat list is allowed, whether exactly one group
-is required, and whether omitted weights receive a default. Validation rejects
-duplicate feature IDs, duplicate case-insensitive group names, non-finite factors,
-more than eight groups, and more than 60 total nodes. Incoming normalization tolerates
-unrelated extra fields; canonical models reject extras. Invalid output receives reward zero without a remote replay.
-
-## Discovery ablation grading
-
-Vanilla visible discovery and promptless rediscovery use
-`AblationHoldoutGrader`. For every positive and control example it:
-
-1. Reads the original top token from the stored graph.
-2. Flattens named groups into `(stable_feature_id, submitted_factor)` pairs.
-3. Negates every factor.
-4. Resolves each stable feature to its highest-influence occurrence in that
-   example's graph.
-5. Reruns the prompt and compares baseline and intervened top tokens.
-
-A positive succeeds when the original top token is displaced. A control
-succeeds when it remains top. This tests whether a discovered mechanism is both
-necessary and specific. The discovery factor is:
-
-```text
-changed activation = clean activation * (-submitted factor)
+```json
+{"nodes": [{"id": "12_345", "intervention_weight": 0.5}]}
 ```
 
-This sign convention is part of the discovery grading contract.
+Each taskset decides whether the flat form is allowed, how many groups are
+required, and whether missing weights get a default. The parser rejects
+duplicate features, duplicate group names (case-insensitive), non-finite
+weights, more than eight groups and more than 60 features. An invalid answer
+scores 0 without contacting the backend.
 
-The visible task separately grades its five shown evidence examples and 25
-hidden same-concept examples. Promptless treats its hidden positive cohort as
-the first gate. Both also enforce a control-failure ceiling. Default thresholds
-require every positive to change and every control to remain unchanged, yielding
-a binary reward.
+## Ablation grading (discovery)
 
-## Restoration KL grading
+`AblationHoldoutGrader` (`grading/ablation.py`) handles `circuit-supernodes`
+and `supernode-rediscovery`. For every graded prompt it:
 
-Suppressed-feature restoration does not use the ablation grader. Every dataset
-example contains a coordinate-level corruption, but those factors remain hidden
-in server-side task data. They are not rendered in the task prompt, graph view,
-or tool response.
-
-For clean activation `a`, hidden corruption `c`, and submitted restoration `r`,
-the backend executes:
-
-```text
-restored activation = a * c * r
-```
-
-The submitted factor is applied directly and is never negated. For a feature
-that is truly corrupted, its stable ID is mapped to the hidden prompt-specific
-coordinate server-side. Other submitted features use ordinary highest-ranked
-position resolution.
-
-The backend computes `KL(clean || restored)` over the complete final-token
-distribution. An example's score is zero unless the original clean target token
-is restored to top-1; after that gate its score is:
+1. reads the expected top token from the stored graph;
+2. merges groups into `(feature, weight)` pairs;
+3. **negates each weight**;
+4. resolves each feature to its highest-ranked position in that prompt's graph;
+5. reruns the prompt and compares top tokens.
 
 ```text
-similarity = exp(-KL(clean || restored))
+changed activation = clean activation × (−weight)
 ```
 
-Final reward is the arithmetic mean of this gated similarity over the hidden
-corrupted cohort. Thus reward is continuous in `[0, 1]`, reaches one only at the
-clean distribution.
-Reported metrics include mean raw KL, mean similarity, and restored-target rate.
+A positive prompt succeeds when its expected token is displaced (to any other
+token). A control succeeds when its expected token stays on top. The task
+passes, with reward 1, only if every gate meets its threshold: positive success
+rates at or above `min_*_success` and control failure at or below the control
+threshold. Otherwise reward is 0.
 
-Clean cross-family controls remain in the universal dataset row for artifact
-compatibility but do not participate in restoration reward; clean-distribution
-KL on the corrupted target cohort is the grading objective.
+`circuit-supernodes` grades its 5 evidence examples and 25 hidden prompts as
+separate gates; `supernode-rediscovery` grades its cohort as the only positive
+gate. Defaults are in [tasksets](tasksets.md).
 
-## Backend validation
+`circuit_intervene` applies weights without negation, so a weight tested with
+the tool behaves oppositely when submitted ([known issues](known-issues.md)).
 
-Restoration replay requires the clean target to be top before corruption and the
-stored corruption to change it. Builder-generated corruption multipliers lie in
-`[-8, 8]`; policy proposals may use any finite multiplier, including zero to
-clamp an activation. Backend
-protocol mismatches raise errors rather than silently becoming low rewards.
+## Restoration grading
 
-Primary implementation: `grading/ablation.py`, `grading/restoration.py`,
-`runtime/ablation_contract.py`, `runtime/corruption.py`, and
-`modal_app/backend/`.
+`RestorationMetricEvaluator` (`grading/restoration.py`) replays each of the 10
+corrupted prompts with the submitted factors composed onto the hidden
+corruption:
+
+```text
+restored activation = clean activation × corruption × weight
+```
+
+Weights are not negated. A submitted feature that is part of the corruption
+maps to its hidden coordinate on each prompt; other features use the
+highest-ranked position.
+
+Each prompt scores 0 unless the clean top token is back on top; otherwise:
+
+```text
+similarity = exp(−KL(clean ‖ restored))
+```
+
+over the full final-token distribution. Reward is the mean similarity, in
+[0, 1], reaching 1 only at the clean distribution. Metrics also report mean KL
+and the restored-target rate.
+
+## Replay validation
+
+Before scoring, every replay must reproduce its stored baseline: the expected
+token must still be top and, for restoration, the corruption must still change
+it. A failure on any prompt marks the whole task `baseline_drift` or
+`grading_validation_error` with reward 0, recorded in the trace metrics.
+
+Source: `grading/`, `runtime/ablation_contract.py`, `runtime/corruption.py`,
+`modal_app/backend/interventions.py`.

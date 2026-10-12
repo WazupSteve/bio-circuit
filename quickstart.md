@@ -1,72 +1,80 @@
 # Quickstart
 
-Run these commands from a local checkout. The evaluation client uses Python
-3.13; the Modal deployment defines its own GPU image.
+Run one scored evaluation of each taskset. Commands run from
+`environments/circuit_supernodes` unless noted.
 
 ## 1. Install
 
 ```bash
 cd environments/circuit_supernodes
-uv sync --frozen
+uv sync
 ```
 
-The default evaluation datasets download from Hugging Face on first use. No
-Hugging Face token or Git LFS setup is required. The three compressed datasets
-total about 2.6 GiB; allow additional RAM for parsed attribution graphs.
+Evaluation data downloads anonymously from Hugging Face on first use, one
+taskset at a time (about 2.6 GiB compressed in total). No token is needed.
 
-## 2. Connect to Modal
+## 2. Log in to Prime
 
-Use credentials for the workspace containing the `circuit-supernodes` app:
+```bash
+uv run prime login
+```
+
+The supplied configs use Prime Inference for the policy model and run the
+harness in a Prime sandbox. The stored login covers both; `PRIME_API_KEY` in the
+environment works too.
+
+## 3. Connect the subject backend
 
 ```bash
 uv run modal setup
 ```
 
-For an existing deployment, continue to the next step. To deploy the included
-backend in your own workspace:
+Use credentials for the Modal workspace that hosts the `circuit-supernodes` app.
+If that workspace has no deployment yet:
 
 ```bash
 uv run modal deploy modal_app/attribution.py
 ```
 
-The backend loads Qwen3-4B and its transcoders on A100-80GB GPUs. It can scale to
-eight containers, so GPU usage is billed to the deployment's Modal workspace.
+The service runs Qwen3-4B on A100-80GB GPUs, up to eight containers, billed to
+the workspace. Containers start on the first call (several minutes to load the
+model) and stop after ten idle minutes.
 
-Leave `SUBJECT_URL` unset to use Modal. If it was set for a local GPU server:
+Leave `SUBJECT_URL` unset to use Modal; set it only for a
+[self-hosted GPU](docs/local.md).
 
-```bash
-unset SUBJECT_URL
-```
-
-For automated runs, provide `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` through
-your runner's secret configuration. Keep credentials out of config files and Git.
-
-## 3. Configure policy inference
-
-The supplied configs use Prime Inference. Set `PRIME_API_KEY` in your shell or
-runner's secret configuration. The policy model is selected by `model` in each
-TOML file; Qwen3-4B remains the subject being studied.
-
-## 4. Check the configuration
+## 4. Check the configs
 
 ```bash
 uv run eval @ ../../configs/eval/visible-dataset.toml --dry-run --no-push
 ```
 
-This validates configuration without calling the policy or GPU backend.
+A dry run validates and prints the resolved config without calling the policy
+or the GPU.
 
-## 5. Run an evaluation
+## 5. Run a smoke test
 
 ```bash
-uv run eval @ ../../configs/eval/visible-dataset.toml --no-push
-uv run eval @ ../../configs/eval/supernode-rediscovery.toml --no-push
-uv run eval @ ../../configs/eval/suppressed-features.toml --no-push
+uv run eval @ ../../configs/eval/visible-dataset.toml --num-tasks 1 --no-push
+uv run eval @ ../../configs/eval/supernode-rediscovery.toml --num-tasks 1 --no-push
+uv run eval @ ../../configs/eval/suppressed-features.toml --num-tasks 1 --no-push
 ```
 
-Each config selects 16 tasks and one rollout per task. These commands call the
-policy provider and Modal backend. `--no-push` keeps evaluation results local;
-it does not disable inference or GPU charges.
+One task takes roughly 5–30 minutes depending on the policy model. Results go to
+`outputs/<run>/traces.jsonl`; each trace records rewards, metrics and the
+grader's per-prompt results under `info`.
 
-See [operations](docs/operations.md) for hosted execution and training,
-[troubleshooting](docs/troubleshooting.md) for common failures, and
-[data generation](docs/data-generation.md) to build additional cohorts.
+Drop `--num-tasks 1` to run all 16 tasks, and pass `--model <id>` to try another
+policy (list them with `uv run prime inference models`). `--no-push` keeps
+results local; it does not stop inference or GPU charges.
+
+## 6. Clean up
+
+Containers scale down on their own. To stop them immediately:
+
+```bash
+uv run modal app stop circuit-supernodes   # also undeploys the app
+```
+
+Next: [operations](docs/operations.md), [troubleshooting](docs/troubleshooting.md),
+[known issues](docs/known-issues.md).

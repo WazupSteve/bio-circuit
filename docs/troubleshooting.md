@@ -1,56 +1,69 @@
 # Troubleshooting
 
+## Subject containers crash with `pyarrow requires NumPy 2.0`
+
+The GPU image was built without the `pyarrow<26` pin: `transformer-lens` keeps
+NumPy 1.x, and pyarrow 26 needs NumPy 2. Redeploy from this repository
+(`uv run modal deploy modal_app/attribution.py`); the pin is in
+`modal_app/backend/deployment.py` and `scripts/subject.sh`. Crashing containers
+restart and bill GPU time, so stop them first.
+
+## An eval runs but logs nothing for minutes
+
+Normal on a cold start: the first call loads Qwen3-4B and the transcoders.
+Check the backend with `uv run modal app logs circuit-supernodes`, and the run's
+own log under `outputs/<run>/logs/`.
+
 ## Dataset download fails
 
-Default evaluation files download anonymously from the pinned Hugging Face
-release. Check network access, free disk space, and the Hugging Face cache.
-All three tasksets have published evaluation data; training files must be
-created separately.
+Evaluation files download anonymously from the pinned Hugging Face revision.
+Check network access and free disk space. A local `dataset_file` takes
+precedence; if it is a stale Git LFS pointer or truncated, move it aside
+(`gzip -t <file>` checks a gzip file). Training files are not published.
 
-A local `dataset_file` takes precedence over the public download. If you have
-an old Git LFS pointer at that path, move the pointer aside so the loader can
-download the real file. Use `gzip -t <path>` to check a compressed local file.
-
-## Taskset import fails
-
-From `environments/circuit_supernodes`:
+## Taskset or harness not found
 
 ```bash
-uv sync --frozen
+uv sync
 uv run python -c 'from verifiers.v1.utils.loaders import taskset_class; print(taskset_class("supernode-rediscovery"))'
 ```
 
-Taskset IDs map to Python modules with underscores. Install the core package
-in the interpreter used by the runner; reinstall after packaging changes.
+IDs map to modules with underscores (`supernode-rediscovery` →
+`supernode_rediscovery`). The package must be installed in the interpreter that
+runs `eval`; the root project's venv does not include it, so run from
+`environments/circuit_supernodes`.
 
-## Modal credentials or deployment
+## Modal credentials or missing app
 
-Confirm that your Modal credentials target the workspace containing the
-`circuit-supernodes` app and its `Attributor` class. If you need your own
-instance, deploy `modal_app/attribution.py` as described in the quickstart.
-Unset `SUBJECT_URL` unless you intend to use an HTTP backend.
+`modal.Cls.from_name("circuit-supernodes", "Attributor")` must resolve in the
+active workspace (`uv run modal profile current`). Deploy it there if needed,
+and unset `SUBJECT_URL` unless you mean to use an HTTP backend. Hosted runners
+need the Modal tokens in both tool and reward processes; keep them in runner
+secrets, never in configs.
 
-Hosted runners need access to the same credentials in both the tool and
-reward processes. Keep tokens in runner secrets, not in TOML files or Git.
+## Policy or sandbox errors
 
-## Provider failures and retries
+Policy inference and sandboxes both use your Prime login (`uv run prime login`,
+or `PRIME_API_KEY`). Check that the model ID exists with
+`uv run prime inference models`. Policy-provider errors are separate from
+backend errors, which retry four times (1, 4 and 15 s waits).
 
-Policy-provider errors and Modal errors are separate. Modal grading calls retry
-four times, waiting 1, 4, and 15 seconds between attempts. Inspect the original
-error before increasing concurrency. Dataset builders record rejected samples
-and graph failures in their generation summaries.
+## Rewards are all zero
 
-## Runtime selection
+Check the trace before blaming the policy. In `traces[0]`:
 
-The supplied configs use `circuit-null` with local subprocess execution.
-The subject model still runs on Modal. Selecting a Docker, Prime, or Modal
-harness runtime changes where the policy program executes; it does not by
-itself deploy the subject backend. An HTTP subject must be reachable from both
-the tools and the grader; localhost inside a sandbox refers to that sandbox.
+- `metrics.baseline_drift = 1` or `grading_validation_error = 1`: the replay did
+  not reproduce the stored baseline (backend or numerical drift, or a tied
+  answer in the data).
+- `info.*_score.error` set: the final answer had no parseable JSON, often
+  because the run hit `max_turns`.
+- Otherwise the answer was graded and failed the thresholds; the score dict
+  shows per-gate rates.
 
-## Model drift
+Several open issues also push rewards to 0; see [known issues](known-issues.md).
 
-Check the subject model, transcoders, Circuit Tracer version, pruning thresholds,
-and backend numerical stack against the dataset manifest. Runtime row validation
-does not enforce those settings. Compare results only when their provenance
-and grading configuration are compatible.
+## Results don't match earlier runs
+
+Compare the subject model, transcoders, Circuit Tracer version, pruning
+thresholds and backend stack against the dataset manifest, and confirm the
+grading thresholds match. Loaders don't enforce manifest settings.

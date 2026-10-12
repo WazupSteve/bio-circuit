@@ -2,58 +2,54 @@
 
 ```text
 configs/
-  eval/                         Local Verifiers evaluation configs
-  rl/                           Training templates
-environments/circuit_supernodes/
+  eval/                     Verifiers eval configs (one per taskset, plus a canary)
+  rl/                       Training templates
+environments/circuit_supernodes/          Core package `circuit-supernodes`
   circuit_supernodes/
-    grading/                    Ablation and restoration rewards
-    runtime/                    Data loading, graph tools, subject clients
-    tasksets/                   Three Verifiers tasksets
-  circuit_null/                 Shared policy harness
-  supernode_rediscovery/         Rediscovery import entrypoint
-  suppressed_features/          Restoration import entrypoint
-  modal_app/                    Modal deployment and GPU backend
-  scripts/                      Prompt and dataset builders
-  tests/                        Unit and integration contract tests
-environments/circuit_null/      Hub distribution for the harness
-environments/supernode_rediscovery/  Hub distribution for rediscovery
-environments/suppressed_features/    Hub distribution for restoration
-scripts/                       Optional GPU-host helper and release preparation
-docs/                          Setup and reference documentation
+    tasksets/               visible, rediscovery, restoration, shared base
+    grading/                Ablation and restoration graders
+    runtime/                Tools, graph store, parsing, datasets, subject clients
+    models.py               Pydantic schemas (answers, rows, graphs)
+  circuit_null/             `circuit-null` harness
+  supernode_rediscovery/    Import entry point for that taskset ID
+  suppressed_features/      Import entry point for that taskset ID
+  modal_app/                Modal app, HTTP server, GPU backend (not checked by ty)
+  scripts/                  Prompt generation and dataset builders
+  tests/                    Unit and contract tests
+environments/{circuit_null,supernode_rediscovery,suppressed_features}/
+                            Thin Prime Hub distributions pinning the core package
+scripts/                    subject.sh (self-hosted GPU), prepare_hf_dataset.py
+docs/                       This documentation
 ```
 
-## Execution
+## How the pieces connect
 
-`modal_app/backend/subject.py` loads Qwen3-4B and the transcoders. The Modal
-service exposes sampling, attribution, corruption, ablation, and restoration
-methods. `circuit_supernodes/runtime/modal.py` calls those methods through the
-Modal SDK, or uses an HTTP backend when `SUBJECT_URL` is set.
-
-Tasksets shape policy inputs and select graders. The shared tools expose
-attribution, paginated graph queries, and feature interventions. Hidden cohorts
-and corruption parameters stay in task data used by the backend and graders.
+- **Tasksets** turn dataset rows into tasks and pick a grader.
+- **Tools** (`runtime/circuit_tracer.py`) run in a tool server that Verifiers
+  launches per rollout; the server rebuilds the task from its serialized data,
+  so fields it needs (`subject_config`, `corruption_spec`) are serialized.
+- **Subject clients** (`runtime/modal.py`) call the Modal `Attributor`, or an
+  HTTP server when `SUBJECT_URL` is set.
+- **GPU backend** (`modal_app/backend/`) loads Qwen3-4B with TransformerLens
+  and serves sampling, attribution, ablation and restoration.
 
 ## Packaging
 
-The root Python project supplies Prime and development tools. The nested
-`circuit-supernodes` project builds the core wheel, including all tasksets,
-the harness, and backend source. Three small Hub distributions depend on that
-core package and make the other tasksets and harness addressable by Hub ID.
-
-Datasets live on Hugging Face. The loader uses a pinned release revision when
-no local dataset is supplied. Generated data, logs, traces, and build outputs
-are ignored by Git.
+The root project provides development tools and Prime/Modal CLIs. The nested
+`circuit-supernodes` project builds the wheel with all tasksets, the harness and
+the backend source. The three Hub distributions only make the other IDs
+installable.
 
 ## Tests
 
-Tests cover schemas, graph views, response parsing, interventions, dataset
-builders, taskset loading, reward contracts, and public dataset resolution.
-Remote calls are mocked; the tests do not deploy Modal or verify a live rollout.
-
-From `environments/circuit_supernodes`:
+From the repository root or `environments/circuit_supernodes`:
 
 ```bash
-uv sync --frozen
 uv run pytest
-uv run ruff check .
+uv run ruff check . && uv run ruff format --check .
+uvx ty check
 ```
+
+Tests cover schemas, graph views, parsing, interventions, builders, lazy and
+eager loading, reward contracts, config layout and dataset resolution. Backend
+calls are mocked; nothing deploys Modal or runs a live rollout.
