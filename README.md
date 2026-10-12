@@ -18,9 +18,8 @@ its transcoders run on a Modal A100-80GB service, so the client needs no GPU.
 ## Status
 
 The environment runs end to end: all three tasksets have been evaluated against
-the live Modal subject. Several grading and tool issues are still open and affect
-rewards; read [known issues](docs/known-issues.md) before training or comparing
-scores.
+the live Modal subject. Rewards are sparse by design; the eval configs set
+calibration thresholds ([tasksets](docs/tasksets.md)).
 
 ## Public release
 

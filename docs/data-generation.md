@@ -88,6 +88,4 @@ families, sampler triage, screening, generator settings, graph quality and
 corruption provenance. Loaders validate types but trust the builders for
 semantic properties.
 
-Before releasing new data, screen for exact top-2 ties: a tied prompt can flip
-on replay and zero its task ([known issues](known-issues.md)). Run each builder
-with `--help` for every option and default.
+Run each builder with `--help` for every option and default.

@@ -84,10 +84,9 @@ When a task carries a hidden corruption (`suppressed-features`):
 
 - `circuit_attribute` returns the clean graph with logit nodes, their edges and
   top outputs removed.
-- `circuit_intervene` maps the hidden corruption onto the experiment prompt and
-  reports only top tokens. Prompts must contain at least four corruption
-  features; otherwise the call fails or runs uncorrupted
-  ([known issues](known-issues.md)).
+- `circuit_intervene` applies the hidden corruption features that appear in the
+  experiment prompt's graph, then reports only top tokens. A prompt with none of
+  them runs as the clean model would.
 
 Corruption features and factors never appear in prompts or tool output.
 

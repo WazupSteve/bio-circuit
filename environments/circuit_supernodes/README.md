@@ -79,8 +79,7 @@ other tasks. Runs cost inference and GPU time; `--no-push` only keeps results
 local.
 
 Keep hidden cohorts and corruption data away from the policy. The tasks have no
-gold circuits, and several open issues affect rewards: see the repository's
-`docs/known-issues.md`.
+gold circuits.
 
 ## Develop
 

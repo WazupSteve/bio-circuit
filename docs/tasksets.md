@@ -6,8 +6,8 @@ harness. They differ in what the policy sees and what the grader asks for.
 | Taskset | Policy sees | Hidden grading data | Answer | Turns (eval) |
 |---|---|---|---|---|
 | `circuit-supernodes` | 5 example prompts and answers | 25 same-concept prompts, 25 controls | Exactly one supernode | 50 |
-| `supernode-rediscovery` | A goal name | 4-prompt cohort, 4 controls | One or more weighted supernodes | 16 |
-| `suppressed-features` | A family name | 10 corrupted prompts | Weighted nodes or supernodes | 16 |
+| `supernode-rediscovery` | A goal name | 4-prompt cohort, 4 controls | One or more weighted supernodes | 50 |
+| `suppressed-features` | A family name | 10 corrupted prompts | Weighted nodes or supernodes | 50 |
 
 Thresholds below are the class defaults (also used by the RL configs); the eval
 configs relax some of them, as noted.

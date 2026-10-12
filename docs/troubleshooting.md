@@ -60,8 +60,6 @@ Check the trace before blaming the policy. In `traces[0]`:
 - Otherwise the answer was graded and failed the thresholds; the score dict
   shows per-gate rates.
 
-Several open issues also push rewards to 0; see [known issues](known-issues.md).
-
 ## Results don't match earlier runs
 
 Compare the subject model, transcoders, Circuit Tracer version, pruning

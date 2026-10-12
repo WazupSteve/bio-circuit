@@ -47,8 +47,8 @@ threshold. Otherwise reward is 0.
 separate gates; `supernode-rediscovery` grades its cohort as the only positive
 gate. Defaults are in [tasksets](tasksets.md).
 
-`circuit_intervene` applies weights without negation, so a weight tested with
-the tool behaves oppositely when submitted ([known issues](known-issues.md)).
+`circuit_intervene` applies weights without negation; the rediscovery prompt
+tells the policy this.
 
 ## Restoration grading
 

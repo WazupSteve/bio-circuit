@@ -76,5 +76,4 @@ Containers scale down on their own. To stop them immediately:
 uv run modal app stop circuit-supernodes   # also undeploys the app
 ```
 
-Next: [operations](docs/operations.md), [troubleshooting](docs/troubleshooting.md),
-[known issues](docs/known-issues.md).
+Next: [operations](docs/operations.md), [troubleshooting](docs/troubleshooting.md).

@@ -12,7 +12,6 @@
 - [Core environment](core-environment.md): tools, graphs, interventions.
 - [Tasksets](tasksets.md): what each task shows the policy and asks for.
 - [Graders](graders.md): how submissions are scored.
-- [Known issues](known-issues.md): open problems that affect rewards.
 
 ## Develop
 

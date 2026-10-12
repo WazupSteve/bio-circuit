@@ -73,8 +73,7 @@ prime train configs/rl/suppressed-features.toml
 ```
 
 They follow the Verifiers 0.3 layout but have not been validated with
-`prime train`. Read [known issues](known-issues.md) first: several affect the
-reward signal.
+`prime train`.
 
 ## Publish
 
