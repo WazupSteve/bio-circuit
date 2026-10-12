@@ -46,13 +46,6 @@ class CircuitExperimentTools(vf.Toolset[vf.ToolsetConfig, vf.State]):
             self._clear_graph()
         self._subject = subject_from_config(task.subject_config)
         self._corruption_spec = list(task.corruption_spec)
-        # Tasks serialized before corruption_spec crossed the task channel only
-        # carry the corruption on their held-out rows.
-        if not self._corruption_spec and task.heldout_prompts:
-            self._corruption_spec = [
-                (layer, feature, factor)
-                for layer, feature, _, factor in task.heldout_prompts[0].corruption
-            ]
 
     @retry_modal_call
     async def _call(self, method: str, *args):
