@@ -7,7 +7,7 @@ import json
 import re
 from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import verifiers.v1 as vf
 from pydantic import Field, ValidationError
@@ -100,29 +100,31 @@ class CircuitTaskData(vf.TaskData):
 
     family: str
     goal: str | None = None
-    # Cohorts contain multi-megabyte attribution graphs needed only while the
-    # task is live. Persisting them in every Trace made even startup failures
-    # produce enormous traces; resumed runs reload the task data from the
-    # configured dataset.
-    example_prompts: list[DatasetExample] = Field(default_factory=list, exclude=True)
-    heldout_prompts: list[DatasetExample] = Field(default_factory=list, exclude=True)
-    control_prompts: list[DatasetExample] = Field(default_factory=list, exclude=True)
-    dataset_path: str | None = Field(default=None, exclude=True)
-    dataset_row: int | None = Field(default=None, exclude=True)
+    # Lazily loaded tasks leave the cohorts empty and carry only the row reference;
+    # grading reloads the graph-heavy row from ``dataset_path``.
+    example_prompts: list[DatasetExample] = Field(default_factory=list)
+    heldout_prompts: list[DatasetExample] = Field(default_factory=list)
+    control_prompts: list[DatasetExample] = Field(default_factory=list)
+    dataset_path: str | None = None
+    dataset_row: int | None = None
     min_visible_success: float = Field(0.0, ge=0.0, le=1.0)
     min_heldout_success: float = Field(1.0, ge=0.0, le=1.0)
     max_control_failure: float = Field(0.0, ge=0.0, le=1.0)
-    subject_config: SubjectConfig = Field(default_factory=SubjectConfig, exclude=True)
-    corruption_spec: list[tuple[int, int, float]] = Field(
-        default_factory=list, exclude=True
-    )
+    subject_config: SubjectConfig = Field(default_factory=SubjectConfig)
+    # Serialized so launched tool servers can apply the corruption without the cohorts.
+    corruption_spec: list[tuple[int, int, float]] = Field(default_factory=list)
 
 
 class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
     """Shared parse, cache, causal replay, and invalid-response behavior."""
 
+    tools: ClassVar[tuple[type[vf.Toolset], ...]] = ()
     score_cache_key = "cohort_score"
     parse_options: dict[str, Any] = {"require_supernodes": True}
+
+    @classmethod
+    def toolsets(cls, config: vf.TaskConfig) -> list[vf.Toolset]:
+        return [tool(vf.ToolsetConfig()) for tool in cls.tools]
 
     def source_row(self) -> CircuitDatasetRow | None:
         """Reload a graph-heavy source row only when grading needs it."""

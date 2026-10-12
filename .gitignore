@@ -25,14 +25,12 @@ __pycache__/
 # prime eval / prime train local run artifacts
 .subject.*
 
-# media files 
-blog_media/
-scripts/make_blog_media.py
-blog.md
-
 # Generated data and experiment artifacts
 outputs/
 runlogs/
 *.log
 *.partial
 /environments/*/circuit_supernodes/data/
+
+# Local documentation (not published)
+docs/

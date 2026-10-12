@@ -120,7 +120,7 @@ def test_restoration_uses_first_heldout_corruption_spec(tmp_path, monkeypatch) -
         )
     )
     assert task.data.corruption_spec == [(1, 2, 4.0), (1, 3, 2.0)]
-    assert "corruption_spec" not in task.data.model_dump()
+    assert task.data.model_dump()["corruption_spec"] == [(1, 2, 4.0), (1, 3, 2.0)]
     assert "4.0" not in task.data.prompt
     assert "2.0" not in task.data.prompt
     assert len(feature_nodes(task.data.heldout_prompts[0].graph)) == 1
@@ -356,7 +356,25 @@ def test_lazy_tasks_match_eager_tasks(tmp_path, monkeypatch, module) -> None:
     for eager_task, lazy_task in zip(eager, lazy, strict=True):
         assert lazy_task.data.dataset_path is not None
         assert not lazy_task.data.heldout_prompts
-        assert lazy_task.data.model_dump() == eager_task.data.model_dump()
+        row_fields = {
+            "example_prompts",
+            "heldout_prompts",
+            "control_prompts",
+            "dataset_path",
+            "dataset_row",
+        }
+        assert lazy_task.data.model_dump(
+            exclude=row_fields
+        ) == eager_task.data.model_dump(exclude=row_fields)
+        # Launched tool servers rebuild the task from its JSON (verifiers task channel).
+        channel = type(lazy_task.data).model_validate_json(
+            lazy_task.data.model_dump_json()
+        )
+        assert channel.corruption_spec == eager_task.data.corruption_spec
+        assert channel.subject_config == eager_task.data.subject_config
+        assert channel.dataset_path == lazy_task.data.dataset_path
+        assert channel.dataset_row == lazy_task.data.dataset_row
+        assert not channel.heldout_prompts
         assert lazy_task.data.corruption_spec == eager_task.data.corruption_spec
         assert lazy_task.grading_cohorts() == eager_task.grading_cohorts()
 

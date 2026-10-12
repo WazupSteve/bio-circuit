@@ -2,11 +2,11 @@
 name = "circuit-supernodes"
 description = "Evidence/holdout causal-circuit, rediscovery, and restoration tasksets"
 tags = ["multi-turn", "interpretability", "tool-use", "eval", "requires-gpu"]
-version = "0.1.1"
+version = "0.2.1"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "verifiers==0.2.1",
+    "verifiers>=0.3.1,<0.4",
     "modal>=1.5",
     "pydantic>=2.12.3",
     "httpx>=0.28.1",

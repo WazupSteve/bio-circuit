@@ -166,13 +166,15 @@ class InterventionEvaluator:
             prompt = str(example["prompt"])
             expected_token = str(example["expected_token"])
             baseline_raw = example.get("baseline_interventions", [])
+            # Experiment prompts express only the corruption features attributed in
+            # their own graph, often fewer than a stored cohort's minimum.
             baseline = (
                 list(
                     InterventionPayload.model_validate(
                         baseline_raw,
                         context={
                             "label": "baseline corruption",
-                            "min_count": MIN_CORRUPTION_NODES,
+                            "min_count": 1,
                             "max_count": MAX_CORRUPTION_NODES,
                             "min_factor": MIN_CORRUPTION_FACTOR,
                             "max_abs_factor": MAX_CORRUPTION_FACTOR,

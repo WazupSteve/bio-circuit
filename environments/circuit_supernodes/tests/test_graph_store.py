@@ -37,7 +37,7 @@ def graph():
 
 def test_toolset_registers_fastmcp_schemas():
     tools = CircuitExperimentTools(vf.ToolsetConfig())
-    tools._register(FastMCP("schema-test"))
+    tools.register(FastMCP("schema-test"))
 
 
 def test_store_paginates_all_nodes_with_byte_budget_and_filters():

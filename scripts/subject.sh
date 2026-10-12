@@ -65,7 +65,7 @@ up() {
   ssh_ "$target" 'cd ~/bio-circuit/circuit_supernodes
     [ -d .venv ] || ~/.local/bin/uv venv -p 3.11 -q .venv
     ~/.local/bin/uv pip install -q -p .venv/bin/python "circuit-tracer==0.5.0" "nnsight==0.6.1" \
-      "torch==2.8.0" "transformer-lens==2.16.1" "huggingface_hub[hf_transfer]<1" \
+      "torch==2.8.0" "transformer-lens==2.16.1" "pyarrow<26" "huggingface_hub[hf_transfer]<1" \
       fastapi uvicorn typer pydantic tenacity httpx
     [ -f ~/subject.pid ] && kill "$(cat ~/subject.pid)" 2>/dev/null; sleep 2
     HF_HUB_ENABLE_HF_TRANSFER=1 nohup .venv/bin/python -m modal_app.server --port '"$PORT"' > ~/subject.log 2>&1 &

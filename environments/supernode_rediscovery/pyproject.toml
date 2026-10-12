@@ -1,12 +1,12 @@
 [project]
 name = "supernode-rediscovery"
-version = "0.1.2"
+version = "0.2.1"
 description = "Rediscover causal Qwen3-4B circuits for named semantic goals"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 tags = ["taskset", "interpretability", "requires-gpu"]
 dependencies = [
-    "circuit-supernodes==0.1.1",
+    "circuit-supernodes==0.2.1",
 ]
 
 [build-system]

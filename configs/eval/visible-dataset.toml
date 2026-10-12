@@ -2,24 +2,26 @@
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 16
 num_rollouts = 1
-max_turns = 50
 
 [sampling]
 max_tokens = 16384
-enable_thinking = false
 
-[taskset]
+[env.taskset]
 id = "circuit-supernodes"
 dataset_file = "heldout-cohorts.jsonl.gz"
 min_evidence_success = 0.6
 min_holdout_success = 0.4
 max_null_failure = 0.0
 
-[taskset.subject]
+[env.taskset.subject]
 model_name = "Qwen/Qwen3-4B"
 transcoder_set = "mwhanna/qwen3-4b-transcoders"
 node_threshold = 0.8
 edge_threshold = 0.98
 
-[harness]
+[env.agent]
+max_turns = 50
+
+[env.agent.harness]
 id = "circuit-null"
+tool_timeout = 3600

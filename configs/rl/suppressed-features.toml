@@ -17,7 +17,7 @@ type = "repetition"
 enforce = false
 
 [[env]]
-max_turns = 16
+max_turns = 50
 
 [env.taskset]
 id = "suppressed-features"
@@ -31,6 +31,7 @@ edge_threshold = 0.98
 
 [env.harness]
 id = "circuit-null"
+tool_timeout = 3600
 
 [eval]
 interval = 10
@@ -39,7 +40,7 @@ rollouts_per_example = 1
 eval_base_model = true
 
 [[eval.env]]
-max_turns = 16
+max_turns = 50
 
 [eval.env.taskset]
 id = "suppressed-features"
@@ -53,3 +54,4 @@ edge_threshold = 0.98
 
 [eval.env.harness]
 id = "circuit-null"
+tool_timeout = 3600

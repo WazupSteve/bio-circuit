@@ -57,6 +57,17 @@ def test_moved_graph_helpers_preserve_ranking_rendering_and_resolution() -> None
     assert deltas["0_0_0"] == 75
     assert deltas["0_1_0"] == 74
     assert top_outputs(graph) == [("y", 0.5)]
+    quoted = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(update={"clerp": 'Output " "" (p=0.500)'})
+                if node.node_id == "logit"
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    assert top_outputs(quoted) == [(' "', 0.5)]
     assert parse_coordinate("01_002_3") == (1, 2, 3)
     assert stable_feature_id("01_002_3") == "1_2"
 

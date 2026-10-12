@@ -13,6 +13,8 @@ image = (
         "nnsight==0.6.1",
         "torch==2.8.0",
         "transformer-lens==2.16.1",
+        # transformer-lens holds numpy<2; pyarrow 26 (via datasets) requires numpy 2.
+        "pyarrow<26",
         "cloudpickle==3.0.0",
         "huggingface_hub[hf_transfer]<1",
     )
