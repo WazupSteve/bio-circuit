@@ -20,5 +20,5 @@
 - [Module map](repository-map.md): source layout and tests.
 - [Neuronpedia](neuronpedia.md): optional feature labels during generation.
 - [Package README](../environments/circuit_supernodes/README.md): standalone install.
-- [Dataset card](hf-dataset-card.md) and [release record](public-release.json):
-  the published 0.1.x release, kept as published.
+- [Dataset card](hf-dataset-card.md): as published on Hugging Face.
+- [Release record](public-release.json): the current Prime Hub release.

@@ -30,8 +30,13 @@ calibration thresholds ([tasksets](docs/tasksets.md)).
   [suppressed-features](https://app.primeintellect.ai/dashboard/environments/wazupsteve/suppressed-features),
   [circuit-null](https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-null).
 
-The Hub packages are release 0.1.x, built on Verifiers 0.2.1. This repository
-has since moved to Verifiers 0.3.1 and has not been republished.
+The Hub packages are release 0.2.1 (Verifiers 0.3.1). Install
+`circuit-supernodes` first; the other three entries are thin aliases that depend
+on it:
+
+```bash
+uvx --from prime prime env install wazupsteve/circuit-supernodes
+```
 
 ## Get started
 

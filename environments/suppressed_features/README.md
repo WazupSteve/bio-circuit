@@ -2,12 +2,19 @@
 
 Find and undo a hidden feature corruption that changes Qwen3-4B's outputs.
 
-This is a thin Prime Hub distribution. It installs the pinned
-`circuit-supernodes==0.1.1` package, which contains all implementation code;
-this package adds none.
+This is a thin Prime Hub distribution that depends on
+`circuit-supernodes==0.2.1`, which contains all implementation code; this
+package adds none.
 
-Install with `prime env install wazupsteve/suppressed-features`, select
-`taskset.id = "wazupsteve/suppressed-features@0.1.2"` and use the `circuit-null`
+Install the core package first, running `prime` as a tool so it stays out of
+your environment's venv:
+
+```bash
+uvx --from prime prime env install wazupsteve/circuit-supernodes
+uvx --from prime prime env install wazupsteve/suppressed-features
+```
+
+Then select `env.taskset.id = "wazupsteve/suppressed-features@0.2.1"` and use the `circuit-null`
 harness.
 
 Data: [amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit)

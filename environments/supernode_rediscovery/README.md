@@ -2,12 +2,19 @@
 
 Find causal Qwen3-4B features for a named semantic goal, with no example prompts.
 
-This is a thin Prime Hub distribution. It installs the pinned
-`circuit-supernodes==0.1.1` package, which contains all implementation code;
-this package adds none.
+This is a thin Prime Hub distribution that depends on
+`circuit-supernodes==0.2.1`, which contains all implementation code; this
+package adds none.
 
-Install with `prime env install wazupsteve/supernode-rediscovery`, select
-`taskset.id = "wazupsteve/supernode-rediscovery@0.1.2"` and use the `circuit-null`
+Install the core package first, running `prime` as a tool so it stays out of
+your environment's venv:
+
+```bash
+uvx --from prime prime env install wazupsteve/circuit-supernodes
+uvx --from prime prime env install wazupsteve/supernode-rediscovery
+```
+
+Then select `env.taskset.id = "wazupsteve/supernode-rediscovery@0.2.1"` and use the `circuit-null`
 harness.
 
 Data: [amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit)

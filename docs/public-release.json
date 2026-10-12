@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-04",
+  "date": "2026-10-12",
   "dataset": {
     "repo_id": "amitprakash2005/bio-circuit",
     "revision": "566f6880c28714a0e28cab3128535b6064b17a33",
@@ -8,44 +8,38 @@
   "environments": [
     {
       "id": "wazupsteve/circuit-supernodes",
-      "version": "0.1.1",
+      "version": "0.2.1",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-supernodes",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-supernodes/@0f67df59/circuit_supernodes-0.1.1-py3-none-any.whl",
-      "wheel_sha256": "9e7ef0ca3a983a607298e6ab424bc71d75bf1cc2eef9da2998cef5856bc83971"
+      "wheel_sha256": "9848f82438a4741025288c473b9cf9138f439225d0575b38521e303dabe390a4"
     },
     {
       "id": "wazupsteve/supernode-rediscovery",
-      "version": "0.1.2",
+      "version": "0.2.1",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/supernode-rediscovery",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/supernode-rediscovery/@fae587e5/supernode_rediscovery-0.1.2-py3-none-any.whl",
-      "wheel_sha256": "7d219c598c6e35fde296a1d2010788b245626a9c489c92d346ae128728b4c71a"
+      "wheel_sha256": "a07aaf975c493b8ea9bc2b16b151ba65e90496d0ae4eeb6aa1d7f7cc786b5374"
     },
     {
       "id": "wazupsteve/suppressed-features",
-      "version": "0.1.2",
+      "version": "0.2.1",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/suppressed-features",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/suppressed-features/@b7dd6077/suppressed_features-0.1.2-py3-none-any.whl",
-      "wheel_sha256": "27045010d8edcac180dd7edf9a963712b9617f57103389f10427fd6cb819667c"
+      "wheel_sha256": "a814f37841ef6e3444e6ac716d4089e8d70017579b99594c5fcf8f3d9b9d9f3c"
     },
     {
       "id": "wazupsteve/circuit-null",
-      "version": "0.1.2",
+      "version": "0.2.1",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-null",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-null/@72e3d6ac/circuit_null-0.1.2-py3-none-any.whl",
-      "wheel_sha256": "bc6cc727ddbed01d63aa008e7ae421df1808afc82b98a12c2dcd62921f744b01"
+      "wheel_sha256": "023edcbc7eeea5ca069f8664361b12dfcbec1b5e12692f460a85ac42bdf7479e"
     }
   ],
+  "verifiers": "0.3.1",
   "validation": {
-    "tests_passed": 122,
+    "tests_passed": 152,
     "dataset_rows_validated": 48,
-    "anonymous_download_checksums_verified": true,
-    "gpu_rollout_validated": false,
+    "gpu_rollout_validated": true,
+    "gpu_rollout_note": "One task per taskset with Qwen3.5-4B and GPT-6.1 Sol against the Modal subject; all graded without baseline drift or validation errors.",
     "public_hub_install_verified": true,
+    "install_note": "Install circuit-supernodes before the alias packages; run prime via uvx.",
     "client_requires_torch": false
   },
-  "remaining": [
-    "Provision a reachable CUDA GPU subject backend and validate a scored rollout.",
-    "Publish a GPU container image if required by the consuming platform.",
-    "Generate a separate training dataset or validated SFT trajectories for training use."
-  ]
+  "previous_release": "0.1.1 core / 0.1.2 aliases (Verifiers 0.2.1), 2026-10-04"
 }

@@ -77,12 +77,32 @@ They follow the Verifiers 0.3 layout but have not been validated with
 
 ## Publish
 
-The Prime Hub holds release 0.1.x (`docs/public-release.json`): core
-`circuit-supernodes` 0.1.1, plus 0.1.2 distributions of `supernode-rediscovery`,
-`suppressed-features` and `circuit-null` that pin the core version. Those
-packages predate the Verifiers 0.3.1 migration. Republishing needs a version
-bump in `environments/circuit_supernodes/pyproject.toml` and matching pins in
-`environments/{circuit_null,supernode_rediscovery,suppressed_features}/pyproject.toml`.
+The Prime Hub holds release 0.2.1 under `wazupsteve` (`docs/public-release.json`):
+the core `circuit-supernodes` package and three thin aliases,
+`supernode-rediscovery`, `suppressed-features` and `circuit-null`, each pinning
+the exact core version.
+
+To publish a new release:
+
+1. Bump `version` in `environments/circuit_supernodes/pyproject.toml`, and the
+   version and `circuit-supernodes==` pin in
+   `environments/{circuit_null,supernode_rediscovery,suppressed_features}/pyproject.toml`.
+2. From the repository root, push the core first, then the aliases:
+
+   ```bash
+   uv run prime env push --path environments/circuit_supernodes --owner wazupsteve --visibility PUBLIC
+   uv run prime env push --path environments/supernode_rediscovery --owner wazupsteve --visibility PUBLIC
+   uv run prime env push --path environments/suppressed_features --owner wazupsteve --visibility PUBLIC
+   uv run prime env push --path environments/circuit_null --owner wazupsteve --visibility PUBLIC
+   ```
+
+3. In a fresh venv, install all four with `uvx --from prime prime env install`
+   (core first) and check that the three taskset IDs and the harness resolve.
+
+An alias's Hub index doesn't serve the core package, so an alias installed on
+its own fails to resolve; the core must already be installed. Running `prime`
+inside the target venv is also unsafe: installing the core upgrades `click`
+and breaks that venv's `prime` CLI, so use `uvx`.
 
 ## Acceptance check for a deployment
 

@@ -23,14 +23,18 @@ data is released.
 
 ## Install
 
-From a checkout:
+From the Prime Hub, into an activated Python 3.13 venv (run `prime` as a tool
+so it stays out of that venv):
 
 ```bash
-uv sync
+uvx --from prime prime env install wazupsteve/circuit-supernodes
 ```
 
-The Prime Hub package (`prime env install wazupsteve/circuit-supernodes`) is
-release 0.1.1, built on Verifiers 0.2.1; it doesn't include this version yet.
+This one package provides all three taskset IDs and the harness. The
+`supernode-rediscovery`, `suppressed-features` and `circuit-null` Hub entries
+are thin aliases; install this package before any of them.
+
+From a checkout instead: `uv sync` in this directory.
 
 ## Backend
 
