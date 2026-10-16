@@ -14,6 +14,7 @@ image = (
         "torch==2.8.0",
         "transformer-lens==2.16.1",
         "cloudpickle==3.0.0",
+        "pyarrow==19.0.1",
         "huggingface_hub[hf_transfer]<1",
     )
     .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
