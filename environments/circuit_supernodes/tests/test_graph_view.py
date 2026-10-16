@@ -266,8 +266,10 @@ def test_shared_tools_use_graph_helpers_for_arbitrary_prompts() -> None:
         assert attributed["feature_count"] == 75
         page = await tools.query_graph(attributed["graph_id"], limit=3, kind="feature")
         assert len(page["items"]) == 3
-        result = await tools.intervene("source", "0_0_9", "target", -1.0)
+        # Discovery tools negate the weight exactly as the grader does.
+        result = await tools.intervene("source", ["0_0_9"], "target", 1.0)
         assert result["changed_top_token"] is True
+        assert result["absent_node_ids"] == []
 
     asyncio.run(exercise())
 
@@ -295,15 +297,17 @@ def test_restoration_tools_use_redacted_clean_graphs_and_corrupted_outcomes() ->
         tools = CircuitExperimentTools(vf.ToolsetConfig())
         tools._subject = Subject()
         tools._corruption_spec = [(0, 0, -2.0)]
+        tools._negate_interventions = False
         attributed = await tools.attribute("source")
         assert "top_outputs" not in attributed
         page = await tools.query_graph(attributed["graph_id"], kind="logit")
         assert page["items"] == []
-        result = await tools.intervene("source", "0_0", "target", 0.5)
+        result = await tools.intervene("source", ["0_0", "0_1"], "target", 0.5)
         assert result == {
             "baseline_top_token": "corrupted",
             "intervened_top_token": "changed",
             "changed_top_token": True,
+            "absent_node_ids": [],
         }
         assert "build_corrupted_sample_from_spec" not in calls
 
@@ -319,8 +323,99 @@ def test_shared_tools_return_errors_for_unexpected_failures() -> None:
 
         tools._graph = fail
         assert await tools.attribute("source") == {"error": "backend failed for source"}
-        assert await tools.intervene("source", "0_0", "target", -1.0) == {
+        assert await tools.intervene("source", ["0_0"], "target", -1.0) == {
             "error": "backend failed for source"
         }
+
+    asyncio.run(exercise())
+
+
+def test_intervene_applies_a_feature_set_and_reports_absent_targets() -> None:
+    def graph(count: int):
+        return ranked_graph(count).model_dump()
+
+    sent = []
+
+    class Subject:
+        async def call(self, method: str, *args):
+            if method == "attribute_prompt":
+                return graph(75 if args[0] == "source" else 2)
+            sent.append(args[0][0])
+            return {"positives": [{"changed_top_token": True}], "controls": []}
+
+    async def exercise() -> None:
+        tools = CircuitExperimentTools(vf.ToolsetConfig())
+        tools._subject = Subject()
+        result = await tools.intervene(
+            "source", ["0_0", "0_1_0", "0_5", "0_0"], "target", 0.0
+        )
+        assert result["absent_node_ids"] == ["0_5"]
+        assert sent[-1]["interventions"] == [(0, 0, 0, -0.0), (0, 1, 0, -0.0)]
+        assert (
+            "absent from source_prompt"
+            in (await tools.intervene("source", ["0_0", "9_9"], "target", 1.0))["error"]
+        )
+        assert (
+            "absent from prompt"
+            in (await tools.intervene("source", ["0_5"], "target", 1.0))["error"]
+        )
+
+    asyncio.run(exercise())
+
+
+def test_intervene_names_logit_and_error_ids_except_in_restoration() -> None:
+    graph = ranked_graph(3)
+    graph.nodes += [
+        TracerNode(node_id="37_18365_0", feature_type="logit", clerp='"z"'),
+        TracerNode(node_id="1_0_0", feature_type="mlp reconstruction error"),
+    ]
+
+    class Subject:
+        async def call(self, method: str, *args):
+            return graph.model_dump()
+
+    async def exercise() -> None:
+        tools = CircuitExperimentTools(vf.ToolsetConfig())
+        tools._subject = Subject()
+        result = await tools.intervene(
+            "source", ["0_0", "37_18365_0", "1_0"], "target", 1.0
+        )
+        assert result["error"] == (
+            "only FEATURE nodes can be intervened on; not FEATUREs: "
+            "37_18365 (logit), 1_0 (error)"
+        )
+        assert (
+            "embedding node"
+            in (await tools.intervene("source", ["E_785_1"], "target", 1.0))["error"]
+        )
+        # Naming a logit id would reveal the clean model's outputs.
+        tools._corruption_spec = [(0, 1, -2.0)]
+        assert (await tools.intervene("source", ["37_18365"], "target", 1.0))[
+            "error"
+        ] == "FEATUREs absent from source_prompt: ['37_18365']"
+
+    asyncio.run(exercise())
+
+
+def test_restoration_experiments_hide_partial_corruption_and_backend_errors() -> None:
+    sent = []
+
+    class Subject:
+        async def call(self, method: str, *args):
+            if method == "attribute_prompt":
+                return ranked_graph(75 if args[0] == "source" else 3).model_dump()
+            sent.append(args[0][0])
+            raise RuntimeError("target token ' clean-secret' does not round-trip")
+
+    async def exercise() -> None:
+        tools = CircuitExperimentTools(vf.ToolsetConfig())
+        tools._subject = Subject()
+        tools._negate_interventions = False
+        # Only one of these hidden features occurs on the target prompt.
+        tools._corruption_spec = [(0, 2, -2.0), (0, 50, 3.0), (0, 60, 4.0)]
+        result = await tools.intervene("source", ["0_0"], "target", 2.0)
+        assert result == {"error": "intervention experiment failed for this prompt"}
+        assert sent[-1]["interventions"] == [(0, 0, 0, 2.0)]
+        assert sent[-1]["baseline_interventions"] == [(0, 2, 0, -2.0)]
 
     asyncio.run(exercise())

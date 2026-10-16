@@ -2,7 +2,6 @@
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 16
 num_rollouts = 1
-max_turns = 16
 max_concurrent = 8
 
 [sampling]

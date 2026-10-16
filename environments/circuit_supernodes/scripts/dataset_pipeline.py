@@ -10,7 +10,15 @@ from pathlib import Path
 from typing import Any, Literal
 
 import typer
-from circuit_supernodes.models import CircuitDatasetRow, TracerGraphPayload
+from circuit_supernodes.grading.ablation import (
+    ablation_payload,
+    validate_ablation_result,
+)
+from circuit_supernodes.models import (
+    CircuitDatasetRow,
+    DatasetExample,
+    TracerGraphPayload,
+)
 from circuit_supernodes.runtime.datasets import (
     DATASET_SCHEMA_VERSION,
     GENERATION_POLICY,
@@ -18,6 +26,7 @@ from circuit_supernodes.runtime.datasets import (
 from circuit_supernodes.runtime.graphs import MAX_FEATURE_NODES, graph_quality
 from circuit_supernodes.runtime.modal import SUBJECT, Subject
 from circuit_supernodes.runtime.sampling import MAX_NEW_TOKENS
+from pydantic import ValidationError
 from scripts.build_support import DatasetArtifacts
 from scripts.prompt_generation import (
     EVAL_FAMILIES,
@@ -141,6 +150,37 @@ def prepare_candidates(
     return prepared, triage
 
 
+def grader_baseline_failures(
+    subject: Subject, examples: Sequence[DatasetExample]
+) -> list[str | None]:
+    """Replay each example's unintervened baseline exactly as grading does.
+
+    Returns ``None`` for examples whose replayed top token matches the stored
+    graph, ``"drift"`` when the grader would flag baseline drift, and
+    ``"error"`` when the replay itself fails (for example, a top token that
+    does not round-trip). Grading would score either failure as zero.
+    """
+
+    payloads = [ablation_payload(example, []) for example in examples]
+    calls = [
+        subject.spawn("evaluate_ablation_cohort", [payload], []) for payload in payloads
+    ]
+    failures: list[str | None] = []
+    for payload, call in zip(payloads, calls, strict=True):
+        try:
+            validate_ablation_result(call.get(), [payload], [])
+        except ValidationError:
+            failures.append("drift")
+        except Exception as exc:
+            print(f"  grader replay failed for {payload['prompt']!r}: {exc}")
+            failures.append("error")
+        else:
+            failures.append(None)
+    if failures and all(failure == "error" for failure in failures):
+        raise RuntimeError("every grader baseline replay in the batch failed")
+    return failures
+
+
 def clean_attributions(
     subject: Subject,
     prepared: Sequence[PreparedSample],
@@ -149,7 +189,12 @@ def clean_attributions(
     batch_size: int,
     concurrent_calls: bool,
 ) -> Iterator[CleanAttribution]:
-    """Yield faithful, quality-screened maximal graphs in bounded batches."""
+    """Yield faithful, quality-screened maximal graphs in bounded batches.
+
+    Survivors are replayed through the grader's baseline check, so samples
+    that would fail as baseline drift are dropped here and the builders'
+    batch loops sample replacements.
+    """
 
     for start in range(0, len(prepared), batch_size):
         batch = prepared[start : start + batch_size]
@@ -162,6 +207,7 @@ def clean_attributions(
             raw_graphs = subject.attribution_graphs(
                 [item.sample.prompt for item in batch]
             )
+        screened: list[CleanAttribution] = []
         for item, raw_graph in zip(batch, raw_graphs, strict=True):
             if raw_graph is None:
                 continue
@@ -169,10 +215,29 @@ def clean_attributions(
             faithful, _ = is_faithful(graph, item.target_token)
             stats = graph_quality(graph, 60)
             if faithful and stats["error"] <= max_error_share:
-                yield CleanAttribution(item, graph, stats)
+                screened.append(CleanAttribution(item, graph, stats))
+        failures = grader_baseline_failures(
+            subject,
+            [
+                DatasetExample(
+                    prompt=attributed.prepared.sample.prompt,
+                    target_token=attributed.prepared.target_token,
+                    graph=attributed.graph,
+                )
+                for attributed in screened
+            ],
+        )
+        for attributed, failure in zip(screened, failures, strict=True):
+            if failure is None:
+                yield attributed
+        dropped = {
+            reason: failures.count(reason)
+            for reason in ("drift", "error")
+            if reason in failures
+        }
         print(
             f"processed {min(start + len(batch), len(prepared))}/{len(prepared)} "
-            "clean attributions"
+            f"clean attributions; grader replay dropped {dropped or 'none'}"
         )
 
 
@@ -226,6 +291,7 @@ def write_manifest(
         "screening": {
             "exact_first_token": True,
             "max_error_share": max_error_share,
+            "grader_baseline_replay": True,
         },
         "generator": {**generator, "families": list(families)},
         "graph_quality": mean_quality(quality),

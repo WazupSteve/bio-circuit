@@ -78,7 +78,6 @@ costs.
 model = "Qwen/Qwen3.5-4B"
 num_tasks = 1
 num_rollouts = 1
-max_turns = 8
 
 [sampling]
 max_tokens = 16384

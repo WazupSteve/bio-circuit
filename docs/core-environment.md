@@ -82,7 +82,9 @@ Circuit Tracer feature nodes use `layer_feature_position`. Policy submissions us
 `layer_feature`, because token position changes between prompts. For every graph,
 the runtime ranks feature occurrences by influence delta and maps a stable ID to
 its highest-ranked occurrence. An ID absent from a target graph produces no
-intervention for that prompt.
+intervention for that prompt. Logit and error node IDs share the feature ID
+shape but never resolve; the discovery grader treats them as no-ops and reports
+them in `non_feature_node_ids` (also counted as a metric).
 
 This resolution happens independently for every source, experiment, and grading
 graph. It is what makes cross-prompt feature transfer possible, but also means a
@@ -116,10 +118,18 @@ All three TaskSets install `CircuitExperimentTools`:
 
 - `circuit_attribute(prompt)` replaces the stored graph and returns its ID and summary.
 - `circuit_query_graph(graph_id, view, offset, limit, node_id, kind)` reads a bounded page of that graph. In restoration, output nodes and edges are redacted; hidden corruption is applied only during interventions and grading replay.
-- `circuit_intervene(source_prompt, node_id, prompt, intervention_weight)` checks
-  that the stable node exists in the source graph, resolves it independently on
-  the target graph, reruns the target with the multiplier, and returns baseline
-  and intervened top-token fields.
+- `circuit_intervene(source_prompt, node_ids, prompt, intervention_weight)` checks
+  that every stable node in the set exists in the source graph, resolves the set
+  independently on the target graph, reruns the target with one shared factor,
+  and returns baseline and intervened top-token fields plus `absent_node_ids`
+  for set members missing from the target graph. The factor follows the task's
+  grading convention: discovery tasks execute `a * -w`, exactly like the
+  ablation grader; restoration executes `a * c * w`. In restoration, whatever
+  subset of the hidden corruption resolves on the target is applied, and
+  backend failures return a generic error so responses never reveal clean
+  behavior or corruption structure. In discovery tasks, logit, error, and
+  embedding IDs are rejected with an error naming their kind; restoration keeps
+  the generic absence error, since naming a logit ID would reveal clean outputs.
 
 Intervention experiments use transient graphs and do not replace the stored query graph.
 

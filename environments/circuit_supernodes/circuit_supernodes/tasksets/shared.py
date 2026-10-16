@@ -116,6 +116,9 @@ class CircuitTaskData(vf.TaskData):
     corruption_spec: list[tuple[int, int, float]] = Field(
         default_factory=list, exclude=True
     )
+    # Discovery grades ``a * -w``; restoration composes ``a * c * w``. The
+    # intervene tool follows the same convention as the task's grader.
+    negate_interventions: bool = True
 
 
 class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
@@ -198,4 +201,5 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
                 result.get("grading_validation_error", False)
             ),
             "baseline_drift": float(result.get("baseline_drift", False)),
+            "non_feature_node_ids": float(len(result.get("non_feature_node_ids", {}))),
         }

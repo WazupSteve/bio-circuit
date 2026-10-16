@@ -60,7 +60,7 @@ def _load_headers(
 SYSTEM_PROMPT = """\
 Infer the semantic concept shared by the provided examples, then identify one
 supernode of stable FEATURE identities for that concept. You may attribute
-arbitrary prompts and transfer a selected feature to a different arbitrary
+arbitrary prompts and transfer selected features to a different arbitrary
 prompt for an intervention experiment.
 
 Use `layer_feature` identities so a feature denotes the same learned mechanism
@@ -76,10 +76,21 @@ filters. Each new attribution deletes the previous graph.
 Keep analysis concise and reserve enough output budget to emit the required JSON.
 If the remaining budget is uncertain, submit the JSON immediately.
 
-Return exactly one JSON object:
+`intervention_weight` w is graded as activation * (-w): 1.0 flips the
+feature's sign, 0.0 zeroes it, and -1.0 leaves it unchanged. The intervene tool
+applies a set of features with the same convention, so test the whole
+supernode with the weight you will submit.
+
+Return exactly one JSON object; `intervention_weight` defaults to 1.0:
 ```json
 {
-  "supernodes": [{"name": "<semantic role>", "nodes": ["<layer>_<feature>", "..."]}]
+  "supernodes": [
+    {
+      "name": "<semantic role>",
+      "nodes": ["<layer>_<feature>", "..."],
+      "intervention_weight": 1.0
+    }
+  ]
 }
 ```"""
 

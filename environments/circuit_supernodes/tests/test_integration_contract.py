@@ -120,6 +120,7 @@ def test_restoration_uses_first_heldout_corruption_spec(tmp_path, monkeypatch) -
         )
     )
     assert task.data.corruption_spec == [(1, 2, 4.0), (1, 3, 2.0)]
+    assert task.data.negate_interventions is False
     assert "corruption_spec" not in task.data.model_dump()
     assert "4.0" not in task.data.prompt
     assert "2.0" not in task.data.prompt
@@ -308,6 +309,7 @@ def test_reward_handles_replay_validation_failures(
         assert await task.grading_validation_metrics(trace) == {
             "grading_validation_error": float(validation_failed),
             "baseline_drift": float(drift),
+            "non_feature_node_ids": 0.0,
         }
         assert await reward(trace) == result["reward"]
         assert subject.calls == calls

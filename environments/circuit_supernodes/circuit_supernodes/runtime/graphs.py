@@ -26,6 +26,8 @@ def stable_feature_id(node_id: str) -> str:
 
     match = re.fullmatch(r"(\d+)_(\d+)(?:_(\d+))?", node_id.strip())
     if match is None:
+        if node_id.strip().upper().startswith("E_"):
+            raise ValueError(f"{node_id!r} is an embedding node, not a FEATURE")
         raise ValueError(f"invalid FEATURE id {node_id!r}")
     return f"{int(match.group(1))}_{int(match.group(2))}"
 
@@ -149,6 +151,31 @@ def select_features(
             if edge.source in keep and edge.target in keep
         ],
     )
+
+
+def non_feature_kinds(
+    graph: TracerGraphPayload, stable_ids: Sequence[str]
+) -> dict[str, NodeKind]:
+    """Map requested ids that name only logit or error nodes to that kind.
+
+    Logit and error node ids share the ``layer_index_position`` shape of
+    FEATURE ids, so they parse but never resolve to an intervention.
+    """
+
+    requested = set(stable_ids)
+    features = {stable_feature_id(node.node_id) for node in feature_nodes(graph)}
+    kinds: dict[str, NodeKind] = {}
+    for node in graph.nodes:
+        kind = node_kind(node)
+        if kind not in ("logit", "error"):
+            continue
+        try:
+            stable_id = stable_feature_id(node.node_id)
+        except ValueError:
+            continue
+        if stable_id in requested and stable_id not in features:
+            kinds.setdefault(stable_id, kind)
+    return kinds
 
 
 def resolve_interventions(

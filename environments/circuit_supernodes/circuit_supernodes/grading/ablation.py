@@ -13,7 +13,12 @@ from ..models import (
     StrictModel,
     TracerGraphPayload,
 )
-from ..runtime.graphs import resolve_interventions, top_outputs, weighted_nodes
+from ..runtime.graphs import (
+    non_feature_kinds,
+    resolve_interventions,
+    top_outputs,
+    weighted_nodes,
+)
 from ..runtime.modal import Subject, retry_modal_call
 
 
@@ -63,6 +68,38 @@ def negative_intervention(
     # so the proposal is expanded separately for every stored graph.
     return resolve_interventions(
         graph, [(node_id, -factor) for node_id, factor in proposal]
+    )
+
+
+def ablation_payload(
+    row: DatasetExample, proposal: Sequence[tuple[str, float]]
+) -> dict[str, object]:
+    """Build one example's replay request exactly as grading sends it."""
+
+    graph = row.graph
+    # The grader tests whether the intervention displaces the graph's original
+    # top token, not the dataset's answer string.
+    return {
+        "prompt": row.prompt,
+        "expected_token": top_outputs(graph)[0][0],
+        "interventions": negative_intervention(graph, proposal),
+        "baseline_interventions": list(row.corruption),
+    }
+
+
+def validate_ablation_result(
+    raw: Any,
+    positives: Sequence[dict[str, object]],
+    controls: Sequence[dict[str, object]],
+) -> AblationVerifierResult:
+    """Reject replays whose baseline drifted from the requested top tokens."""
+
+    return AblationVerifierResult.model_validate(
+        raw,
+        context={
+            "positive_tokens": [str(row["expected_token"]) for row in positives],
+            "control_tokens": [str(row["expected_token"]) for row in controls],
+        },
     )
 
 
@@ -120,18 +157,23 @@ class AblationHoldoutGrader:
         min_holdout_success: float,
         max_control_failure: float,
     ) -> dict[str, Any]:
-        raw = await self.score(
-            [*visible, *holdout],
-            control,
-            weighted_nodes(circuit),
-        )
-        return ablation_score(
+        proposal = weighted_nodes(circuit)
+        raw = await self.score([*visible, *holdout], control, proposal)
+        scored = ablation_score(
             raw,
             visible_count=len(visible),
             min_visible_success=min_visible_success,
             min_holdout_success=min_holdout_success,
             max_control_failure=max_control_failure,
         )
+        # Logit and error ids parse like FEATURE ids but resolve to nothing, so
+        # they are no-ops; report them rather than dropping them silently.
+        ignored: dict[str, str] = {}
+        for row in visible:
+            ignored.update(
+                non_feature_kinds(row.graph, [node_id for node_id, _ in proposal])
+            )
+        return {**scored, "non_feature_node_ids": ignored}
 
     async def score(
         self,
@@ -139,37 +181,10 @@ class AblationHoldoutGrader:
         controls: Sequence[DatasetExample],
         proposal: Sequence[tuple[str, float]],
     ) -> dict[str, Any]:
-        def examples(rows: Sequence[DatasetExample]) -> list[dict[str, object]]:
-            payload: list[dict[str, object]] = []
-            for row in rows:
-                graph = row.graph
-                outputs = top_outputs(graph)
-                # The grader tests whether the intervention displaces the
-                # graph's original top token, not the dataset's answer string.
-                payload.append(
-                    {
-                        "prompt": row.prompt,
-                        "expected_token": outputs[0][0],
-                        "interventions": negative_intervention(graph, proposal),
-                        "baseline_interventions": list(row.corruption),
-                    }
-                )
-            return payload
-
-        positive_payload = examples(positives)
-        control_payload = examples(controls)
+        positive_payload = [ablation_payload(row, proposal) for row in positives]
+        control_payload = [ablation_payload(row, proposal) for row in controls]
         raw = await self._evaluate_cohort(positive_payload, control_payload)
-        parsed = AblationVerifierResult.model_validate(
-            raw,
-            context={
-                "positive_tokens": [
-                    str(row["expected_token"]) for row in positive_payload
-                ],
-                "control_tokens": [
-                    str(row["expected_token"]) for row in control_payload
-                ],
-            },
-        )
+        parsed = validate_ablation_result(raw, positive_payload, control_payload)
         return parsed.model_dump()
 
     @retry_modal_call

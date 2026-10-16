@@ -62,8 +62,10 @@ Transfer selected features to different prompts in intervention experiments,
 whose before/after outputs include the hidden corruption, to identify the mechanism.
 
 Submit stable `layer_feature` ids and multiplicative intervention
-factors. Find a shared intervention that reverses the persistent corruption
-without capturing unrelated language behavior. Reward requires the original
+factors. A factor w is applied directly (activation * w, never negated); the
+intervene tool applies one shared factor to a set of features the same way.
+Find a shared intervention that reverses the persistent corruption without
+capturing unrelated language behavior. Reward requires the original
 clean top token and measures `KL(clean || restored)` across the hidden cohort.
 
 Attribute returns a graph ID and summary. Use query_graph to inspect ranked
@@ -196,6 +198,7 @@ class CircuitTaskset(vf.Taskset[CircuitTask, CircuitTasksetConfig]):
             corruption_spec=[
                 (layer, feature, factor) for layer, feature, _, factor in corruption
             ],
+            negate_interventions=False,
             **cohorts,
         )
         return CircuitTask(data, self.config.task)

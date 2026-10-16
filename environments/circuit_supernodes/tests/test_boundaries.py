@@ -46,7 +46,7 @@ def graph() -> TracerGraphPayload:
                     "influence": 0.5,
                 },
                 {
-                    "node_id": "logit",
+                    "node_id": "37_9_0",
                     "feature_type": "logit",
                     "clerp": " target",
                     "token_prob": 0.9,
@@ -111,7 +111,7 @@ def test_grader_accepts_cohorts_and_thresholds_directly() -> None:
             }
         )
         result = await AblationHoldoutGrader(subject).grade(
-            Circuit(supernodes={"goal": {"1_2": 0.5}}),
+            Circuit(supernodes={"goal": {"1_2": 0.5, "37_9": 0.5}}),
             [example("visible")],
             [example("heldout")],
             [example("control")],
@@ -120,6 +120,8 @@ def test_grader_accepts_cohorts_and_thresholds_directly() -> None:
             max_control_failure=0.0,
         )
         assert result["reward"] == 1.0
+        # The logit id is a no-op but is reported instead of silently dropped.
+        assert result["non_feature_node_ids"] == {"37_9": "logit"}
         positives, controls = subject.calls[0][1]
         assert positives[0]["expected_token"] == " target"
         assert positives[0]["interventions"] == [(1, 2, 0, -0.5)]

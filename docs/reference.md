@@ -15,7 +15,7 @@ flowchart LR
 
 ## Policy tools
 
-`attribute(prompt)` replaces the stored graph and returns an ID and summary. `query_graph(graph_id, view="nodes", offset=0, limit=20, node_id=None, kind=None)` reads bounded pages of nodes, edges, or tokens; only the latest graph is retained. `intervene(source_prompt, node_id, prompt, intervention_weight)` resolves a stable feature on the target and reports before/after behavior. See [Core environment](core-environment.md) for filters and response limits.
+`attribute(prompt)` replaces the stored graph and returns an ID and summary. `query_graph(graph_id, view="nodes", offset=0, limit=20, node_id=None, kind=None)` reads bounded pages of nodes, edges, or tokens; only the latest graph is retained. `intervene(source_prompt, node_ids, prompt, intervention_weight)` resolves a set of stable features on the target, applies one shared factor with the task's grading sign convention (negated in discovery, direct in restoration), and reports before/after behavior. See [Core environment](core-environment.md) for filters and response limits.
 
 ## Accepted final JSON
 

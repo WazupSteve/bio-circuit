@@ -13,6 +13,7 @@ synthetic prompt generation
   -> maximal clean attribution
   -> exact top-token faithfulness check
   -> graph-quality screen
+  -> grader baseline replay
   -> task-specific cohort construction
   -> atomic JSONL(.gz) + provenance manifest
 ```
@@ -49,6 +50,16 @@ is kept only when its top exported token exactly equals the sampled target token
 and error-node influence is no greater than `--max-error-share` (default 0.35).
 The pipeline records mean error influence and the share of feature influence
 covered by the top 60 features.
+
+Survivors are then replayed through the discovery grader's own unintervened
+baseline request (`ablation_payload` with an empty proposal, validated by the
+same result model). A sample whose replayed top token no longer matches the
+stored graph's top token would fail grading as baseline drift, and a sample
+whose top token cannot be replayed would fail grading outright; both are
+dropped, and the builders' batch loops sample replacements until cohort
+capacity is reached. The build aborts if every replay in a batch fails, since
+that indicates a backend outage rather than drift. The manifest records
+`screening.grader_baseline_replay`.
 
 ## Vanilla/visible builder
 

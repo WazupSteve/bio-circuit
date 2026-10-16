@@ -17,7 +17,6 @@ type = "repetition"
 enforce = false
 
 [[env]]
-max_turns = 8
 
 [env.taskset]
 id = "circuit-supernodes"
@@ -42,7 +41,6 @@ rollouts_per_example = 1
 eval_base_model = true
 
 [[eval.env]]
-max_turns = 8
 
 [eval.env.taskset]
 id = "circuit-supernodes"

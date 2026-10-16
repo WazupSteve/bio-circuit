@@ -146,7 +146,11 @@ def test_replacement_failure_and_task_reset_delete_previous_file(monkeypatch):
         await tools.attribute("third")
         old_path = tools._graph_store.path
         monkeypatch.setattr(circuit_tracer, "subject_from_config", lambda config: None)
-        await tools.setup_task(SimpleNamespace(subject_config=None, corruption_spec=[]))
+        await tools.setup_task(
+            SimpleNamespace(
+                subject_config=None, corruption_spec=[], negate_interventions=True
+            )
+        )
         assert not old_path.exists()
         assert tools._graph_store is None
 

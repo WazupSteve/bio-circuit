@@ -1,7 +1,6 @@
 model = "openai/gpt-4.1-mini"
 num_tasks = 1
 num_rollouts = 1
-max_turns = 8
 
 [sampling]
 max_tokens = 4096

@@ -17,7 +17,6 @@ type = "repetition"
 enforce = false
 
 [[env]]
-max_turns = 16
 
 [env.taskset]
 id = "suppressed-features"
@@ -39,7 +38,6 @@ rollouts_per_example = 1
 eval_base_model = true
 
 [[eval.env]]
-max_turns = 16
 
 [eval.env.taskset]
 id = "suppressed-features"

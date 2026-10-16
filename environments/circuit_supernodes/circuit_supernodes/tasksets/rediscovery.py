@@ -37,6 +37,11 @@ behavior.
 Feature identity is the stable `layer_feature` pair; each feature is applied at
 its highest-ranked position in each attributed graph.
 
+`intervention_weight` w is graded as activation * (-w): 1.0 flips the
+feature's sign, 0.0 zeroes it, and -1.0 leaves it unchanged. The intervene tool
+applies a set of features with the same convention, so test the whole
+supernode with the weight you will submit.
+
 Attribute returns a graph ID and summary. Use query_graph to inspect ranked
 nodes, edges, and tokens in bounded pages; follow next_offset with the same
 filters. Each new attribution deletes the previous graph. Keep analysis concise

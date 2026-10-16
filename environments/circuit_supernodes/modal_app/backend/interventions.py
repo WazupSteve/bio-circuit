@@ -170,9 +170,10 @@ class InterventionEvaluator:
                 list(
                     InterventionPayload.model_validate(
                         baseline_raw,
+                        # Tool experiments resolve the hidden corruption on
+                        # arbitrary prompts, so any subset of it may apply.
                         context={
                             "label": "baseline corruption",
-                            "min_count": MIN_CORRUPTION_NODES,
                             "max_count": MAX_CORRUPTION_NODES,
                             "min_factor": MIN_CORRUPTION_FACTOR,
                             "max_abs_factor": MAX_CORRUPTION_FACTOR,
