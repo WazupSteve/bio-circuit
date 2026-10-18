@@ -73,10 +73,15 @@ Neuronpedia.
 ```bash
 uv run python scripts/build_visible_dataset.py --n 2400 --tasks 16 --split train \
   --out circuit_supernodes/data/visible_dataset/train-cohorts.jsonl.gz
-uv run python scripts/build_visible_dataset.py --n 2400 --tasks 16 --seed 1 \
-  --split eval \
+uv run python scripts/build_visible_dataset.py --n 8000 --max-records-per-goal 60 \
+  --tasks 16 --seed 1 --split eval \
   --out circuit_supernodes/data/visible_dataset/heldout-cohorts.jsonl.gz
 ```
+
+Each cohort consumes 30 same-goal records (5 visible + 25 heldout), so a goal
+forms at most `max_records_per_goal // 30` cohorts. With the default of 40, nine
+goals can form at most nine cohorts however large `--n` is; 16 tasks need
+`--max-records-per-goal 60`. The published eval cohorts use the command above.
 
 Backend: `circuit-supernodes/Attributor` (Qwen3-4B).
 

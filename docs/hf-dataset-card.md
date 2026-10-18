@@ -48,8 +48,9 @@ release is not eligible for a run that excludes GPU-dependent environments.
 | `restoration` | `wazupsteve/suppressed-features` | Identify interventions that restore a corrupted subject's output | 16 |
 
 All tasksets use the `circuit-null` harness included in the environment package.
-The environment package, source archive, and setup instructions are available
-through Prime's Environments Hub.
+The environment source and setup are at
+[WazupSteve/bio-circuit](https://github.com/WazupSteve/bio-circuit), and the release
+package is distributed through Prime's Environments Hub.
 
 ## Download and inspect
 
@@ -119,8 +120,14 @@ Task families include two-hop reasoning, agreement, comparison, weekdays, path
 composition, modular arithmetic, rule composition, spatial composition, and
 Boolean composition. Every released row is checked against the environment's
 Pydantic schema, and row counts and hashes are checked against the original
-manifests before upload. This is structural/provenance validation, not a new
-GPU replay or a claim of successful agent performance.
+manifests before upload.
+
+The visible cohorts were built on the Modal subject backend, and every sample was
+replayed through the discovery grader's unintervened baseline check during the
+build (`screening.grader_baseline_replay` in the manifest). All 880 visible,
+heldout and control examples across the 16 tasks reproduce their stored top
+token, so no task is rejected as baseline drift. This validates the grading
+baseline, not successful agent performance.
 
 ## Evaluation boundaries and limitations
 
