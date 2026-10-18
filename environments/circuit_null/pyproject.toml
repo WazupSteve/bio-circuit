@@ -1,12 +1,12 @@
 [project]
 name = "circuit-null"
-version = "0.1.2"
-description = "Bio-Circuit Verifiers v1 harness with pinned MCP and extended tool timeouts"
+version = "0.2.2"
+description = "Bio-Circuit Verifiers v1 harness: the null harness with MCP 1.x, for hour-long circuit tool calls"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 tags = ["harness", "interpretability", "requires-gpu"]
 dependencies = [
-    "circuit-supernodes==0.1.1",
+    "circuit-supernodes==0.2.4",
 ]
 
 [build-system]

@@ -15,24 +15,24 @@
     },
     {
       "id": "wazupsteve/supernode-rediscovery",
-      "version": "0.1.2",
+      "version": "0.2.2",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/supernode-rediscovery",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/supernode-rediscovery/@fae587e5/supernode_rediscovery-0.1.2-py3-none-any.whl",
-      "wheel_sha256": "7d219c598c6e35fde296a1d2010788b245626a9c489c92d346ae128728b4c71a"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/supernode-rediscovery/@8d79fc4b/supernode_rediscovery-0.2.2-py3-none-any.whl",
+      "wheel_sha256": "3aa7bf075ae64980b57c96f19141a4faf56b9c08bda00afd652983412b29e1dc"
     },
     {
       "id": "wazupsteve/suppressed-features",
-      "version": "0.1.2",
+      "version": "0.2.2",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/suppressed-features",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/suppressed-features/@b7dd6077/suppressed_features-0.1.2-py3-none-any.whl",
-      "wheel_sha256": "27045010d8edcac180dd7edf9a963712b9617f57103389f10427fd6cb819667c"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/suppressed-features/@b6d7dc75/suppressed_features-0.2.2-py3-none-any.whl",
+      "wheel_sha256": "8fadc8bc6200de5c576ee1e866ebd3f27ca0a989e31d59f201a0c1b94ac97fa4"
     },
     {
       "id": "wazupsteve/circuit-null",
-      "version": "0.1.2",
+      "version": "0.2.2",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-null",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-null/@72e3d6ac/circuit_null-0.1.2-py3-none-any.whl",
-      "wheel_sha256": "bc6cc727ddbed01d63aa008e7ae421df1808afc82b98a12c2dcd62921f744b01"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-null/@f1cbe72d/circuit_null-0.2.2-py3-none-any.whl",
+      "wheel_sha256": "b04aac0344f7edbbffe59e796ec54949a4eda9a14163ac27124809fc33e99748"
     }
   ],
   "validation": {
@@ -42,7 +42,11 @@
     "gpu_rollout_validated": true,
     "public_hub_install_verified": true,
     "client_requires_torch": false,
-    "grader_baseline_replay_drift": 0
+    "grader_baseline_replay_drift": {
+      "visible": "0/880",
+      "rediscovery": "0/128",
+      "restoration": "0/160"
+    }
   },
   "remaining": [
     "Publish a GPU container image if required by the consuming platform.",
