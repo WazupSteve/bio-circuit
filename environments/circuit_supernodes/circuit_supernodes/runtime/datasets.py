@@ -15,7 +15,7 @@ DATASET_SCHEMA_VERSION = "runtime-minimal-v2"
 GENERATION_POLICY = "maximal-circuit-tracer-export-v1"
 HF_DATASET_REPO = "amitprakash2005/bio-circuit"
 # Immutable public release; update only when publishing new dataset bytes.
-HF_DATASET_REVISION = "566f6880c28714a0e28cab3128535b6064b17a33"
+HF_DATASET_REVISION = "50bcbf595d00be9ca6b8a8969fae2fed278258b5"
 PUBLIC_DATASETS = {
     "visible_dataset/heldout-cohorts.jsonl.gz",
     "supernode_rediscovery/promptless-supernodes.jsonl.gz",

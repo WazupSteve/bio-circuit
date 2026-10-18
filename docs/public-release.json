@@ -1,17 +1,17 @@
 {
-  "date": "2026-10-04",
+  "date": "2026-10-18",
   "dataset": {
     "repo_id": "amitprakash2005/bio-circuit",
-    "revision": "566f6880c28714a0e28cab3128535b6064b17a33",
-    "url": "https://huggingface.co/datasets/amitprakash2005/bio-circuit/commit/566f6880c28714a0e28cab3128535b6064b17a33"
+    "revision": "50bcbf595d00be9ca6b8a8969fae2fed278258b5",
+    "url": "https://huggingface.co/datasets/amitprakash2005/bio-circuit/commit/50bcbf595d00be9ca6b8a8969fae2fed278258b5"
   },
   "environments": [
     {
       "id": "wazupsteve/circuit-supernodes",
-      "version": "0.1.1",
+      "version": "0.2.4",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-supernodes",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-supernodes/@0f67df59/circuit_supernodes-0.1.1-py3-none-any.whl",
-      "wheel_sha256": "9e7ef0ca3a983a607298e6ab424bc71d75bf1cc2eef9da2998cef5856bc83971"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-supernodes/@fc677963/circuit_supernodes-0.2.4-py3-none-any.whl",
+      "wheel_sha256": "475ec3e5aaf4fd5c16a3cd8e20aeb8bc2e469b2522cb9fdf3a12100f1c6a1062"
     },
     {
       "id": "wazupsteve/supernode-rediscovery",
@@ -36,15 +36,15 @@
     }
   ],
   "validation": {
-    "tests_passed": 122,
+    "tests_passed": 150,
     "dataset_rows_validated": 48,
     "anonymous_download_checksums_verified": true,
-    "gpu_rollout_validated": false,
+    "gpu_rollout_validated": true,
     "public_hub_install_verified": true,
-    "client_requires_torch": false
+    "client_requires_torch": false,
+    "grader_baseline_replay_drift": 0
   },
   "remaining": [
-    "Provision a reachable CUDA GPU subject backend and validate a scored rollout.",
     "Publish a GPU container image if required by the consuming platform.",
     "Generate a separate training dataset or validated SFT trajectories for training use."
   ]
