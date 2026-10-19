@@ -1,0 +1,429 @@
+17:03:56 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+17:03:56    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": null,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "moonshotai/kimi-k3",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 2,
+  "shuffle": false,
+  "max_concurrent": 128,
+  "verbose": false,
+  "dry_run": false,
+  "rich": true,
+  "server": false,
+  "push": true,
+  "output_dir": null
+}
+17:04:25    INFO running 16x2 rollouts on moonshotai/kimi-k3
+17:04:25    INFO results: outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f
+17:04:25    INFO rollout start: id=868098dcf2f04a178b02e219e997b285 task=0 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=bebcbe62c7c74d0e9d2a22e25cb1ef5d task=0 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=dccd214aa50b40b49519f0522f09648c task=1 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=3616ce090713486ba825500cca979e39 task=1 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=73ace16c0bee45fd8771fb61d9c07f6d task=2 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=c2cf33c49c9846ddb530f622279a7b84 task=2 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=c87821909da04efdb4e02c0886cc703c task=3 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=f408419e5ddf4e7eb9bcdd33e43e3e6c task=3 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=5c781b3449e84b7e9566f8ff0c061ef6 task=4 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=2f0bc13c67c24decb977ca5c39b86a4b task=4 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=2391700724a64b1299d795f9850ea772 task=5 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=6dac082469bd470e9a1ca69575c7242a task=5 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=8131786cf1c543a1b8c9361f742a1142 task=6 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=acc57ca6ea9d4a5dbe6337cf9945e740 task=6 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=78941dbc45254dd8be54601c9760521a task=7 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=422c931ab40f42dab15ab0fe35ef546e task=7 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=acd5080f51124eb783efcfad369912f3 task=8 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=2e704fdb8a654c61914dc328dfd3c99f task=8 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=d75f03bc23274933b505c86c0ffa2470 task=9 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=1521d9ea0ffd44a4920f86692c932a48 task=9 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=463758111eff42d1aff8703809598bea task=10 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=c59fdda8e4504f03a00c0c58d016c17b task=10 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=0bc8d4f6e6124dc1ba0ac09c8187c070 task=11 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=015be2ce28f6466b80bae58932ec9a4c task=11 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=ca5b6284fd4b47269297773a9c871c60 task=12 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=bdff34a01b3445c29aac381e77ede12d task=12 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=7320e907a0774a4eb050ab8d7775bdb3 task=13 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=d418e60b4fc749d0a27f6d4bdbf4da0e task=13 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=be390ae469a8443abde90847ab11e912 task=14 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=ad06513e4ecc44e78959aefbb6026ea0 task=14 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=ef72040af1c944bda7439590a4742bc9 task=15 harness=circuit-null runtime=subprocess
+17:04:25    INFO rollout start: id=e543ae0cc221470b966aedbc600e85e1 task=15 harness=circuit-null runtime=subprocess
+17:04:25    INFO interception up: url=http://127.0.0.1:45501
+17:04:25    INFO interception pool: 1 server(s), multiplex=32
+17:04:31    INFO tool server 'circuit': http://127.0.0.1:46409/mcp
+17:04:32    INFO tool server 'circuit': http://127.0.0.1:46569/mcp
+17:04:33    INFO tool server 'circuit': http://127.0.0.1:40171/mcp
+17:04:34    INFO tool server 'circuit': http://127.0.0.1:34181/mcp
+17:04:34    INFO tool server 'circuit': http://127.0.0.1:34573/mcp
+17:04:34    INFO tool server 'circuit': http://127.0.0.1:37063/mcp
+17:04:34    INFO tool server 'circuit': http://127.0.0.1:46721/mcp
+17:04:34    INFO tool server 'circuit': http://127.0.0.1:33069/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:40779/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:40923/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:34669/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:46749/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:45343/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:32873/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:45261/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:46129/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:41815/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:37427/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:42507/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:42617/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:34843/mcp
+17:04:35    INFO tool server 'circuit': http://127.0.0.1:42021/mcp
+17:04:36    INFO tool server 'circuit': http://127.0.0.1:45731/mcp
+17:04:36    INFO tool server 'circuit': http://127.0.0.1:42527/mcp
+17:04:36    INFO tool server 'circuit': http://127.0.0.1:36659/mcp
+17:04:36    INFO tool server 'circuit': http://127.0.0.1:33915/mcp
+17:04:36    INFO tool server 'circuit': http://127.0.0.1:41313/mcp
+17:04:36    INFO tool server 'circuit': http://127.0.0.1:45445/mcp
+17:04:37    INFO tool server 'circuit': http://127.0.0.1:35479/mcp
+17:04:37    INFO tool server 'circuit': http://127.0.0.1:37019/mcp
+17:04:37    INFO tool server 'circuit': http://127.0.0.1:37861/mcp
+17:04:37    INFO tool server 'circuit': http://127.0.0.1:33813/mcp
+17:29:25    INFO rollout done: id=acd5080f51124eb783efcfad369912f3 task=8 reward=1.000 turns=10 stop=agent_completed
+17:30:37    INFO rollout done: id=acc57ca6ea9d4a5dbe6337cf9945e740 task=6 reward=0.000 turns=7 stop=agent_completed
+17:32:04    INFO rollout done: id=015be2ce28f6466b80bae58932ec9a4c task=11 reward=1.000 turns=9 stop=agent_completed
+17:34:08 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+17:34:08    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": null,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "moonshotai/kimi-k3",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 2,
+  "shuffle": false,
+  "max_concurrent": 8,
+  "verbose": false,
+  "dry_run": false,
+  "rich": true,
+  "server": false,
+  "push": true,
+  "output_dir": "outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f"
+}
+17:34:36    INFO resuming outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f: 16 task(s), 29 rollout(s) owed
+17:34:36    INFO results: outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f
+17:34:36    INFO rollout start: id=217365cd8905407481f3414a9b625fa7 task=0 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=ab2184cee6454e7c886ded2d18e30505 task=0 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=b783c1d92f36421f8b7ba50093fde01a task=1 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=25e4bc1afeb94aa8b0aead0d1294385b task=1 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=74527b21429a482eae78101950da8d96 task=2 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=ea65c93473df4c6ba80b3316a64516d8 task=2 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=ec65f4cc1fd5473096cbe6657546889b task=3 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=36c3fc90cd924b73a53f4324449217f6 task=3 harness=circuit-null runtime=subprocess
+17:34:36    INFO interception up: url=http://127.0.0.1:43569
+17:34:36    INFO interception pool: 1 server(s), multiplex=32
+17:34:40    INFO tool server 'circuit': http://127.0.0.1:36405/mcp
+17:34:40    INFO tool server 'circuit': http://127.0.0.1:39391/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:33917/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:45725/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:39577/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:37087/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:37937/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:33047/mcp
+17:52:27    INFO rollout done: id=217365cd8905407481f3414a9b625fa7 task=0 reward=0.000 turns=22 stop=agent_completed
+17:52:27    INFO rollout start: id=8247723e773840b1afa7fb673afa2129 task=4 harness=circuit-null runtime=subprocess
+17:52:28    INFO tool server 'circuit': http://127.0.0.1:40695/mcp
+17:55:37    INFO rollout done: id=ab2184cee6454e7c886ded2d18e30505 task=0 reward=1.000 turns=21 stop=agent_completed
+17:55:37    INFO rollout start: id=0fc55a3f646e4ab584f1d7478b381cc1 task=4 harness=circuit-null runtime=subprocess
+17:55:39    INFO tool server 'circuit': http://127.0.0.1:46223/mcp
+17:59:34    INFO rollout done: id=36c3fc90cd924b73a53f4324449217f6 task=3 reward=1.000 turns=21 stop=agent_completed
+17:59:34    INFO rollout start: id=2983c18ca53642f4ac32e066e7ba5591 task=5 harness=circuit-null runtime=subprocess
+17:59:35    INFO tool server 'circuit': http://127.0.0.1:41907/mcp
+18:01:58    INFO rollout done: id=8247723e773840b1afa7fb673afa2129 task=4 reward=0.000 turns=12 stop=agent_completed
+18:01:58    INFO rollout start: id=a9f48464620041db8c004aebe5676fc6 task=5 harness=circuit-null runtime=subprocess
+18:20:03 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+18:20:03    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": null,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "moonshotai/kimi-k3",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 2,
+  "shuffle": false,
+  "max_concurrent": 4,
+  "verbose": false,
+  "dry_run": false,
+  "rich": true,
+  "server": false,
+  "push": true,
+  "output_dir": "outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f"
+}
+18:20:30    INFO resuming outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f: 15 task(s), 25 rollout(s) owed
+18:20:30    INFO results: outputs/circuit-supernodes--moonshotai--kimi-k3--circuit-null/31f5e1ad-9741-4a83-9482-48190c30dd4f
+18:20:30    INFO rollout start: id=c3566882596c41588d3dbe1b92fd0fba task=1 harness=circuit-null runtime=subprocess
+18:20:30    INFO rollout start: id=5b7ed474f9b64937846e749badb9b83d task=1 harness=circuit-null runtime=subprocess
+18:20:30    INFO rollout start: id=25258dc303cd47059e2bb39f5ff8dac1 task=2 harness=circuit-null runtime=subprocess
+18:20:30    INFO rollout start: id=108df2d5854a409cb94a4ad19dd3638f task=2 harness=circuit-null runtime=subprocess
+18:20:30    INFO interception up: url=http://127.0.0.1:33247
+18:20:30    INFO interception pool: 1 server(s), multiplex=32
+18:20:34    INFO tool server 'circuit': http://127.0.0.1:38655/mcp
+18:20:34    INFO tool server 'circuit': http://127.0.0.1:43553/mcp
+18:20:34    INFO tool server 'circuit': http://127.0.0.1:44903/mcp
+18:20:34    INFO tool server 'circuit': http://127.0.0.1:38671/mcp
+18:47:20    INFO rollout done: id=25258dc303cd47059e2bb39f5ff8dac1 task=2 reward=0.000 turns=47 stop=agent_completed
+18:47:20    INFO rollout start: id=9006bd9afcb44b4dbe3863220125f20d task=3 harness=circuit-null runtime=subprocess
+18:47:21    INFO tool server 'circuit': http://127.0.0.1:36233/mcp
+18:55:23    INFO rollout done: id=108df2d5854a409cb94a4ad19dd3638f task=2 reward=0.000 turns=46 stop=agent_completed
+18:55:23    INFO rollout start: id=f3efc57f4c344fc3a8a76959464c9f66 task=4 harness=circuit-null runtime=subprocess
+18:55:24    INFO tool server 'circuit': http://127.0.0.1:32859/mcp
+18:57:01    INFO rollout done: id=c3566882596c41588d3dbe1b92fd0fba task=1 reward=0.000 turns=39 stop=agent_completed
+18:57:01    INFO rollout start: id=2704c5dad51d4ea8be2959169bce0d45 task=5 harness=circuit-null runtime=subprocess
+18:57:02    INFO tool server 'circuit': http://127.0.0.1:40103/mcp
+19:02:55    INFO rollout done: id=9006bd9afcb44b4dbe3863220125f20d task=3 reward=0.000 turns=31 stop=agent_completed
+19:02:55    INFO rollout start: id=72c498d5e7654a0ca9c18ff040204d50 task=5 harness=circuit-null runtime=subprocess
+19:02:57    INFO tool server 'circuit': http://127.0.0.1:36685/mcp
+19:14:58    INFO rollout done: id=2704c5dad51d4ea8be2959169bce0d45 task=5 reward=0.000 turns=34 stop=agent_completed
+19:14:58    INFO rollout start: id=d0dba132ccc546e595e8a607b4439ced task=6 harness=circuit-null runtime=subprocess
+19:14:59    INFO tool server 'circuit': http://127.0.0.1:40227/mcp
+19:33:17    INFO rollout done: id=d0dba132ccc546e595e8a607b4439ced task=6 reward=1.000 turns=27 stop=agent_completed
+19:33:17    INFO rollout start: id=cdc5892d595745298e21a7d852d610ed task=7 harness=circuit-null runtime=subprocess
+19:33:19    INFO tool server 'circuit': http://127.0.0.1:39263/mcp
+19:34:46    INFO rollout done: id=f3efc57f4c344fc3a8a76959464c9f66 task=4 reward=0.000 turns=42 stop=agent_completed
+19:34:46    INFO rollout start: id=277567cf5b594628acfe3a38370bbbe3 task=7 harness=circuit-null runtime=subprocess
+19:34:47    INFO tool server 'circuit': http://127.0.0.1:36845/mcp
+19:37:09    INFO rollout done: id=5b7ed474f9b64937846e749badb9b83d task=1 reward=0.000 turns=65 stop=agent_completed
+19:37:09    INFO rollout start: id=a57fe35fa25e4fc78add90de79c970bb task=8 harness=circuit-null runtime=subprocess
+19:37:10    INFO tool server 'circuit': http://127.0.0.1:34289/mcp
+19:39:03    INFO rollout done: id=72c498d5e7654a0ca9c18ff040204d50 task=5 reward=0.000 turns=34 stop=agent_completed
+19:39:03    INFO rollout start: id=d3490f2c687e43edade6de4e91ef4b1f task=9 harness=circuit-null runtime=subprocess
+19:39:04    INFO tool server 'circuit': http://127.0.0.1:42771/mcp
+19:41:20    INFO rollout done: id=a57fe35fa25e4fc78add90de79c970bb task=8 reward=0.000 turns=11 stop=agent_completed
+19:41:20    INFO rollout start: id=32a5541597ea4f6eb7704753d41d6453 task=9 harness=circuit-null runtime=subprocess
+19:41:21    INFO tool server 'circuit': http://127.0.0.1:34533/mcp
+19:44:21    INFO rollout done: id=32a5541597ea4f6eb7704753d41d6453 task=9 reward=0.000 turns=7 stop=agent_completed
+19:44:21    INFO rollout start: id=72dc157746e44a8e9f71078de78c1760 task=10 harness=circuit-null runtime=subprocess
+19:44:22    INFO tool server 'circuit': http://127.0.0.1:37481/mcp
+19:50:00    INFO rollout done: id=72dc157746e44a8e9f71078de78c1760 task=10 reward=1.000 turns=13 stop=agent_completed
+19:50:00    INFO rollout start: id=3a4f187e16434bd894c71ac23737fc3e task=10 harness=circuit-null runtime=subprocess
+19:50:01    INFO tool server 'circuit': http://127.0.0.1:43193/mcp
+19:52:53    INFO rollout done: id=d3490f2c687e43edade6de4e91ef4b1f task=9 reward=0.000 turns=25 stop=agent_completed
+19:52:53    INFO rollout start: id=a051deff9c984a1ea8132c225cd9c0f2 task=11 harness=circuit-null runtime=subprocess
+19:52:54    INFO tool server 'circuit': http://127.0.0.1:33949/mcp
+19:57:32    INFO rollout done: id=a051deff9c984a1ea8132c225cd9c0f2 task=11 reward=0.000 turns=15 stop=agent_completed
+19:57:32    INFO rollout start: id=d70de7ac4d35434bbee291731c4bdab1 task=12 harness=circuit-null runtime=subprocess
+19:57:33    INFO tool server 'circuit': http://127.0.0.1:38305/mcp
+19:58:05    INFO rollout done: id=3a4f187e16434bd894c71ac23737fc3e task=10 reward=1.000 turns=13 stop=agent_completed
+19:58:05    INFO rollout start: id=a63c037c80684b939463747b8be73bb9 task=12 harness=circuit-null runtime=subprocess
+19:58:06    INFO tool server 'circuit': http://127.0.0.1:38937/mcp
+20:04:22    INFO rollout done: id=cdc5892d595745298e21a7d852d610ed task=7 reward=0.000 turns=32 stop=agent_completed
+20:04:22    INFO rollout start: id=1de023b7f8fa45c694ee7e5b0fd683fa task=13 harness=circuit-null runtime=subprocess
+20:04:24    INFO tool server 'circuit': http://127.0.0.1:36205/mcp
+20:07:49    INFO rollout done: id=277567cf5b594628acfe3a38370bbbe3 task=7 reward=1.000 turns=38 stop=agent_completed
+20:07:49    INFO rollout start: id=8ebc82fb5d1048a691d2f28fbd6ae777 task=13 harness=circuit-null runtime=subprocess
+20:07:50    INFO tool server 'circuit': http://127.0.0.1:41543/mcp
+20:12:40    INFO rollout done: id=a63c037c80684b939463747b8be73bb9 task=12 reward=1.000 turns=16 stop=agent_completed
+20:12:40    INFO rollout start: id=149431d6cad848de9f55c66b0ffee493 task=14 harness=circuit-null runtime=subprocess
+20:12:41    INFO tool server 'circuit': http://127.0.0.1:46639/mcp
+20:18:44    INFO rollout done: id=149431d6cad848de9f55c66b0ffee493 task=14 reward=1.000 turns=10 stop=agent_completed
+20:18:44    INFO rollout start: id=67cdbd7c8ea5436abd3a833e3873c968 task=14 harness=circuit-null runtime=subprocess
+20:18:45    INFO tool server 'circuit': http://127.0.0.1:46375/mcp
+20:23:37    INFO rollout done: id=67cdbd7c8ea5436abd3a833e3873c968 task=14 reward=1.000 turns=13 stop=agent_completed
+20:23:37    INFO rollout start: id=c4188d28ecc24089a490a11eef4cfaa5 task=15 harness=circuit-null runtime=subprocess
+20:23:38    INFO tool server 'circuit': http://127.0.0.1:37183/mcp
+20:34:12    INFO rollout done: id=8ebc82fb5d1048a691d2f28fbd6ae777 task=13 reward=0.000 turns=46 stop=agent_completed
+20:34:12    INFO rollout start: id=895272f4fb994ccfbd77834946c2a90a task=15 harness=circuit-null runtime=subprocess
+20:34:13    INFO tool server 'circuit': http://127.0.0.1:41455/mcp
+20:37:23    INFO rollout done: id=d70de7ac4d35434bbee291731c4bdab1 task=12 reward=1.000 turns=38 stop=agent_completed
+20:40:46    INFO rollout done: id=895272f4fb994ccfbd77834946c2a90a task=15 reward=0.000 turns=7 stop=agent_completed
+20:48:09    INFO rollout done: id=1de023b7f8fa45c694ee7e5b0fd683fa task=13 reward=0.000 turns=39 stop=agent_completed
+20:57:34    INFO rollout done: id=c4188d28ecc24089a490a11eef4cfaa5 task=15 reward=1.000 turns=25 stop=agent_completed
+20:57:57    INFO --push: uploaded 32 samples -> https://app.primeintellect.ai/dashboard/evaluations/rjc06829t5vrtwk22m2ydrkt
+20:57:57    INFO interception down: url=http://127.0.0.1:33247

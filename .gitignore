@@ -31,8 +31,9 @@ scripts/make_blog_media.py
 blog.md
 
 # Generated data and experiment artifacts
-outputs/
 runlogs/
 *.log
+# Eval run outputs are committed, including their logs
+!**/outputs/**/eval.log
 *.partial
 /environments/*/circuit_supernodes/data/

@@ -1,0 +1,185 @@
+17:34:08 WARNING Harness 'circuit-null' is running in the subprocess runtime on the local system. Local files and settings may affect the evaluation; use subprocess only for debugging. Use --harness.runtime.type docker or prime for an isolated run.
+17:34:08    INFO eval config:
+{
+  "taskset": {
+    "id": "circuit-supernodes",
+    "task": {
+      "judges": []
+    },
+    "subject": {
+      "model_name": "Qwen/Qwen3-4B",
+      "transcoder_set": "mwhanna/qwen3-4b-transcoders",
+      "node_threshold": 0.8,
+      "edge_threshold": 0.98
+    },
+    "dataset_file": "heldout-cohorts.jsonl.gz",
+    "min_evidence_success": 0.6,
+    "min_holdout_success": 0.4,
+    "max_null_failure": 0.0
+  },
+  "harness": {
+    "id": "circuit-null",
+    "runtime": {
+      "type": "subprocess"
+    },
+    "env": {},
+    "forward_env": [],
+    "disabled_tools": null
+  },
+  "timeout": {
+    "setup": null,
+    "rollout": null,
+    "finalize": null,
+    "scoring": null
+  },
+  "retries": {
+    "rollout": {
+      "max_retries": 0,
+      "include": [],
+      "exclude": []
+    }
+  },
+  "max_turns": null,
+  "max_input_tokens": null,
+  "max_output_tokens": null,
+  "max_total_tokens": null,
+  "interception": {
+    "type": "elastic",
+    "multiplex": 32
+  },
+  "id": null,
+  "args": {},
+  "extra_env_kwargs": {},
+  "pool": {
+    "type": "elastic",
+    "max_workers": null,
+    "multiplex": 128
+  },
+  "model": "anthropic/claude-opus-5.5",
+  "client": {
+    "base_url": "https://api.pinference.ai/api/v1",
+    "api_key_var": "PRIME_API_KEY",
+    "headers": {},
+    "type": "eval"
+  },
+  "sampling": {
+    "temperature": null,
+    "top_p": null,
+    "reasoning_effort": null,
+    "max_tokens": 16384,
+    "enable_thinking": false
+  },
+  "num_tasks": 16,
+  "num_rollouts": 2,
+  "shuffle": false,
+  "max_concurrent": 8,
+  "verbose": false,
+  "dry_run": false,
+  "rich": true,
+  "server": false,
+  "push": true,
+  "output_dir": null
+}
+17:34:36    INFO running 16x2 rollouts on anthropic/claude-opus-5.5
+17:34:36    INFO results: outputs/circuit-supernodes--anthropic--claude-opus-5.5--circuit-null/80a71995-483a-4dea-9b4a-581457e4c24d
+17:34:36    INFO rollout start: id=9150cea4ec6b44f095f413950cd132b3 task=0 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=bc89e2288f8a44bab4eed0b465183c1c task=0 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=b6a96385e5bb45b0b55ed0d46640eeba task=1 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=f766df1b1d6f4b3f88920f8abdfa371b task=1 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=fcd8f912a32e4e62a12b03dc5c4f20c5 task=2 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=d515f1410b4c40fab480df3be8c3e579 task=2 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=e206341b88874042b69621ef48909f51 task=3 harness=circuit-null runtime=subprocess
+17:34:36    INFO rollout start: id=052492b7a3394c32aa76f90cc7492954 task=3 harness=circuit-null runtime=subprocess
+17:34:36    INFO interception up: url=http://127.0.0.1:46047
+17:34:36    INFO interception pool: 1 server(s), multiplex=32
+17:34:40    INFO tool server 'circuit': http://127.0.0.1:44981/mcp
+17:34:40    INFO tool server 'circuit': http://127.0.0.1:39617/mcp
+17:34:40    INFO tool server 'circuit': http://127.0.0.1:45209/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:35327/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:44975/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:46353/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:45499/mcp
+17:34:41    INFO tool server 'circuit': http://127.0.0.1:40213/mcp
+17:42:50    INFO rollout done: id=e206341b88874042b69621ef48909f51 task=3 reward=0.000 turns=9 stop=agent_completed
+17:42:50    INFO rollout start: id=4eeab9eeb3f2467c881655a8d1fea85a task=4 harness=circuit-null runtime=subprocess
+17:42:51    INFO tool server 'circuit': http://127.0.0.1:33923/mcp
+17:43:21    INFO rollout done: id=9150cea4ec6b44f095f413950cd132b3 task=0 reward=1.000 turns=8 stop=agent_completed
+17:43:21    INFO rollout start: id=53eda62163e34b499b95ccbecc2400bb task=4 harness=circuit-null runtime=subprocess
+17:43:22    INFO tool server 'circuit': http://127.0.0.1:33549/mcp
+17:43:41    INFO rollout done: id=b6a96385e5bb45b0b55ed0d46640eeba task=1 reward=0.000 turns=8 stop=agent_completed
+17:43:41    INFO rollout start: id=9642af006b144fac9eddbfce53cd0eb2 task=5 harness=circuit-null runtime=subprocess
+17:43:42    INFO tool server 'circuit': http://127.0.0.1:38229/mcp
+17:44:23    INFO rollout done: id=bc89e2288f8a44bab4eed0b465183c1c task=0 reward=0.000 turns=9 stop=agent_completed
+17:44:23    INFO rollout start: id=0b9e3fc16a3d45fd82dd4b988af75051 task=5 harness=circuit-null runtime=subprocess
+17:44:24    INFO tool server 'circuit': http://127.0.0.1:35647/mcp
+17:45:43    INFO rollout done: id=f766df1b1d6f4b3f88920f8abdfa371b task=1 reward=0.000 turns=10 stop=agent_completed
+17:45:43    INFO rollout start: id=5afcc4a21d0049439e82f975245464b7 task=6 harness=circuit-null runtime=subprocess
+17:45:44    INFO tool server 'circuit': http://127.0.0.1:34931/mcp
+17:46:38    INFO rollout done: id=052492b7a3394c32aa76f90cc7492954 task=3 reward=0.000 turns=11 stop=agent_completed
+17:46:38    INFO rollout start: id=1f5fae8d2eee40f793b99f75cb3c1b95 task=6 harness=circuit-null runtime=subprocess
+17:46:39    INFO tool server 'circuit': http://127.0.0.1:38351/mcp
+17:50:57    INFO rollout done: id=d515f1410b4c40fab480df3be8c3e579 task=2 reward=0.000 turns=10 stop=agent_completed
+17:50:57    INFO rollout start: id=405f5f93049b4e77b3f19c4194011399 task=7 harness=circuit-null runtime=subprocess
+17:50:58    INFO tool server 'circuit': http://127.0.0.1:46471/mcp
+17:53:52    INFO rollout done: id=4eeab9eeb3f2467c881655a8d1fea85a task=4 reward=0.000 turns=10 stop=agent_completed
+17:53:52    INFO rollout start: id=d37a407a864a4524b002373b8c1f20e7 task=7 harness=circuit-null runtime=subprocess
+17:53:53    INFO tool server 'circuit': http://127.0.0.1:36347/mcp
+17:54:58    INFO rollout done: id=1f5fae8d2eee40f793b99f75cb3c1b95 task=6 reward=1.000 turns=9 stop=agent_completed
+17:54:58    INFO rollout start: id=94f45eddc83c483788feb8cfbedcf0c6 task=8 harness=circuit-null runtime=subprocess
+17:54:59    INFO tool server 'circuit': http://127.0.0.1:43919/mcp
+17:56:04    INFO rollout done: id=9642af006b144fac9eddbfce53cd0eb2 task=5 reward=0.000 turns=10 stop=agent_completed
+17:56:04    INFO rollout start: id=6da6eafc63d54abbb2a54c57feac2123 task=8 harness=circuit-null runtime=subprocess
+17:56:05    INFO tool server 'circuit': http://127.0.0.1:46623/mcp
+17:56:20    INFO rollout done: id=fcd8f912a32e4e62a12b03dc5c4f20c5 task=2 reward=0.000 turns=15 stop=agent_completed
+17:56:20    INFO rollout start: id=18d1df3e0524445fabb4c51a338c7d93 task=9 harness=circuit-null runtime=subprocess
+17:56:21    INFO tool server 'circuit': http://127.0.0.1:37165/mcp
+17:58:31    INFO rollout done: id=5afcc4a21d0049439e82f975245464b7 task=6 reward=1.000 turns=9 stop=agent_completed
+17:58:31    INFO rollout start: id=0dd9c5a29fb046ee9f6c2503bd7a4cbb task=9 harness=circuit-null runtime=subprocess
+17:58:32    INFO tool server 'circuit': http://127.0.0.1:39211/mcp
+18:01:59    INFO rollout done: id=53eda62163e34b499b95ccbecc2400bb task=4 reward=0.000 turns=19 stop=agent_completed
+18:01:59    INFO rollout start: id=99d15e35b2f2461395f285ab7e577ea5 task=10 harness=circuit-null runtime=subprocess
+18:02:01    INFO tool server 'circuit': http://127.0.0.1:38963/mcp
+18:02:36    INFO rollout done: id=94f45eddc83c483788feb8cfbedcf0c6 task=8 reward=0.000 turns=10 stop=agent_completed
+18:02:36    INFO rollout start: id=74da733514f04651876a89f5ef87c8ad task=10 harness=circuit-null runtime=subprocess
+18:02:37    INFO tool server 'circuit': http://127.0.0.1:44817/mcp
+18:03:27    INFO rollout done: id=18d1df3e0524445fabb4c51a338c7d93 task=9 reward=1.000 turns=11 stop=agent_completed
+18:03:27    INFO rollout start: id=01913db76fdd47888ceaafd97dc57212 task=11 harness=circuit-null runtime=subprocess
+18:03:28    INFO tool server 'circuit': http://127.0.0.1:46251/mcp
+18:04:14    INFO rollout done: id=0b9e3fc16a3d45fd82dd4b988af75051 task=5 reward=0.000 turns=17 stop=agent_completed
+18:04:14    INFO rollout start: id=e6c15a3638444fdb83e206bd5f41aee4 task=11 harness=circuit-null runtime=subprocess
+18:04:15    INFO tool server 'circuit': http://127.0.0.1:45837/mcp
+18:06:59    INFO rollout done: id=74da733514f04651876a89f5ef87c8ad task=10 reward=1.000 turns=6 stop=agent_completed
+18:06:59    INFO rollout start: id=f3aafc0d20b6474a9b0d647a43e0acf5 task=12 harness=circuit-null runtime=subprocess
+18:07:01    INFO tool server 'circuit': http://127.0.0.1:40173/mcp
+18:07:29    INFO rollout done: id=99d15e35b2f2461395f285ab7e577ea5 task=10 reward=1.000 turns=6 stop=agent_completed
+18:07:29    INFO rollout start: id=c251cabc500c4af08576c708599bf612 task=12 harness=circuit-null runtime=subprocess
+18:07:31    INFO tool server 'circuit': http://127.0.0.1:37411/mcp
+18:08:19    INFO rollout done: id=6da6eafc63d54abbb2a54c57feac2123 task=8 reward=1.000 turns=15 stop=agent_completed
+18:08:19    INFO rollout start: id=f72cba76267f4f16b8f47ceb60c39b2b task=13 harness=circuit-null runtime=subprocess
+18:08:21    INFO tool server 'circuit': http://127.0.0.1:33217/mcp
+18:08:29    INFO rollout done: id=0dd9c5a29fb046ee9f6c2503bd7a4cbb task=9 reward=0.000 turns=12 stop=agent_completed
+18:08:29    INFO rollout start: id=16922d4949e44c588a8191c144dfe496 task=13 harness=circuit-null runtime=subprocess
+18:08:30    INFO tool server 'circuit': http://127.0.0.1:34167/mcp
+18:09:23    INFO rollout done: id=01913db76fdd47888ceaafd97dc57212 task=11 reward=1.000 turns=7 stop=agent_completed
+18:09:23    INFO rollout done: id=e6c15a3638444fdb83e206bd5f41aee4 task=11 reward=1.000 turns=7 stop=agent_completed
+18:09:23    INFO rollout start: id=a0b89d2c72ed44028dcfaa5b2d5af520 task=14 harness=circuit-null runtime=subprocess
+18:09:23    INFO rollout start: id=8812a6f13cab419b8dd7d186e97dcc82 task=14 harness=circuit-null runtime=subprocess
+18:09:25    INFO tool server 'circuit': http://127.0.0.1:39255/mcp
+18:09:25    INFO tool server 'circuit': http://127.0.0.1:40551/mcp
+18:11:42    INFO rollout done: id=d37a407a864a4524b002373b8c1f20e7 task=7 reward=0.000 turns=23 stop=agent_completed
+18:11:42    INFO rollout start: id=25889ae098fe4adcbe21d85e15592f44 task=15 harness=circuit-null runtime=subprocess
+18:11:43    INFO tool server 'circuit': http://127.0.0.1:40391/mcp
+18:12:22 WARNING model call failed: id=c251cabc500c4af08576c708599bf612 ProviderError: 
+18:12:35    INFO rollout done: id=405f5f93049b4e77b3f19c4194011399 task=7 reward=0.000 turns=28 stop=agent_completed
+18:12:35    INFO rollout start: id=74709cbcfcd0489d8249949be135d977 task=15 harness=circuit-null runtime=subprocess
+18:12:36    INFO tool server 'circuit': http://127.0.0.1:36859/mcp
+18:14:26    INFO rollout done: id=a0b89d2c72ed44028dcfaa5b2d5af520 task=14 reward=1.000 turns=6 stop=agent_completed
+18:14:35    INFO rollout done: id=8812a6f13cab419b8dd7d186e97dcc82 task=14 reward=1.000 turns=7 stop=agent_completed
+18:17:44    INFO rollout done: id=f3aafc0d20b6474a9b0d647a43e0acf5 task=12 reward=1.000 turns=8 stop=agent_completed
+18:17:54    INFO rollout done: id=74709cbcfcd0489d8249949be135d977 task=15 reward=1.000 turns=6 stop=agent_completed
+18:18:44    INFO rollout done: id=16922d4949e44c588a8191c144dfe496 task=13 reward=0.000 turns=10 stop=agent_completed
+18:19:08    INFO rollout done: id=f72cba76267f4f16b8f47ceb60c39b2b task=13 reward=0.000 turns=16 stop=agent_completed
+18:19:20    INFO rollout done: id=25889ae098fe4adcbe21d85e15592f44 task=15 reward=0.000 turns=6 stop=agent_completed
+18:25:39    INFO rollout done: id=c251cabc500c4af08576c708599bf612 task=12 reward=0.000 turns=14 stop=agent_completed
+18:25:59    INFO --push: uploaded 32 samples -> https://app.primeintellect.ai/dashboard/evaluations/gby77wx0nbtzbkzx2bkq4rtj
+18:26:00    INFO interception down: url=http://127.0.0.1:46047
