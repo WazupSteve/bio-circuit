@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-18",
+  "date": "2026-10-19",
   "dataset": {
     "repo_id": "amitprakash2005/bio-circuit",
     "revision": "50bcbf595d00be9ca6b8a8969fae2fed278258b5",
@@ -8,35 +8,35 @@
   "environments": [
     {
       "id": "wazupsteve/circuit-supernodes",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-supernodes",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-supernodes/@fc677963/circuit_supernodes-0.2.4-py3-none-any.whl",
-      "wheel_sha256": "475ec3e5aaf4fd5c16a3cd8e20aeb8bc2e469b2522cb9fdf3a12100f1c6a1062"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-supernodes/@0a0c7f6b/circuit_supernodes-0.2.5-py3-none-any.whl",
+      "wheel_sha256": "07e435572c9962c8129d31717643243ad4453e5ac007a31d9ad7b65d28b20334"
     },
     {
       "id": "wazupsteve/supernode-rediscovery",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/supernode-rediscovery",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/supernode-rediscovery/@8d79fc4b/supernode_rediscovery-0.2.2-py3-none-any.whl",
-      "wheel_sha256": "3aa7bf075ae64980b57c96f19141a4faf56b9c08bda00afd652983412b29e1dc"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/supernode-rediscovery/@927dbe1e/supernode_rediscovery-0.2.3-py3-none-any.whl",
+      "wheel_sha256": "6736d4a6bbab428cf5e24d3450fdcd9f981f5b0f0565836ed5ede387ba3bf205"
     },
     {
       "id": "wazupsteve/suppressed-features",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/suppressed-features",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/suppressed-features/@b6d7dc75/suppressed_features-0.2.2-py3-none-any.whl",
-      "wheel_sha256": "8fadc8bc6200de5c576ee1e866ebd3f27ca0a989e31d59f201a0c1b94ac97fa4"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/suppressed-features/@be235880/suppressed_features-0.2.3-py3-none-any.whl",
+      "wheel_sha256": "f4535ef3c46b689f37dd7dc628667c45b66af586ce882da25c57b81149bf70a2"
     },
     {
       "id": "wazupsteve/circuit-null",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "url": "https://app.primeintellect.ai/dashboard/environments/wazupsteve/circuit-null",
-      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-null/@f1cbe72d/circuit_null-0.2.2-py3-none-any.whl",
-      "wheel_sha256": "b04aac0344f7edbbffe59e796ec54949a4eda9a14163ac27124809fc33e99748"
+      "wheel_url": "https://hub.primeintellect.ai/wazupsteve/circuit-null/@416b7c36/circuit_null-0.2.3-py3-none-any.whl",
+      "wheel_sha256": "54f0f23cc0e800a76a7eb3ff44f77709a285963ac27a66055732bd2ce6a6169f"
     }
   ],
   "validation": {
-    "tests_passed": 150,
+    "tests_passed": 152,
     "dataset_rows_validated": 48,
     "anonymous_download_checksums_verified": true,
     "gpu_rollout_validated": true,

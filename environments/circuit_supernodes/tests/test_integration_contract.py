@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 from circuit_supernodes.runtime.graphs import feature_nodes
@@ -332,6 +333,75 @@ def lazy_and_eager_tasks(tmp_path, monkeypatch, module, rows: list[dict]):
     monkeypatch.setattr(shared, "LAZY_DATASET_BYTES", 0)
     lazy = list(taskset_type(config_type(dataset_file="task.jsonl")).load())
     return eager, lazy
+
+
+def counted_row_loads(monkeypatch) -> list[int]:
+    from collections import OrderedDict
+
+    from circuit_supernodes.tasksets import shared
+
+    monkeypatch.setattr(shared, "_row_cache", OrderedDict())
+    loads: list[int] = []
+    original = shared.load_jsonl_row
+
+    def load(path, row_type, index):
+        loads.append(index)
+        return original(path, row_type, index)
+
+    monkeypatch.setattr(shared, "load_jsonl_row", load)
+    return loads
+
+
+def cache_rows(count: int) -> list[dict]:
+    return [
+        {
+            "family": "family",
+            "goal": f"goal {index}",
+            "example_prompts": [],
+            "heldout_prompts": [example(f"heldout {index}-{n}") for n in range(6)],
+            "control_prompts": [example(f"control {index}")],
+        }
+        for index in range(count)
+    ]
+
+
+def test_grading_reuses_a_parsed_row_across_rollouts(tmp_path, monkeypatch) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    loads = counted_row_loads(monkeypatch)
+    _, lazy = lazy_and_eager_tasks(tmp_path, monkeypatch, visible, cache_rows(1))
+    task = lazy[0]
+
+    with ThreadPoolExecutor(8) as pool:
+        cohorts = list(pool.map(lambda _: task.grading_cohorts(), range(8)))
+
+    assert loads == [0]
+    assert all(cohort == cohorts[0] for cohort in cohorts)
+
+
+def test_row_cache_evicts_least_recent_and_reloads_changed_files(
+    tmp_path, monkeypatch
+) -> None:
+    from circuit_supernodes.tasksets import shared
+
+    loads = counted_row_loads(monkeypatch)
+    _, lazy = lazy_and_eager_tasks(tmp_path, monkeypatch, visible, cache_rows(3))
+
+    for index in (0, 1, 0, 2, 0, 1):
+        lazy[index].source_row()
+    # Row 1 is evicted by row 2 because row 0 was used more recently.
+    assert loads == [0, 1, 2, 1]
+    assert len(shared._row_cache) == shared.ROW_CACHE_SIZE
+
+    path = tmp_path / "task.jsonl"
+    rows = cache_rows(3)
+    rows[0]["goal"] = "rewritten goal"
+    path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+
+    assert lazy[0].source_row().goal == "rewritten goal"
+    assert loads[-1] == 0
 
 
 @pytest.mark.parametrize("module", [visible, rediscovery, restoration])

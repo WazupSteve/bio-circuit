@@ -5,7 +5,7 @@ harness with its MCP 1.x client. Set `tool_timeout = 3600` on the harness for
 long circuit tool calls.
 
 This is a thin Prime Hub distribution that depends on
-`circuit-supernodes==0.2.4`, which contains all implementation code; this
+`circuit-supernodes==0.2.5`, which contains all implementation code; this
 package adds none.
 
 Install the core package first, running `prime` as a tool so it stays out of
@@ -16,7 +16,7 @@ uvx --from prime prime env install wazupsteve/circuit-supernodes
 uvx --from prime prime env install wazupsteve/circuit-null
 ```
 
-Then select `env.agent.harness.id = "wazupsteve/circuit-null@0.2.2"`. It is a harness, not a taskset.
+Then select `env.agent.harness.id = "wazupsteve/circuit-null@0.2.3"`. It is a harness, not a taskset.
 
 Data: [amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit)
 (16 evaluation tasks per taskset, no training split). Setup:

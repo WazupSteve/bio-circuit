@@ -1,12 +1,12 @@
 [project]
 name = "suppressed-features"
-version = "0.2.2"
+version = "0.2.3"
 description = "Restore Qwen3-4B outputs after hidden feature corruption"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 tags = ["taskset", "interpretability", "requires-gpu"]
 dependencies = [
-    "circuit-supernodes==0.2.4",
+    "circuit-supernodes==0.2.5",
 ]
 
 [build-system]

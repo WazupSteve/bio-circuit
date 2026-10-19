@@ -29,8 +29,8 @@ See [local.md](local.md): `scripts/subject.sh up` brings up a GPU host, serves t
 
 ## Hosted publication and evaluation
 
-Core version 0.2.4 is published under `wazupsteve/circuit-supernodes`, with small
-version 0.2.2 distributions for `wazupsteve/supernode-rediscovery`,
+Core version 0.2.5 is published under `wazupsteve/circuit-supernodes`, with small
+version 0.2.3 distributions for `wazupsteve/supernode-rediscovery`,
 `wazupsteve/suppressed-features`, and `wazupsteve/circuit-null` depending on the
 version-pinned core package. Public evaluation data is hosted at
 [amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit).

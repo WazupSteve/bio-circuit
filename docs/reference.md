@@ -45,7 +45,7 @@ Every row has `family`, optional `goal`, and lists `example_prompts`, `heldout_p
 
 All three evaluation files (16 rows each) are public in
 [amitprakash2005/bio-circuit](https://huggingface.co/datasets/amitprakash2005/bio-circuit).
-Environment version 0.2.4 downloads them from the immutable revision
+Environment version 0.2.5 downloads them from the immutable revision
 `50bcbf595d00be9ca6b8a8969fae2fed278258b5` when a local file is absent.
 Training files are not included in this release. The Python wheel contains no
 dataset bytes.

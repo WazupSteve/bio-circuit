@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import threading
+from collections import OrderedDict
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
@@ -33,6 +35,35 @@ def _cohort_start(name: str) -> re.Pattern[bytes]:
 
 def is_lazy_dataset(path: Path) -> bool:
     return path.stat().st_size >= LAZY_DATASET_BYTES
+
+
+# A parsed graph-heavy row holds gigabytes and parsing peaks far higher, so
+# grading shares parsed rows across rollouts of a task and parses one at a time.
+ROW_CACHE_SIZE = 2
+_row_cache: OrderedDict[tuple[str, int, int, int], CircuitDatasetRow] = OrderedDict()
+_row_lock = threading.Lock()
+
+
+def cached_source_row(path: Path, index: int) -> CircuitDatasetRow | None:
+    """Load one dataset row, reusing it while the file is unchanged.
+
+    Misses evict the least recently used row before parsing, so a worker holds
+    at most ``ROW_CACHE_SIZE - 1`` other rows while building a new one.
+    """
+
+    stat = path.stat()
+    key = (str(path), index, stat.st_size, stat.st_mtime_ns)
+    with _row_lock:
+        row = _row_cache.get(key)
+        if row is not None:
+            _row_cache.move_to_end(key)
+            return row
+        while len(_row_cache) >= ROW_CACHE_SIZE:
+            _row_cache.popitem(last=False)
+        row = load_jsonl_row(path, CircuitDatasetRow, index)
+        if row is not None:
+            _row_cache[key] = row
+        return row
 
 
 def row_section(line: bytes, name: str, next_name: str) -> bytes:
@@ -132,9 +163,7 @@ class CausalCircuitTask(vf.Task[CircuitTaskData, vf.State]):
 
         if self.data.dataset_path is None or self.data.dataset_row is None:
             return None
-        return load_jsonl_row(
-            Path(self.data.dataset_path), CircuitDatasetRow, self.data.dataset_row
-        )
+        return cached_source_row(Path(self.data.dataset_path), self.data.dataset_row)
 
     def grading_cohorts(
         self,
